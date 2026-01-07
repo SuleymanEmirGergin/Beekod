@@ -1,0 +1,10 @@
+{
+  "items": [
+    {
+      "barcode": "bee252525",
+      "quantity": 5,
+      "salePrice": 500,
+      "listPrice": 500
+    }
+  ]
+}

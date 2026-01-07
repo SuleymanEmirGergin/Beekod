@@ -1,0 +1,34 @@
+Checking Marketplace API Keys...
+
+[Trendyol]
+  TRENDYOL_API_BASE: Ô£à Present
+  TRENDYOL_API_KEY: Ô£à Present
+  TRENDYOL_API_SECRET: Ô£à Present
+  TRENDYOL_SUPPLIER_ID: Ô£à Present
+  => Status: READY ­şşó
+
+[Hepsiburada]
+  HEPSIBURADA_API_BASE: Ô£à Present
+  HEPSIBURADA_API_KEY: ÔØî Missing
+  HEPSIBURADA_API_SECRET: ÔØî Missing
+  => Status: INCOMPLETE ­şö┤
+
+[N11]
+  N11_API_BASE: ÔØî Missing
+  N11_API_KEY: Ô£à Present
+  N11_API_SECRET: Ô£à Present
+  => Status: INCOMPLETE ­şö┤
+
+[Ciceksepeti]
+  CICEKSEPETI_API_KEY: Ô£à Present
+  => Status: READY ­şşó
+
+[PttAVM]
+  PTTAVM_API_USER: ÔØî Missing
+  PTTAVM_API_PASS: ÔØî Missing
+  => Status: INCOMPLETE ­şö┤
+
+[Pazarama]
+  PAZARAMA_API_KEY: Ô£à Present
+  => Status: READY ­şşó
+

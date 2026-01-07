@@ -1,0 +1,56 @@
+{
+  "items": [
+    {
+      "barcode": "bee252525",
+      "title": "Sample Product Title",
+      "productMainId": "TKUOAMND-707",
+      "stockCode": "TGNMTEMKUIKRM707",
+      "quantity": 5,
+      "listPrice": 500,
+      "salePrice": 500,
+      "currencyType": "TRY",
+      "description": "Sample product description.",
+      "brandId": 1183037,
+      "categoryId": 4746,
+      "vatRate": 10,
+      "cargoCompanyId": 38,
+      "images": [
+        {
+          "url": "https://cdn.dsmcdn.com/ty1571/prod/QC/20240924/21/e7eebc82-04ca-3f86-a1eb-f24064f78d58/1_org_zoom.jpg"
+        },
+        {
+          "url": "https://cdn.dsmcdn.com/ty1570/prod/QC/20240924/21/9398c032-5d39-34c7-96bd-a6c9cd82dea5/1_org_zoom.jpg"
+        },
+        {
+          "url": "https://cdn.dsmcdn.com/ty1570/prod/QC/20240924/21/57b98ccd-157a-3454-b76d-2730c9071aba/1_org_zoom.jpg"
+        }
+      ],
+      "attributes": [
+        {
+          "attributeId": 47,
+          "customAttributeValue": "Kirmizi"
+        },
+        {
+          "attributeId": 348,
+          "attributeValueId": 7002
+        },
+        {
+          "attributeId": 14,
+          "attributeValueId": 91
+        },
+        {
+          "attributeId": 370,
+          "attributeValueId": 17912
+        },
+        {
+          "attributeId": 1192,
+          "attributeValueId": 10617344
+        },
+        {
+          "attributeId": 338,
+          "attributeValueId": 6821
+        }
+      ]
+    }
+  ]
+}

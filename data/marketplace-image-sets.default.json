@@ -1,0 +1,39 @@
+[
+  {
+    "marketplace": "Trendyol",
+    "profiles": [
+      "trendyol_square",
+      "trendyol_square_whitebg_strict",
+      "trendyol_square_subject"
+    ],
+    "defaultProfile": "trendyol_square",
+    "note": "Trendyol icin kare, beyaz zemin ve strict profiller"
+  },
+  {
+    "marketplace": "Instagram",
+    "profiles": [
+      "instagram_post_focus",
+      "instagram_story"
+    ],
+    "defaultProfile": "instagram_post_focus",
+    "note": "Instagram post ve story formatlari"
+  },
+  {
+    "marketplace": "Web",
+    "profiles": [
+      "web_optimized",
+      "webp_compact"
+    ],
+    "defaultProfile": "web_optimized",
+    "note": "Web icin optimize profiller"
+  },
+  {
+    "marketplace": "Hepsiburada",
+    "profiles": [
+      "hepsiburada_square",
+      "hepsiburada_square_strict"
+    ],
+    "defaultProfile": "hepsiburada_square",
+    "note": "Hepsiburada icin kare, beyaz zemin ve strict profiller"
+  }
+]

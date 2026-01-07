@@ -1,0 +1,360 @@
+{
+  "social": {
+    "hashtags": {
+      "jewelry": {
+        "tr": [
+          "#aksesuar",
+          "#stil",
+          "#shine"
+        ],
+        "en": [
+          "#accessories",
+          "#style",
+          "#shine"
+        ]
+      },
+      "fashion": {
+        "tr": [
+          "#giyim",
+          "#stil",
+          "#trend"
+        ],
+        "en": [
+          "#fashion",
+          "#style",
+          "#trend"
+        ]
+      },
+      "electronics": {
+        "tr": [
+          "#teknoloji",
+          "#yenilik",
+          "#gadget"
+        ],
+        "en": [
+          "#tech",
+          "#new",
+          "#gadget"
+        ]
+      },
+      "home": {
+        "tr": [
+          "#ev",
+          "#dekor",
+          "#home"
+        ],
+        "en": [
+          "#home",
+          "#decor",
+          "#style"
+        ]
+      },
+      "beauty": {
+        "tr": [
+          "#bakim",
+          "#kozmetik",
+          "#ciltbakim"
+        ],
+        "en": [
+          "#beauty",
+          "#skincare",
+          "#glow"
+        ]
+      },
+      "baby": {
+        "tr": [
+          "#bebek",
+          "#anne",
+          "#parenting"
+        ],
+        "en": [
+          "#baby",
+          "#parenting",
+          "#family"
+        ]
+      },
+      "sports": {
+        "tr": [
+          "#spor",
+          "#fitness",
+          "#active"
+        ],
+        "en": [
+          "#sports",
+          "#fitness",
+          "#active"
+        ]
+      },
+      "outdoor": {
+        "tr": [
+          "#outdoor",
+          "#kamp",
+          "#dogada"
+        ],
+        "en": [
+          "#outdoor",
+          "#camping",
+          "#adventure"
+        ]
+      },
+      "general": {
+        "tr": [
+          "#yeniurun",
+          "#trend",
+          "#shopping"
+        ],
+        "en": [
+          "#new",
+          "#trend",
+          "#shopping"
+        ]
+      },
+      "pet": {
+        "tr": [
+          "#pet",
+          "#kedi",
+          "#kopek"
+        ],
+        "en": [
+          "#pet",
+          "#dog",
+          "#cat"
+        ]
+      },
+      "kitchen": {
+        "tr": [
+          "#mutfak",
+          "#yemek",
+          "#kitchen"
+        ],
+        "en": [
+          "#kitchen",
+          "#cook",
+          "#homechef"
+        ]
+      },
+      "office": {
+        "tr": [
+          "#ofis",
+          "#calisma",
+          "#desk"
+        ],
+        "en": [
+          "#office",
+          "#workspace",
+          "#desk"
+        ]
+      },
+      "gaming": {
+        "tr": [
+          "#gaming",
+          "#oyun",
+          "#gamer"
+        ],
+        "en": [
+          "#gaming",
+          "#gamer",
+          "#esports"
+        ]
+      }
+    },
+    "toneHashtags": {
+      "neutral": {
+        "tr": [],
+        "en": []
+      },
+      "premium": {
+        "tr": [
+          "#premium",
+          "#ozel"
+        ],
+        "en": [
+          "#premium",
+          "#luxury"
+        ]
+      },
+      "casual": {
+        "tr": [
+          "#gunluk",
+          "#rahat"
+        ],
+        "en": [
+          "#casual",
+          "#everyday"
+        ]
+      },
+      "energetic": {
+        "tr": [
+          "#enerji",
+          "#dinamik"
+        ],
+        "en": [
+          "#energy",
+          "#dynamic"
+        ]
+      },
+      "playful": {
+        "tr": [
+          "#eglence",
+          "#neeli"
+        ],
+        "en": [
+          "#playful",
+          "#fun"
+        ]
+      },
+      "friendly": {
+        "tr": [
+          "#samimi",
+          "#sicak"
+        ],
+        "en": [
+          "#friendly",
+          "#warm"
+        ]
+      },
+      "technical": {
+        "tr": [
+          "#teknik",
+          "#detay"
+        ],
+        "en": [
+          "#technical",
+          "#specs"
+        ]
+      },
+      "bold": {
+        "tr": [
+          "#iddiali",
+          "#cesur"
+        ],
+        "en": [
+          "#bold",
+          "#statement"
+        ]
+      }
+    },
+    "toneEmojis": {
+      "neutral": [
+        ""
+      ],
+      "premium": [
+        "✨",
+        "💎",
+        "🖤"
+      ],
+      "casual": [
+        "😊",
+        "👍",
+        "☀️"
+      ],
+      "energetic": [
+        "🔥",
+        "⚡",
+        "🚀"
+      ],
+      "playful": [
+        ":)",
+        ":D",
+        ";)"
+      ],
+      "friendly": [
+        "😊",
+        "🤝",
+        "💬"
+      ],
+      "technical": [
+        "🛠️",
+        "📊",
+        "⚙️"
+      ],
+      "bold": [
+        "🔥",
+        "💥",
+        "⚡"
+      ]
+    }
+  },
+  "seo": {
+    "toneSuffixes": {
+      "neutral": {
+        "tr": [
+          ""
+        ],
+        "en": [
+          ""
+        ]
+      },
+      "premium": {
+        "tr": [
+          "Premium his ve ozenli detaylar.",
+          "Ozel secim, ust kalite."
+        ],
+        "en": [
+          "Premium feel with refined details.",
+          "Exclusive pick with top quality."
+        ]
+      },
+      "casual": {
+        "tr": [
+          "Gunluk kullanima uygun, rahat bir deneyim.",
+          "Samimi ve pratik bir secim."
+        ],
+        "en": [
+          "Everyday-ready, easy to enjoy.",
+          "Friendly, practical choice."
+        ]
+      },
+      "energetic": {
+        "tr": [
+          "Dinamik durusuyla dikkat ceker.",
+          "Enerjisi yuksek, iddiali stil."
+        ],
+        "en": [
+          "Bold and energetic look.",
+          "High energy, confident style."
+        ]
+      },
+      "playful": {
+        "tr": [
+          "Eglenceli bir dokunus.",
+          "Neeli ve canli bir stil."
+        ],
+        "en": [
+          "Playful touch.",
+          "Fun and lively style."
+        ]
+      },
+      "friendly": {
+        "tr": [
+          "Samimi ve sicak bir dokunus.",
+          "Gunluk iletisime uygun."
+        ],
+        "en": [
+          "Warm and friendly touch.",
+          "Easygoing and approachable."
+        ]
+      },
+      "technical": {
+        "tr": [
+          "Teknik detaylariyla on plana cikar.",
+          "Ozellik odakli guclu secim."
+        ],
+        "en": [
+          "Specs-forward and detail focused.",
+          "Built for performance-minded buyers."
+        ]
+      },
+      "bold": {
+        "tr": [
+          "Cesur ve iddiali durus.",
+          "Fark yaratan stil."
+        ],
+        "en": [
+          "Bold statement look.",
+          "Made to stand out."
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,39 @@
+node_modules/
+dist/
+build/
+coverage/
+
+# Storage & Temp
+storage/
+temp/
+tmp/
+backups/
+
+# Logs
+logs/
+*.log
+*.pid
+dev-server.*.log
+build_log.txt
+
+# Environment & Secrets
+.env
+.env.*
+!.env.example
+secrets/
+secrets/google-service-account.json
+
+# Debug & Scraper Artifacts
+debug_*.json
+debug_*.html
+*_debug.html
+*_debug.png
+scraper_*.html
+*_output.txt
+ports.txt
+
+# OS & IDE
+.DS_Store
+.vscode/
+.idea/
+Thumbs.db

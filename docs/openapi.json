@@ -1,0 +1,523 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Beekod API",
+    "version": "0.1.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "AdminKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-admin-key"
+      }
+    },
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" },
+          "message": { "type": "string" },
+          "requestId": { "type": "string" }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string" },
+          "db": { "type": "string" }
+        }
+      },
+      "ContentPreviewRequest": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string", "enum": ["seo", "social"] },
+          "locale": { "type": "string", "enum": ["tr", "en"] },
+          "name": { "type": "string" },
+          "price": { "type": "number" },
+          "currency": { "type": "string" },
+          "category": { "type": "string" },
+          "tone": { "type": "string" }
+        },
+        "required": ["name"]
+      },
+      "ContentPreviewResponse": {
+        "type": "object",
+        "properties": {
+          "text": { "type": "string" },
+          "category": { "type": "string" },
+          "tone": { "type": "string" }
+        }
+      },
+      "Product": {
+        "type": "object",
+        "properties": {
+          "barcode": { "type": "string" },
+          "name": { "type": "string" },
+          "price": { "type": "number" },
+          "stock": { "type": "integer" },
+          "currency": { "type": "string" }
+        }
+      },
+      "ProductsResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Product" }
+          }
+        }
+      },
+      "ProductUpsertRequest": {
+        "type": "object",
+        "properties": {
+          "barcode": { "type": "string" },
+          "name": { "type": "string" },
+          "price": { "type": "number" },
+          "stock": { "type": "number" },
+          "currency": { "type": "string" }
+        },
+        "required": ["barcode", "name", "price", "stock"]
+      },
+      "MarketplaceListing": {
+        "type": "object",
+        "properties": {
+          "marketplace": { "type": "string" },
+          "barcode": { "type": "string" },
+          "price": { "type": "number" },
+          "stock": { "type": "integer" },
+          "currency": { "type": "string" },
+          "title": { "type": "string" },
+          "active": { "type": "boolean" }
+        }
+      },
+      "MarketplaceListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/MarketplaceListing" }
+          },
+          "source": { "type": "string" }
+        }
+      },
+      "MarketplaceStats": {
+        "type": "object",
+        "properties": {
+          "marketplace": { "type": "string" },
+          "total": { "type": "integer" },
+          "active": { "type": "integer" },
+          "inactive": { "type": "integer" }
+        }
+      },
+      "MarketplaceStatsResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/MarketplaceStats" }
+          }
+        }
+      },
+      "MarketplaceReportItem": {
+        "type": "object",
+        "properties": {
+          "marketplace": { "type": "string" },
+          "orders": { "type": "integer" },
+          "items": { "type": "integer" },
+          "revenue": { "type": "number" },
+          "currency": { "type": "string" }
+        }
+      },
+      "MarketplaceReportResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "period": { "type": "string" },
+              "periodLabel": { "type": "string" },
+              "items": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/MarketplaceReportItem" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/HealthResponse" } }
+            }
+          }
+        }
+      }
+    },
+    "/content-preview": {
+      "post": {
+        "summary": "Generate content preview",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/ContentPreviewRequest" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Preview",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/ContentPreviewResponse" } }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/products": {
+      "get": {
+        "summary": "List products",
+        "security": [{ "AdminKeyAuth": [] }],
+        "parameters": [
+          { "name": "limit", "in": "query", "schema": { "type": "integer" } },
+          { "name": "barcode", "in": "query", "schema": { "type": "string" } },
+          { "name": "search", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Products",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/ProductsResponse" } }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Upsert product",
+        "security": [{ "AdminKeyAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/ProductUpsertRequest" } }
+          }
+        },
+        "responses": {
+          "200": { "description": "Product" },
+          "400": {
+            "description": "Bad request",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/products/{barcode}/price": {
+      "put": {
+        "summary": "Update product price",
+        "security": [{ "AdminKeyAuth": [] }],
+        "parameters": [
+          { "name": "barcode", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "action": { "type": "string", "enum": ["set", "increase", "decrease"] },
+                  "value": { "type": "number" },
+                  "isPercent": { "type": "boolean" }
+                },
+                "required": ["value"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Product" },
+          "400": { "description": "Bad request" },
+          "404": { "description": "Not found" }
+        }
+      }
+    },
+    "/products/{barcode}/stock": {
+      "put": {
+        "summary": "Update product stock",
+        "security": [{ "AdminKeyAuth": [] }],
+        "parameters": [
+          { "name": "barcode", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "action": { "type": "string", "enum": ["set", "increase", "decrease"] },
+                  "value": { "type": "number" },
+                  "isPercent": { "type": "boolean" }
+                },
+                "required": ["value"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Product" },
+          "400": { "description": "Bad request" },
+          "404": { "description": "Not found" }
+        }
+      }
+    },
+    "/marketplace/listings": {
+      "get": {
+        "summary": "List marketplace listings",
+        "security": [{ "AdminKeyAuth": [] }],
+        "parameters": [
+          { "name": "marketplace", "in": "query", "schema": { "type": "string" } },
+          { "name": "barcode", "in": "query", "schema": { "type": "string" } },
+          { "name": "status", "in": "query", "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" } },
+          { "name": "source", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Listings",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/MarketplaceListResponse" } }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Update marketplace listing",
+        "security": [{ "AdminKeyAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "marketplace": { "type": "string" },
+                  "barcode": { "type": "string" },
+                  "action": { "type": "string" },
+                  "value": { "type": "number" },
+                  "name": { "type": "string" },
+                  "currency": { "type": "string" },
+                  "price": { "type": "number" },
+                  "stock": { "type": "number" },
+                  "images": {
+                    "oneOf": [
+                      { "type": "string" },
+                      { "type": "array", "items": { "type": "string" } }
+                    ]
+                  }
+                },
+                "required": ["marketplace", "barcode", "action"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Result" },
+          "400": { "description": "Bad request" },
+          "404": { "description": "Not found" }
+        }
+      }
+    },
+    "/marketplace/listings/stats": {
+      "get": {
+        "summary": "Marketplace listing stats",
+        "security": [{ "AdminKeyAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Stats",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/MarketplaceStatsResponse" } }
+            }
+          }
+        }
+      }
+    },
+    "/marketplace/listings/bulk": {
+      "put": {
+        "summary": "Bulk marketplace update",
+        "security": [{ "AdminKeyAuth": [] }],
+        "responses": {
+          "200": { "description": "Bulk result" }
+        }
+      }
+    },
+    "/marketplace/batch-requests/{batchRequestId}": {
+      "get": {
+        "summary": "Get marketplace batch request result",
+        "security": [{ "AdminKeyAuth": [] }],
+        "parameters": [
+          { "name": "batchRequestId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "marketplace", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Batch request result" },
+          "400": { "description": "Bad request" },
+          "404": { "description": "Not found" }
+        }
+      }
+    },
+    "/marketplaces/providers": {
+      "get": {
+        "summary": "List marketplace providers",
+        "security": [{ "AdminKeyAuth": [] }],
+        "responses": {
+          "200": { "description": "Providers" }
+        }
+      }
+    },
+    "/reports/marketplaces": {
+      "get": {
+        "summary": "Marketplace sales report",
+        "security": [{ "AdminKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": { "type": "string", "enum": ["last_week", "this_week", "last_month", "this_month"] }
+          },
+          { "name": "month", "in": "query", "schema": { "type": "string" } },
+          { "name": "marketplace", "in": "query", "schema": { "type": "string" } },
+          { "name": "locale", "in": "query", "schema": { "type": "string", "enum": ["tr", "en"] } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Report",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/MarketplaceReportResponse" } }
+            }
+          }
+        }
+      }
+    },
+    "/logs": {
+      "get": {
+        "summary": "List logs",
+        "security": [{ "AdminKeyAuth": [] }],
+        "parameters": [
+          { "name": "limit", "in": "query", "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Logs" }
+        }
+      }
+    },
+    "/jobs": {
+      "get": {
+        "summary": "List jobs",
+        "security": [{ "AdminKeyAuth": [] }],
+        "parameters": [
+          { "name": "limit", "in": "query", "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Jobs" }
+        }
+      },
+      "post": {
+        "summary": "Enqueue job",
+        "security": [{ "AdminKeyAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "type": { "type": "string", "enum": ["cache.refresh", "marketplace.sync_all"] }
+                },
+                "required": ["type"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Job" }
+        }
+      }
+    },
+    "/jobs/{id}": {
+      "get": {
+        "summary": "Get job",
+        "security": [{ "AdminKeyAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Job" },
+          "404": { "description": "Not found" }
+        }
+      }
+    },
+    "/jobs/stats": {
+      "get": {
+        "summary": "Job stats",
+        "security": [{ "AdminKeyAuth": [] }],
+        "responses": {
+          "200": { "description": "Stats" }
+        }
+      }
+    },
+    "/jobs/dead-letter": {
+      "get": {
+        "summary": "Dead letter queue",
+        "security": [{ "AdminKeyAuth": [] }],
+        "parameters": [
+          { "name": "limit", "in": "query", "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Dead letters" }
+        }
+      }
+    },
+    "/cache/reset": {
+      "post": {
+        "summary": "Reset caches",
+        "security": [{ "AdminKeyAuth": [] }],
+        "responses": {
+          "200": { "description": "OK" }
+        }
+      }
+    },
+    "/ops/metrics": {
+      "get": {
+        "summary": "Ops metrics",
+        "security": [{ "AdminKeyAuth": [] }],
+        "responses": {
+          "200": { "description": "Metrics" }
+        }
+      }
+    },
+    "/docs.json": {
+      "get": {
+        "summary": "OpenAPI spec",
+        "security": [{ "AdminKeyAuth": [] }],
+        "responses": {
+          "200": { "description": "Spec" }
+        }
+      }
+    }
+  }
+}

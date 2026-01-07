@@ -1,0 +1,1 @@
+import "./trendyol-live.js";

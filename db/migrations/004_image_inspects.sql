@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS image_inspects (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  image_id INT,
+  barcode VARCHAR(64),
+  marketplace VARCHAR(64),
+  profile VARCHAR(64),
+  source VARCHAR(32),
+  score INT,
+  issue_count INT,
+  warn_count INT,
+  fail_count INT,
+  summary_en VARCHAR(512),
+  summary_tr VARCHAR(512),
+  report_json JSON NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_image_inspects_image (image_id),
+  INDEX idx_image_inspects_barcode (barcode),
+  INDEX idx_image_inspects_profile (profile),
+  INDEX idx_image_inspects_created (created_at)
+);

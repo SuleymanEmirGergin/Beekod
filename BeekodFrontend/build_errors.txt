@@ -1,0 +1,8 @@
+src/components/invoice/InvoiceScannerModal.tsx(126,56): error TS2367: This comparison appears to be unintentional because the types '"error" | "done" | "idle"' and '"analyzing"' have no overlap.
+src/pages/InventoryManagementScreen.tsx(179,18): error TS2304: Cannot find name 'Bell'.
+src/pages/InventoryManagementScreen.tsx(183,18): error TS2304: Cannot find name 'HelpCircle'.
+src/pages/InventoryManagementScreen.tsx(211,16): error TS2304: Cannot find name 'Package'.
+src/pages/InventoryManagementScreen.tsx(262,28): error TS2304: Cannot find name 'Minus'.
+src/pages/InventoryManagementScreen.tsx(300,28): error TS2304: Cannot find name 'Edit'.
+src/pages/InventoryManagementScreen.tsx(307,28): error TS2304: Cannot find name 'Trash2'.
+src/pages/InventoryManagementScreen.tsx(318,18): error TS2304: Cannot find name 'Package'.

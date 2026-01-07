@@ -1,0 +1,232 @@
+{
+    "jewelry": {
+        "tr": [
+            "{name} icin SEO uyumlu aciklama: Zarif tasarim, gunluk kombinlere uyumlu, kaliteli malzeme.{price} Simdi kesfet.",
+            "{name} icin SEO uyumlu aciklama: Ince iscilik, sade ve modern gorunum, her stile uyum.{price} Hemen incele.",
+            "{name} icin SEO uyumlu aciklama: Parlak detaylar, konforlu kullanim, uzun omurlu yapi.{price} Simdi bak.",
+            "{name} icin SEO uyumlu aciklama: Minimal dokus, zarif detay, her an icin ideal.{price} Stiline isik kat.",
+            "{name} icin SEO uyumlu aciklama: Zamansiz form, gunluk rahatlik, ozenli iscilik.{price} Simdi sepetle."
+        ],
+        "en": [
+            "SEO description for {name}: Elegant design, daily-ready, crafted with quality materials.{price} Discover now.",
+            "SEO description for {name}: Refined craftsmanship, clean lines, versatile style.{price} Explore today.",
+            "SEO description for {name}: Subtle shine, comfortable wear, built to last.{price} Check it out.",
+            "SEO description for {name}: Minimal touch, refined details, perfect for any moment.{price} Add sparkle.",
+            "SEO description for {name}: Timeless form, everyday comfort, careful craftsmanship.{price} Add to cart."
+        ]
+    },
+    "fashion": {
+        "tr": [
+            "{name} icin SEO uyumlu aciklama: Rahat kalip, sezon trendi, stilini tamamlar.{price} Hemen incele.",
+            "{name} icin SEO uyumlu aciklama: Gunluk rahatlik, zamansiz tasarim, kolay kombin.{price} Simdi kesfet.",
+            "{name} icin SEO uyumlu aciklama: Hafif dokus, modern durus, dolabina enerji katar.{price} Incele.",
+            "{name} icin SEO uyumlu aciklama: Sehir temposuna uygun, rahat doku, kolay kombin.{price} Simdi bak.",
+            "{name} icin SEO uyumlu aciklama: Zarif durus, nefes alan doku, guncel stil.{price} Kesfet."
+        ],
+        "en": [
+            "SEO description for {name}: Comfortable fit, on-trend, finishes your look.{price} Shop now.",
+            "SEO description for {name}: Everyday comfort, timeless design, easy to style.{price} Explore now.",
+            "SEO description for {name}: Lightweight feel, modern look, adds energy to your wardrobe.{price} See more.",
+            "SEO description for {name}: City-ready, soft touch, easy to pair.{price} Discover now.",
+            "SEO description for {name}: Elegant look, breathable feel, current style.{price} Shop today."
+        ]
+    },
+    "electronics": {
+        "tr": [
+            "{name} icin SEO uyumlu aciklama: Guclu performans, net deneyim, guvenilir teknoloji.{price} Detaylari gor.",
+            "{name} icin SEO uyumlu aciklama: Hizli tepki, akici deneyim, akilli ozellikler.{price} Simdi incele.",
+            "{name} icin SEO uyumlu aciklama: Verimli calisma, modern tasarim, pratik kullanim.{price} Kesfet.",
+            "{name} icin SEO uyumlu aciklama: Guncel teknoloji, stabil performans, kolay kurulum.{price} Simdi bak.",
+            "{name} icin SEO uyumlu aciklama: Akilli ozellikler, enerji verimliligi, kullanici dostu.{price} Incele."
+        ],
+        "en": [
+            "SEO description for {name}: Powerful performance, clear experience, reliable tech.{price} See details.",
+            "SEO description for {name}: Fast response, smooth experience, smart features.{price} Learn more.",
+            "SEO description for {name}: Efficient operation, modern design, easy to use.{price} Explore now.",
+            "SEO description for {name}: Updated tech, stable performance, easy setup.{price} Discover now.",
+            "SEO description for {name}: Smart features, energy efficient, user-friendly.{price} See it today."
+        ]
+    },
+    "home": {
+        "tr": [
+            "{name} icin SEO uyumlu aciklama: Evinize sicaklik katan tasarim, pratik kullanim.{price} Simdi kesfet.",
+            "{name} icin SEO uyumlu aciklama: Sade dokunu, kullanisli yapi, her kosede uyum.{price} Hemen bak.",
+            "{name} icin SEO uyumlu aciklama: Keyifli atmosfer, dayanikli malzeme, kolay temizlik.{price} Incele.",
+            "{name} icin SEO uyumlu aciklama: Sade tasarim, kullanisli detaylar, ferah bir atmosfer.{price} Simdi bak.",
+            "{name} icin SEO uyumlu aciklama: Gunluk kullanima uygun, zamansiz stil, sicak bir dokunus.{price} Kesfet."
+        ],
+        "en": [
+            "SEO description for {name}: Cozy design for your home, practical to use.{price} Explore now.",
+            "SEO description for {name}: Minimal touch, functional build, fits any corner.{price} See it today.",
+            "SEO description for {name}: Warm atmosphere, durable materials, easy care.{price} Discover more.",
+            "SEO description for {name}: Clean design, functional details, airy feel.{price} Explore today.",
+            "SEO description for {name}: Everyday-ready, timeless style, warm touch.{price} Check it out."
+        ]
+    },
+    "beauty": {
+        "tr": [
+            "{name} icin SEO uyumlu aciklama: Cilt dostu icerik, etkili sonuc, gunluk rutine uygun.{price} Hemen dene.",
+            "{name} icin SEO uyumlu aciklama: Hafif doku, guclu etki, duzenli kullanim icin ideal.{price} Simdi kesfet.",
+            "{name} icin SEO uyumlu aciklama: Nazik form, ferah his, guvenilir icerik.{price} Incele.",
+            "{name} icin SEO uyumlu aciklama: Nazik bakim, canli gorunum, kolay uygulama.{price} Simdi bak.",
+            "{name} icin SEO uyumlu aciklama: Dengeli icerik, yumuak his, guvenli kullanim.{price} Kesfet."
+        ],
+        "en": [
+            "SEO description for {name}: Skin-friendly formula, effective results, daily routine ready.{price} Try it now.",
+            "SEO description for {name}: Lightweight feel, strong effect, ideal for regular use.{price} Discover today.",
+            "SEO description for {name}: Gentle formula, fresh feel, trusted ingredients.{price} Check it out.",
+            "SEO description for {name}: Gentle care, lively look, easy application.{price} See more.",
+            "SEO description for {name}: Balanced formula, soft feel, safe to use.{price} Explore now."
+        ]
+    },
+    "baby": {
+        "tr": [
+            "{name} icin SEO uyumlu aciklama: Bebeginiz icin guvenli, konforlu ve dayanikli.{price} Simdi incele.",
+            "{name} icin SEO uyumlu aciklama: Yumussak doku, pratik kullanim, ebeveyn dostu.{price} Hemen bak.",
+            "{name} icin SEO uyumlu aciklama: Guvenli malzeme, gunluk ihtiyaclara uygun, kolay temizlenir.{price} Kesfet.",
+            "{name} icin SEO uyumlu aciklama: Hassas ciltlere uygun, guvenli malzeme, konfor odakli.{price} Incele.",
+            "{name} icin SEO uyumlu aciklama: Gundelik ihtiyaclara uygun, pratik ve guvenilir.{price} Simdi bak."
+        ],
+        "en": [
+            "SEO description for {name}: Safe, comfortable, and durable for your baby.{price} Learn more.",
+            "SEO description for {name}: Soft touch, easy to use, parent-friendly.{price} Explore now.",
+            "SEO description for {name}: Safe materials, daily-ready, easy to clean.{price} See details.",
+            "SEO description for {name}: Sensitive-skin friendly, safe materials, comfort first.{price} Discover now.",
+            "SEO description for {name}: Daily essentials, practical and reliable.{price} Check it out."
+        ]
+    },
+    "sports": {
+        "tr": [
+            "{name} icin SEO uyumlu aciklama: Dayanikli malzeme, antrenmanlara uygun, uzun omurlu.{price} Kesfet.",
+            "{name} icin SEO uyumlu aciklama: Ergonomik tasarim, guclu tutus, performans odakli.{price} Simdi incele.",
+            "{name} icin SEO uyumlu aciklama: Hafif yapi, rahat kullanim, hedeflerin icin ideal.{price} Bak.",
+            "{name} icin SEO uyumlu aciklama: Esnek yapi, guclu performans, antrenman odakli.{price} Simdi bak.",
+            "{name} icin SEO uyumlu aciklama: Dayanikli tasarim, rahat tutus, hedefe odakli.{price} Kesfet."
+        ],
+        "en": [
+            "SEO description for {name}: Durable materials, training-ready, built to last.{price} Explore.",
+            "SEO description for {name}: Ergonomic design, strong grip, performance-focused.{price} Check it out.",
+            "SEO description for {name}: Lightweight build, comfortable use, ideal for your goals.{price} Learn more.",
+            "SEO description for {name}: Flexible build, strong performance, training-ready.{price} Discover now.",
+            "SEO description for {name}: Durable design, comfortable grip, goal-focused.{price} See details."
+        ]
+    },
+    "outdoor": {
+        "tr": [
+            "{name} icin SEO uyumlu aciklama: Dogaya hazir, dayanikli malzeme, pratik kullanim.{price} Simdi kesfet.",
+            "{name} icin SEO uyumlu aciklama: Kamp ve outdoor maceralari icin ideal, hafif ve saglam.{price} Hemen incele.",
+            "{name} icin SEO uyumlu aciklama: Zorlu kosullara uygun, guvenilir performans.{price} Simdi bak.",
+            "{name} icin SEO uyumlu aciklama: Kolay tasinabilir, rahat tasarim, maceraya uygun.{price} Kesfet.",
+            "{name} icin SEO uyumlu aciklama: Dayanikli yapisi ve konforlu kullanim.{price} Sepete ekle."
+        ],
+        "en": [
+            "SEO description for {name}: Outdoor-ready, durable materials, easy to use.{price} Discover now.",
+            "SEO description for {name}: Ideal for camping and hiking, lightweight yet sturdy.{price} Explore today.",
+            "SEO description for {name}: Built for tough conditions, reliable performance.{price} See more.",
+            "SEO description for {name}: Easy to carry, comfortable design, adventure-ready.{price} Check it out.",
+            "SEO description for {name}: Durable build with comfortable use.{price} Add to cart."
+        ]
+    },
+    "pet": {
+        "tr": [
+            "{name} icin SEO uyumlu aciklama: Sevimli dostlar icin guvenli, dayanikli ve rahat.{price} Hemen incele.",
+            "{name} icin SEO uyumlu aciklama: Mama ve oyuncak icin ideal, kolay temizlenir.{price} Simdi kesfet.",
+            "{name} icin SEO uyumlu aciklama: Konforlu kullanim, saglam yapi, gunluk rutin icin uygun.{price} Bak.",
+            "{name} icin SEO uyumlu aciklama: Pet dostu malzeme, pratik detaylar, uzun omurlu.{price} Simdi bak.",
+            "{name} icin SEO uyumlu aciklama: Sevimli tasarim, guvenilir kalite.{price} Kesfet.",
+            "{name} icin SEO uyumlu aciklama: Dostlarin icin konforlu, guvenli ve pratik.{price} Hemen kesfet."
+        ],
+        "en": [
+            "SEO description for {name}: Safe, durable, pet-friendly comfort.{price} Discover now.",
+            "SEO description for {name}: Ideal for food or play, easy to clean.{price} Explore today.",
+            "SEO description for {name}: Comfortable use, sturdy build, daily-ready.{price} See more.",
+            "SEO description for {name}: Pet-safe materials, practical details, long lasting.{price} Check it out.",
+            "SEO description for {name}: Cute design with trusted quality.{price} Add to cart.",
+            "SEO description for {name}: Comfortable, safe, and practical for pets.{price} Discover now."
+        ]
+    },
+    "kitchen": {
+        "tr": [
+            "{name} icin SEO uyumlu aciklama: Mutfakta pratiklik, dayanikli malzeme, kolay kullanim.{price} Simdi kesfet.",
+            "{name} icin SEO uyumlu aciklama: Lezzetli tarifler icin ideal, kolay temizlenir.{price} Hemen bak.",
+            "{name} icin SEO uyumlu aciklama: Gunluk kullanim icin saglam ve kullanisli.{price} Incele.",
+            "{name} icin SEO uyumlu aciklama: Mutfakta zaman kazandirir, ergonomik tasarim.{price} Simdi bak.",
+            "{name} icin SEO uyumlu aciklama: Fonksiyonel tasarim, uzun omurlu performans.{price} Kesfet.",
+            "{name} icin SEO uyumlu aciklama: Mutfak islerini kolaylastirir, uzun omurlu.{price} Simdi bak."
+        ],
+        "en": [
+            "SEO description for {name}: Kitchen-ready, durable materials, easy to use.{price} Discover now.",
+            "SEO description for {name}: Ideal for daily cooking, easy to clean.{price} Explore today.",
+            "SEO description for {name}: Sturdy and practical for everyday use.{price} See more.",
+            "SEO description for {name}: Saves time in the kitchen, ergonomic design.{price} Check it out.",
+            "SEO description for {name}: Functional design, long-lasting performance.{price} Add to cart.",
+            "SEO description for {name}: Makes kitchen tasks easier, built to last.{price} See more."
+        ]
+    },
+    "office": {
+        "tr": [
+            "{name} icin SEO uyumlu aciklama: Ofiste verimlilik, duzenli calisma icin ideal.{price} Simdi kesfet.",
+            "{name} icin SEO uyumlu aciklama: Gun boyu konfor, pratik detaylar.{price} Hemen incele.",
+            "{name} icin SEO uyumlu aciklama: Calisma alanina uyumlu, saglam ve kullanisli.{price} Bak.",
+            "{name} icin SEO uyumlu aciklama: Ofis temposuna uygun, modern gorunum.{price} Simdi bak.",
+            "{name} icin SEO uyumlu aciklama: Duzen ve odak icin pratik cozum.{price} Kesfet.",
+            "{name} icin SEO uyumlu aciklama: Calisma alaninda duzen ve rahatlik saglar.{price} Hemen incele."
+        ],
+        "en": [
+            "SEO description for {name}: Office-ready, boosts focus and productivity.{price} Discover now.",
+            "SEO description for {name}: All-day comfort with practical details.{price} Explore today.",
+            "SEO description for {name}: Sturdy and functional, fits your workspace.{price} See more.",
+            "SEO description for {name}: Modern look, built for office pace.{price} Check it out.",
+            "SEO description for {name}: A practical solution for a tidy desk.{price} Add to cart.",
+            "SEO description for {name}: Brings comfort and order to your workspace.{price} Discover now."
+        ]
+    },
+    "gaming": {
+        "tr": [
+            "{name} icin SEO uyumlu aciklama: Oyun performansi icin hizli ve guclu.{price} Simdi kesfet.",
+            "{name} icin SEO uyumlu aciklama: Rekabetci oyunlar icin ideal, tepki hizli.{price} Hemen bak.",
+            "{name} icin SEO uyumlu aciklama: Uzun oyun seanslari icin konforlu.{price} Incele.",
+            "{name} icin SEO uyumlu aciklama: Gaming setup icin tamamlayici parca.{price} Simdi bak.",
+            "{name} icin SEO uyumlu aciklama: Guclu deneyim, stabil performans.{price} Kesfet.",
+            "{name} icin SEO uyumlu aciklama: Oyun deneyimini guclendirir, net performans.{price} Simdi kesfet."
+        ],
+        "en": [
+            "SEO description for {name}: Built for gaming performance, fast and reliable.{price} Discover now.",
+            "SEO description for {name}: Ideal for competitive play, quick response.{price} Explore today.",
+            "SEO description for {name}: Comfortable for long sessions.{price} See more.",
+            "SEO description for {name}: Completes your gaming setup.{price} Check it out.",
+            "SEO description for {name}: Powerful experience, stable performance.{price} Add to cart.",
+            "SEO description for {name}: Boosts your gaming experience with solid performance.{price} Explore now."
+        ]
+    },
+    "general": {
+        "tr": [
+            "{name} icin SEO uyumlu aciklama: Kaliteli malzeme, guvenilir marka, gunluk kullanima uygun.{price} Hemen incele.",
+            "{name} icin SEO uyumlu aciklama: Dengeleyici tasarim, guclu yapi, kolay kullanim.{price} Kesfet.",
+            "{name} icin SEO uyumlu aciklama: Fonksiyonel ozellikler, temiz gorunum, her ihtiyaca uygun.{price} Simdi bak.",
+            "{name} icin SEO uyumlu aciklama: Sade tasarim, saglam yapi, pratik detaylar.{price} Hemen bak.",
+            "{name} icin SEO uyumlu aciklama: Guven veren yapi, modern gorunum, uzun omurlu.{price} Incele."
+        ],
+        "en": [
+            "SEO description for {name}: Quality materials, trusted brand, daily-ready.{price} Check it out.",
+            "SEO description for {name}: Balanced design, solid build, easy to use.{price} Explore now.",
+            "SEO description for {name}: Functional features, clean look, fits your needs.{price} See more.",
+            "SEO description for {name}: Clean design, sturdy build, practical details.{price} Discover now.",
+            "SEO description for {name}: Reliable build, modern look, built to last.{price} Learn more."
+        ]
+    },
+    "generic": {
+        "tr": [
+            "{name} icin SEO uyumlu aciklama: Ozenli uretim, dengeli tasarim, guven veren kalite.{price} Simdi incele.",
+            "{name} icin SEO uyumlu aciklama: Kullanici dostu detaylar, pratik kullanim, modern gorunum.{price} Kesfet.",
+            "{name} icin SEO uyumlu aciklama: Gunluk kullanima uygun, kolay uyum, sade siklik.{price} Hemen bak.",
+            "{name} icin SEO uyumlu aciklama: Kalite ve konforu bir arada, uzun omurlu kullanim.{price} Sepete ekle."
+        ],
+        "en": [
+            "SEO description for {name}: Carefully crafted, balanced design, reliable quality.{price} Explore now.",
+            "SEO description for {name}: User-friendly details, practical use, modern look.{price} Discover more.",
+            "SEO description for {name}: Everyday-ready, easy to match, clean style.{price} See it today.",
+            "SEO description for {name}: Comfort and quality together, built for long use.{price} Add to cart."
+        ]
+    }
+}

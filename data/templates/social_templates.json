@@ -1,0 +1,218 @@
+{
+    "jewelry": {
+        "tr": [
+            "Yeni {name} geldi!{price}",
+            "Parlak dokunus: {name}!{price}",
+            "Kombinine isilti kat: {name}!{price}",
+            "Stilinde yeni favori: {name}!{price}",
+            "Goz alici detaylar: {name}!{price}"
+        ],
+        "en": [
+            "New {name} just dropped!{price}",
+            "Add sparkle with {name}!{price}",
+            "Elevate your look: {name}!{price}",
+            "Your new favorite: {name}!{price}",
+            "Shine brighter with {name}!{price}"
+        ]
+    },
+    "fashion": {
+        "tr": [
+            "Stilini tamamla: {name}!{price}",
+            "Bugunun parcasi: {name}!{price}",
+            "Kombin hazir: {name}!{price}",
+            "Yeni sezon: {name}!{price}",
+            "Tarzina enerji: {name}!{price}"
+        ],
+        "en": [
+            "Complete your look: {name}!{price}",
+            "Today's pick: {name}!{price}",
+            "Outfit ready: {name}!{price}",
+            "New season: {name}!{price}",
+            "Add energy: {name}!{price}"
+        ]
+    },
+    "electronics": {
+        "tr": [
+            "Yeni teknoloji hazir: {name}!{price}",
+            "Guce guc kat: {name}!{price}",
+            "Akilli secim: {name}!{price}",
+            "Yuksek performans: {name}!{price}",
+            "Guncel teknoloji: {name}!{price}"
+        ],
+        "en": [
+            "Tech upgrade: {name}!{price}",
+            "Power up with {name}!{price}",
+            "Smart pick: {name}!{price}",
+            "High performance: {name}!{price}",
+            "Latest tech: {name}!{price}"
+        ]
+    },
+    "home": {
+        "tr": [
+            "Evinize dokunus: {name}!{price}",
+            "Evinin havasi degissin: {name}!{price}",
+            "Rahat bir dokunus: {name}!{price}",
+            "Yeni dekor: {name}!{price}",
+            "Evin icin ideal: {name}!{price}"
+        ],
+        "en": [
+            "Home upgrade: {name}!{price}",
+            "Refresh your space: {name}!{price}",
+            "Cozy touch: {name}!{price}",
+            "New decor: {name}!{price}",
+            "Perfect for home: {name}!{price}"
+        ]
+    },
+    "beauty": {
+        "tr": [
+            "Bakim rutininin yildizi: {name}!{price}",
+            "Icilti hazir: {name}!{price}",
+            "Taze bir dokunus: {name}!{price}",
+            "Parla: {name}!{price}",
+            "Gunluk bakim: {name}!{price}"
+        ],
+        "en": [
+            "Glow time with {name}!{price}",
+            "Shine on with {name}!{price}",
+            "Fresh touch: {name}!{price}",
+            "Glow up: {name}!{price}",
+            "Daily care: {name}!{price}"
+        ]
+    },
+    "baby": {
+        "tr": [
+            "Mini kahramanlar icin: {name}!{price}",
+            "Minikler icin rahatlik: {name}!{price}",
+            "Aileye yeni favori: {name}!{price}",
+            "Minikler icin yeni: {name}!{price}",
+            "Miniklere konfor: {name}!{price}"
+        ],
+        "en": [
+            "For little ones: {name}!{price}",
+            "Comfort for little ones: {name}!{price}",
+            "New family favorite: {name}!{price}",
+            "Baby-ready: {name}!{price}",
+            "Tiny comfort: {name}!{price}"
+        ]
+    },
+    "sports": {
+        "tr": [
+            "Antrenman icin hazir: {name}!{price}",
+            "Hedefe odaklan: {name}!{price}",
+            "Performans zamani: {name}!{price}",
+            "Sahaya cik: {name}!{price}",
+            "Hareket zamani: {name}!{price}"
+        ],
+        "en": [
+            "Training ready: {name}!{price}",
+            "Focus on goals: {name}!{price}",
+            "Performance time: {name}!{price}",
+            "Game on: {name}!{price}",
+            "Move time: {name}!{price}"
+        ]
+    },
+    "outdoor": {
+        "tr": [
+            "Maceraya hazir: {name}!{price}",
+            "Kamp rotasi belli: {name}!{price}",
+            "Dogaya cik: {name}!{price}",
+            "Outdoor favori: {name}!{price}",
+            "Hafif ve saglam: {name}!{price}"
+        ],
+        "en": [
+            "Adventure ready: {name}!{price}",
+            "Camp gear pick: {name}!{price}",
+            "Hit the trail with {name}!{price}",
+            "Outdoor favorite: {name}!{price}",
+            "Lightweight and sturdy: {name}!{price}"
+        ]
+    },
+    "pet": {
+        "tr": [
+            "Minik dostlar icin: {name}!{price}",
+            "Sevimli secim: {name}!{price}",
+            "Pet favorisi: {name}!{price}",
+            "Dostuna ozel: {name}!{price}",
+            "Gunun parcasi: {name}!{price}",
+            "Sevimli dostuna mutluluk: {name}!{price}"
+        ],
+        "en": [
+            "For your pet: {name}!{price}",
+            "Cute pick: {name}!{price}",
+            "Pet favorite: {name}!{price}",
+            "Made for your buddy: {name}!{price}",
+            "Daily must: {name}!{price}",
+            "Treat your pet: {name}!{price}"
+        ]
+    },
+    "kitchen": {
+        "tr": [
+            "Mutfakta yeni favori: {name}!{price}",
+            "Lezzet icin hazir: {name}!{price}",
+            "Mutfak rutini: {name}!{price}",
+            "Kolaylik burada: {name}!{price}",
+            "Tariflere eslik: {name}!{price}",
+            "Mutfakta zaman kazandir: {name}!{price}"
+        ],
+        "en": [
+            "Kitchen favorite: {name}!{price}",
+            "Ready to cook: {name}!{price}",
+            "Kitchen routine: {name}!{price}",
+            "Easy prep: {name}!{price}",
+            "Cook with {name}!{price}",
+            "Save time in the kitchen: {name}!{price}"
+        ]
+    },
+    "office": {
+        "tr": [
+            "Ofis icin ideal: {name}!{price}",
+            "Calisma masasi icin: {name}!{price}",
+            "Odak modu: {name}!{price}",
+            "Duzenli masa: {name}!{price}",
+            "Is rutini: {name}!{price}",
+            "Is gunune enerji: {name}!{price}"
+        ],
+        "en": [
+            "Office pick: {name}!{price}",
+            "For your desk: {name}!{price}",
+            "Focus mode: {name}!{price}",
+            "Desk upgrade: {name}!{price}",
+            "Workday ready: {name}!{price}",
+            "Workday boost: {name}!{price}"
+        ]
+    },
+    "gaming": {
+        "tr": [
+            "Oyunda fark yarat: {name}!{price}",
+            "Gaming modu: {name}!{price}",
+            "Zafer icin: {name}!{price}",
+            "Setup tamam: {name}!{price}",
+            "Oyun keyfi: {name}!{price}",
+            "Skor artiyor: {name}!{price}"
+        ],
+        "en": [
+            "Game on with {name}!{price}",
+            "Gaming mode: {name}!{price}",
+            "Play to win: {name}!{price}",
+            "Setup complete: {name}!{price}",
+            "Level up: {name}!{price}",
+            "Score up with {name}!{price}"
+        ]
+    },
+    "general": {
+        "tr": [
+            "Yeni urun: {name}!{price}",
+            "Gozun uzerinde: {name}!{price}",
+            "Senin icin: {name}!{price}",
+            "Yeni favori: {name}!{price}",
+            "Seni bekliyor: {name}!{price}"
+        ],
+        "en": [
+            "New product: {name}!{price}",
+            "Spotlight on {name}!{price}",
+            "Made for you: {name}!{price}",
+            "New favorite: {name}!{price}",
+            "Waiting for you: {name}!{price}"
+        ]
+    }
+}

@@ -1,0 +1,112 @@
+[
+  {
+    "name": "trendyol_square",
+    "width": 1200,
+    "height": 1200,
+    "fit": "contain",
+    "background": "#ffffff",
+    "format": "jpg",
+    "quality": 85
+  },
+  {
+    "name": "instagram_post",
+    "width": 1080,
+    "height": 1080,
+    "fit": "cover",
+    "format": "jpg",
+    "quality": 82
+  },
+  {
+    "name": "webp_compact",
+    "width": 1080,
+    "height": 1080,
+    "fit": "contain",
+    "background": "#ffffff",
+    "format": "webp",
+    "quality": 80
+  },
+  {
+    "name": "trendyol_square_wm",
+    "width": 1200,
+    "height": 1200,
+    "fit": "contain",
+    "background": "#ffffff",
+    "format": "jpg",
+    "quality": 85
+  },
+  {
+    "name": "instagram_post_focus",
+    "width": 1080,
+    "height": 1080,
+    "fit": "cover",
+    "position": "attention",
+    "format": "jpg",
+    "quality": 82
+  },
+  {
+    "name": "trendyol_square_subject",
+    "width": 1200,
+    "height": 1200,
+    "fit": "contain",
+    "background": "#ffffff",
+    "format": "jpg",
+    "quality": 85,
+    "subjectMask": true,
+    "subjectMaskThreshold": 28,
+    "subjectMaskFeather": 2
+  },
+  {
+    "name": "web_optimized",
+    "width": 1600,
+    "height": 1600,
+    "fit": "contain",
+    "background": "#ffffff",
+    "format": "jpg",
+    "autoFormat": true,
+    "autoQuality": true,
+    "qualityMin": 60,
+    "qualityMax": 90
+  },
+  {
+    "name": "trendyol_square_whitebg_strict",
+    "width": 1200,
+    "height": 1200,
+    "fit": "contain",
+    "background": "#ffffff",
+    "format": "jpg",
+    "quality": 90,
+    "backgroundTolerance": 15,
+    "strict": true,
+    "ratioTolerance": 0.01
+  },
+  {
+    "name": "instagram_story",
+    "width": 1080,
+    "height": 1920,
+    "fit": "cover",
+    "position": "attention",
+    "format": "jpg",
+    "quality": 82
+  },
+  {
+    "name": "hepsiburada_square",
+    "width": 1200,
+    "height": 1200,
+    "fit": "contain",
+    "background": "#ffffff",
+    "format": "jpg",
+    "quality": 85
+  },
+  {
+    "name": "hepsiburada_square_strict",
+    "width": 1200,
+    "height": 1200,
+    "fit": "contain",
+    "background": "#ffffff",
+    "backgroundTolerance": 15,
+    "format": "jpg",
+    "quality": 90,
+    "strict": true,
+    "ratioTolerance": 0.01
+  }
+]

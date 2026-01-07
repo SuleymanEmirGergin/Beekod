@@ -1,0 +1,9 @@
+order_id,date,barcode,quantity,unit_price,currency,marketplace
+ORD-1001,2025-11-02,bee252525,2,500,TRY,Trendyol
+ORD-1002,2025-11-05,bee999888,1,129,TRY,Hepsiburada
+ORD-1003,2025-11-08,bee252525,1,500,TRY,Amazon
+ORD-1004,2025-11-12,bee999888,3,129,TRY,Trendyol
+ORD-1005,2025-12-01,bee252525,4,500,TRY,Trendyol
+ORD-1006,2025-12-04,bee999888,2,129,TRY,Hepsiburada
+ORD-1007,2025-12-06,bee252525,1,500,TRY,Amazon
+ORD-1008,2025-12-10,bee999888,5,129,TRY,Trendyol

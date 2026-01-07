@@ -1,0 +1,93 @@
+[
+    {
+        "_id": "mock-inv-001",
+        "invoiceNumber": "INV-2024-000001",
+        "date": "2024-12-28T09:00:00.000Z",
+        "dueDate": "2025-01-28T09:00:00.000Z",
+        "customer": {
+            "name": "Ahmet Yılmaz",
+            "taxId": "1234567890",
+            "taxOffice": "Kadıköy",
+            "address": "Bağdat Cad. No: 123, Kadıköy, İstanbul",
+            "email": "ahmet@example.com",
+            "phone": "5551234567"
+        },
+        "items": [
+            {
+                "description": "Web Tasarım Hizmeti",
+                "quantity": 1,
+                "unitPrice": 15000,
+                "total": 15000,
+                "taxRate": 20
+            },
+            {
+                "description": "Hosting (Yıllık)",
+                "quantity": 1,
+                "unitPrice": 2500,
+                "total": 2500,
+                "taxRate": 20
+            }
+        ],
+        "subtotal": 17500,
+        "taxAmount": 3500,
+        "totalAmount": 21000,
+        "currency": "TRY",
+        "status": "SENT",
+        "notes": "Lütfen ödemeyi vade tarihine kadar yapınız.",
+        "createdAt": "2024-12-28T09:00:00.000Z",
+        "updatedAt": "2024-12-28T09:00:00.000Z"
+    },
+    {
+        "_id": "mock-inv-002",
+        "invoiceNumber": "INV-2024-000002",
+        "date": "2024-12-20T14:30:00.000Z",
+        "dueDate": "2024-12-27T14:30:00.000Z",
+        "customer": {
+            "name": "Ayşe Demir",
+            "email": "ayse@techcorp.com",
+            "address": "Levent Plaza Kat: 5, İstanbul"
+        },
+        "items": [
+            {
+                "description": "Yazılım Danışmanlığı (Saat)",
+                "quantity": 10,
+                "unitPrice": 1200,
+                "total": 12000,
+                "taxRate": 20
+            }
+        ],
+        "subtotal": 12000,
+        "taxAmount": 2400,
+        "totalAmount": 14400,
+        "currency": "TRY",
+        "status": "PAID",
+        "createdAt": "2024-12-20T14:30:00.000Z",
+        "updatedAt": "2024-12-27T10:00:00.000Z"
+    },
+    {
+        "_id": "mock-inv-003",
+        "invoiceNumber": "INV-2024-000003",
+        "date": "2024-12-29T10:00:00.000Z",
+        "customer": {
+            "name": "Mehmet Öz",
+            "phone": "5329876543"
+        },
+        "items": [
+            {
+                "description": "Logo Tasarımı",
+                "quantity": 1,
+                "unitPrice": 5000,
+                "total": 5000,
+                "taxRate": 20
+            }
+        ],
+        "subtotal": 5000,
+        "taxAmount": 1000,
+        "totalAmount": 6000,
+        "currency": "TRY",
+        "status": "DRAFT",
+        "notes": "Müşteri onayı bekleniyor.",
+        "createdAt": "2024-12-29T10:00:00.000Z",
+        "updatedAt": "2024-12-29T10:00:00.000Z"
+    }
+]

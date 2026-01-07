@@ -1,0 +1,62 @@
+{
+  "brandId": 1320624,
+  "categoryId": 975,
+  "sizeAttributeId": 338,
+  "vatRate": 10,
+  "cargoCompanyId": 38,
+  "images": [
+    "https://cdn.dsmcdn.com/ty1571/prod/QC/20240924/21/e7eebc82-04ca-3f86-a1eb-f24064f78d58/1_org_zoom.jpg",
+    "https://cdn.dsmcdn.com/ty1570/prod/QC/20240924/21/9398c032-5d39-34c7-96bd-a6c9cd82dea5/1_org_zoom.jpg",
+    "https://cdn.dsmcdn.com/ty1570/prod/QC/20240924/21/57b98ccd-157a-3454-b76d-2730c9071aba/1_org_zoom.jpg"
+  ],
+  "attributes": [
+    {
+      "attributeId": 21,
+      "attributeValueId": 4024
+    },
+    {
+      "attributeId": 47,
+      "customAttributeValue": "Beyaz"
+    },
+    {
+      "attributeId": 346,
+      "attributeValueId": 4293
+    },
+    {
+      "attributeId": 348,
+      "attributeValueId": 6998
+    },
+    {
+      "attributeId": 343,
+      "attributeValueId": 4295
+    },
+    {
+      "attributeId": 1192,
+      "attributeValueId": 10617344
+    }
+  ],
+  "sizeVariants": [
+    {
+      "attributeValueId": 5613,
+      "label": "36"
+    },
+    {
+      "attributeValueId": 5665,
+      "label": "37"
+    },
+    {
+      "attributeValueId": 5688,
+      "label": "38"
+    },
+    {
+      "attributeValueId": 5730,
+      "label": "39"
+    },
+    {
+      "attributeValueId": 7067,
+      "label": "40"
+    }
+  ],
+  "productMainId": null,
+  "stockCode": null
+}

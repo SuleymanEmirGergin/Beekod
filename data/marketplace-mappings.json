@@ -1,0 +1,360 @@
+{
+  "trendyol": {
+    "domains": [
+      "trendyol.com"
+    ],
+    "attributeSynonyms": {
+      "Garanti Tipi": [
+        "Garanti",
+        "Garanti Tipi",
+        "Warranty"
+      ],
+      "Cep Telefonu Modeli": [
+        "Model",
+        "Telefon Modeli"
+      ],
+      "Şarj Girişi": [
+        "Şarj Girişi",
+        "Şarj Tipi",
+        "Charging Port"
+      ],
+      "Dahili Hafıza": [
+        "Depolama",
+        "Hafıza",
+        "Dahili Hafıza",
+        "Storage"
+      ],
+      "RAM Kapasitesi": [
+        "RAM",
+        "Bellek",
+        "Memory"
+      ],
+      "Ekran Boyutu": [
+        "Ekran",
+        "Ekran Boyutu",
+        "Screen Size"
+      ],
+      "Renk": [
+        "Renk",
+        "Color"
+      ],
+      "Pil Gücü (mAh)": [
+        "Pil",
+        "Batarya",
+        "Battery",
+        "mAh"
+      ],
+      "Kamera Çözünürlüğü": [
+        "Kamera",
+        "Camera",
+        "MP"
+      ],
+      "Malzeme": [
+        "Materyal",
+        "Malzeme",
+        "Material"
+      ],
+      "Boyut": [
+        "Boyut",
+        "Ebat",
+        "Dimensions",
+        "Size"
+      ],
+      "Garanti Süresi": [
+        "Garanti",
+        "Garanti Süresi",
+        "Warranty"
+      ]
+    },
+    "valueNormalizers": {
+      "Dahili Hafıza": "gb",
+      "RAM Kapasitesi": "gb",
+      "Pil Gücü (mAh)": "number",
+      "Ekran Boyutu": "inch"
+    },
+    "descriptionTemplate": {
+      "includeSourceDescription": true,
+      "appendBulletsFromAttributes": true,
+      "bulletOrder": [
+        "Cep Telefonu Modeli",
+        "Dahili Hafıza",
+        "RAM Kapasitesi",
+        "Ekran Boyutu",
+        "Pil Gücü (mAh)",
+        "Renk",
+        "Şarj Girişi",
+        "Kamera Çözünürlüğü",
+        "Malzeme",
+        "Garanti Süresi"
+      ]
+    }
+  },
+  "hepsiburada": {
+    "domains": [
+      "hepsiburada.com"
+    ],
+    "attributeSynonyms": {
+      "Renk": [
+        "Renk",
+        "Color",
+        "Ürün Rengi"
+      ],
+      "Dahili Hafıza": [
+        "Dahili Hafıza",
+        "Depolama Kapasitesi",
+        "Dahili Depolama",
+        "Storage",
+        "Hafıza"
+      ],
+      "RAM Kapasitesi": [
+        "RAM",
+        "RAM Kapasitesi",
+        "Bellek",
+        "Memory"
+      ],
+      "Ekran Boyutu": [
+        "Ekran Boyutu",
+        "Ekran",
+        "Screen Size",
+        "Ekran Ölçüsü"
+      ],
+      "Pil Gücü (mAh)": [
+        "Pil Kapasitesi",
+        "Batarya",
+        "Pil Gücü",
+        "Battery",
+        "mAh"
+      ],
+      "Kamera Çözünürlüğü": [
+        "Arka Kamera",
+        "Kamera",
+        "Kamera Çözünürlüğü",
+        "Camera"
+      ],
+      "İşlemci": [
+        "İşlemci",
+        "Processor",
+        "CPU",
+        "Çip"
+      ],
+      "İşletim Sistemi": [
+        "İşletim Sistemi",
+        "OS",
+        "Operating System"
+      ],
+      "Garanti Süresi": [
+        "Garanti Süresi",
+        "Garanti",
+        "Warranty"
+      ],
+      "Marka": [
+        "Marka",
+        "Brand"
+      ],
+      "Model": [
+        "Model",
+        "Ürün Modeli"
+      ],
+      "Malzeme": [
+        "Malzeme",
+        "Materyal",
+        "Material"
+      ],
+      "Boyut": [
+        "Boyut",
+        "Ebat",
+        "Dimensions"
+      ]
+    },
+    "valueNormalizers": {
+      "Dahili Hafıza": "gb",
+      "RAM Kapasitesi": "gb",
+      "Pil Gücü (mAh)": "number",
+      "Ekran Boyutu": "inch"
+    },
+    "descriptionTemplate": {
+      "includeSourceDescription": true,
+      "appendBulletsFromAttributes": true,
+      "bulletOrder": [
+        "Model",
+        "Dahili Hafıza",
+        "RAM Kapasitesi",
+        "İşlemci",
+        "Ekran Boyutu",
+        "Pil Gücü (mAh)",
+        "Renk",
+        "Kamera Çözünürlüğü",
+        "İşletim Sistemi",
+        "Garanti Süresi"
+      ]
+    }
+  },
+  "n11": {
+    "domains": [
+      "n11.com"
+    ],
+    "attributeSynonyms": {
+      "Renk": [
+        "Renk",
+        "Color"
+      ],
+      "Dahili Hafıza": [
+        "Dahili Hafıza",
+        "Depolama",
+        "Hafıza",
+        "Storage"
+      ],
+      "RAM Kapasitesi": [
+        "RAM",
+        "Bellek",
+        "Memory"
+      ],
+      "Ekran Boyutu": [
+        "Ekran Boyutu",
+        "Ekran"
+      ],
+      "Pil Gücü (mAh)": [
+        "Pil Kapasitesi",
+        "Batarya Kapasitesi",
+        "Pil"
+      ],
+      "Kamera Çözünürlüğü": [
+        "Arka Kamera Çözünürlüğü",
+        "Kamera"
+      ],
+      "İşlemci": [
+        "İşlemci",
+        "İşlemci Tipi"
+      ],
+      "İşletim Sistemi": [
+        "İşletim Sistemi"
+      ],
+      "Garanti Süresi": [
+        "Garanti Süresi",
+        "Garanti Tipi"
+      ],
+      "Marka": [
+        "Marka"
+      ],
+      "Model": [
+        "Model"
+      ],
+      "Malzeme": [
+        "Malzeme",
+        "Materyal"
+      ],
+      "Boyut": [
+        "Boyut",
+        "Ebat"
+      ]
+    },
+    "valueNormalizers": {
+      "Dahili Hafıza": "gb",
+      "RAM Kapasitesi": "gb",
+      "Pil Gücü (mAh)": "number",
+      "Ekran Boyutu": "inch"
+    },
+    "descriptionTemplate": {
+      "includeSourceDescription": true,
+      "appendBulletsFromAttributes": true,
+      "bulletOrder": [
+        "Model",
+        "Dahili Hafıza",
+        "RAM Kapasitesi",
+        "Ekran Boyutu",
+        "Pil Gücü (mAh)",
+        "Renk",
+        "Garanti Süresi"
+      ]
+    }
+  },
+  "ciceksepeti": {
+    "domains": [
+      "ciceksepeti.com"
+    ],
+    "attributeSynonyms": {
+      "Renk": [
+        "Renk",
+        "Color",
+        "Seçenek"
+      ],
+      "Dahili Hafıza": [
+        "Dahili Hafıza",
+        "Hafıza",
+        "Depolama"
+      ],
+      "RAM Kapasitesi": [
+        "RAM",
+        "Bellek"
+      ],
+      "Garanti Süresi": [
+        "Garanti Süresi",
+        "Garanti"
+      ],
+      "Marka": [
+        "Marka",
+        "Brand"
+      ]
+    },
+    "valueNormalizers": {
+      "Dahili Hafıza": "gb",
+      "RAM Kapasitesi": "gb"
+    }
+  },
+  "pazarama": {
+    "domains": [
+      "pazarama.com"
+    ],
+    "attributeSynonyms": {
+      "Renk": [
+        "Renk"
+      ],
+      "Dahili Hafıza": [
+        "Dahili Hafıza",
+        "Depolama"
+      ],
+      "RAM Kapasitesi": [
+        "RAM"
+      ],
+      "Garanti Süresi": [
+        "Garanti Süresi"
+      ],
+      "Marka": [
+        "Marka"
+      ]
+    },
+    "valueNormalizers": {
+      "Dahili Hafıza": "gb",
+      "RAM Kapasitesi": "gb"
+    }
+  },
+  "pttavm": {
+    "domains": [
+      "pttavm.com",
+      "epttavm.com"
+    ],
+    "attributeSynonyms": {
+      "Renk": [
+        "Renk"
+      ],
+      "Dahili Hafıza": [
+        "Dahili Hafıza",
+        "Depolama"
+      ],
+      "RAM Kapasitesi": [
+        "RAM",
+        "Bellek"
+      ],
+      "Garanti Süresi": [
+        "Garanti Süresi"
+      ],
+      "Marka": [
+        "Marka"
+      ]
+    },
+    "valueNormalizers": {
+      "Dahili Hafıza": "gb",
+      "RAM Kapasitesi": "gb"
+    }
+  }
+}

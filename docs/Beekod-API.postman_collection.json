@@ -1,0 +1,193 @@
+{
+    "info": {
+        "_postman_id": "b3e34b3d-24a9-4b1e-9d2a-1c5f3a0b4c8e",
+        "name": "Beekod Chatbot API",
+        "description": "API collection for Beekod Chatbot e-commerce management system.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Chat",
+            "item": [
+                {
+                    "name": "Send Message",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"message\": \"123 barkodlu ürünün fiyatını 500 yap\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/chat",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "chat"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get History",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/chat/history",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "chat",
+                                "history"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Products",
+            "item": [
+                {
+                    "name": "List Products",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/products?limit=10",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "products"
+                            ],
+                            "query": [
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Product",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/products/:barcode",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "products",
+                                ":barcode"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "barcode",
+                                    "value": "123"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Marketplace",
+            "item": [
+                {
+                    "name": "List Listings",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/marketplace/listings?marketplace=Trendyol",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "marketplace",
+                                "listings"
+                            ],
+                            "query": [
+                                {
+                                    "key": "marketplace",
+                                    "value": "Trendyol"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Virtual Try-On",
+            "item": [
+                {
+                    "name": "Generate Try-On",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"clothingImage\": \"https://example.com/shirt.jpg\",\n    \"modelImage\": \"https://example.com/person.jpg\",\n    \"category\": \"upper_body\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/virtual-try-on",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "virtual-try-on"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Health",
+            "item": [
+                {
+                    "name": "Check Health",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/health",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "health"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ]
+}

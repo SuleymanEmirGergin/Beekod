@@ -1,0 +1,40 @@
+module.exports = {
+  apps: [
+    {
+      name: "beekod-backend",
+      cwd: "C:\\Users\\Administrator\\Desktop\\Beekod\\Beekod",
+      script: "node",
+      args: "--import tsx src/server.ts",
+      env: {
+        NODE_ENV: "development",
+      },
+      autorestart: true,
+      restart_delay: 1000,
+      max_restarts: 5,
+      watch: false,
+      ignore_watch: ["node_modules", "logs", "storage", ".git", "data"],
+      time: true,
+      out_file: "logs/pm2-backend.out.log",
+      error_file: "logs/pm2-backend.err.log",
+      merge_logs: true,
+    },
+    {
+      name: "beekod-frontend",
+      cwd: "C:\\Users\\Administrator\\Desktop\\Beekod\\Beekod\\BeekodFrontend",
+      script: "cmd.exe",
+      interpreter: "none",
+      args: "/c npm run dev",
+      env: {
+        NODE_ENV: "development",
+      },
+      autorestart: true,
+      restart_delay: 1000,
+      max_restarts: 5,
+      watch: false,
+      time: true,
+      out_file: "C:\\Users\\Administrator\\Desktop\\Beekod\\Beekod\\logs\\pm2-frontend.out.log",
+      error_file: "C:\\Users\\Administrator\\Desktop\\Beekod\\Beekod\\logs\\pm2-frontend.err.log",
+      merge_logs: true,
+    },
+  ],
+};
