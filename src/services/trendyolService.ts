@@ -1,4 +1,5 @@
 import { logger } from "../logger.js";
+import { InternalError, MarketplaceError } from "../errors/AppError.js";
 
 export interface TrendyolCategory {
     id: number;
@@ -48,7 +49,7 @@ class TrendyolService {
      */
     async getCategoryTree(forceRefresh = false): Promise<TrendyolCategory[]> {
         if (!this.isConfigured()) {
-            throw new Error("Trendyol API credentials not configured");
+            throw new InternalError("Trendyol API credentials not configured");
         }
 
         // Check cache
@@ -73,7 +74,7 @@ class TrendyolService {
 
             if (!response.ok) {
                 const errorText = await response.text();
-                throw new Error(`Trendyol API error: ${response.status} - ${errorText}`);
+                throw new MarketplaceError(`Trendyol API error: ${response.status} - ${errorText}`);
             }
 
             const data = await response.json();
@@ -136,7 +137,7 @@ class TrendyolService {
      */
     async getCategoryAttributes(categoryId: number): Promise<any> {
         if (!this.isConfigured()) {
-            throw new Error("Trendyol API credentials not configured");
+            throw new InternalError("Trendyol API credentials not configured");
         }
 
         try {
@@ -156,7 +157,7 @@ class TrendyolService {
 
             if (!response.ok) {
                 const errorText = await response.text();
-                throw new Error(`Trendyol API error: ${response.status} - ${errorText}`);
+                throw new MarketplaceError(`Trendyol API error: ${response.status} - ${errorText}`);
             }
 
             const data = await response.json();
@@ -173,7 +174,7 @@ class TrendyolService {
      */
     async getAttributeValues(categoryId: number, attributeId: number): Promise<any> {
         if (!this.isConfigured()) {
-            throw new Error("Trendyol API credentials not configured");
+            throw new InternalError("Trendyol API credentials not configured");
         }
 
         try {
@@ -192,7 +193,7 @@ class TrendyolService {
 
             if (!response.ok) {
                 const errorText = await response.text();
-                throw new Error(`Trendyol API error: ${response.status} - ${errorText}`);
+                throw new MarketplaceError(`Trendyol API error: ${response.status} - ${errorText}`);
             }
 
             const data = await response.json();
@@ -217,7 +218,7 @@ class TrendyolService {
         barcode?: string;
         approved?: boolean;
     }): Promise<any> {
-        if (!this.isConfigured()) throw new Error("Trendyol API credentials not configured");
+        if (!this.isConfigured()) throw new InternalError("Trendyol API credentials not configured");
 
         const url = new URL(`${this.config.baseUrl}/integration/product/sellers/${this.config.sellerId}/products`);
         if (params?.page !== undefined) url.searchParams.append("page", String(params.page));
@@ -233,7 +234,7 @@ class TrendyolService {
      * URL: /integration/product/sellers/{sellerId}/products/unapproved
      */
     async getUnapprovedProducts(params?: { page?: number; size?: number }): Promise<any> {
-        if (!this.isConfigured()) throw new Error("Trendyol API credentials not configured");
+        if (!this.isConfigured()) throw new InternalError("Trendyol API credentials not configured");
 
         const url = new URL(`${this.config.baseUrl}/integration/product/sellers/${this.config.sellerId}/products/unapproved`);
         if (params?.page !== undefined) url.searchParams.append("page", String(params.page));
@@ -247,7 +248,7 @@ class TrendyolService {
      * URL: /integration/product/sellers/{sellerId}/product
      */
     async getProduct(barcode: string): Promise<any> {
-        if (!this.isConfigured()) throw new Error("Trendyol API credentials not configured");
+        if (!this.isConfigured()) throw new InternalError("Trendyol API credentials not configured");
 
         const url = `${this.config.baseUrl}/integration/product/sellers/${this.config.sellerId}/product?barcode=${barcode}`;
         return this.makeRequest(url);
@@ -268,7 +269,7 @@ class TrendyolService {
         page?: number;
         size?: number;
     }): Promise<any> {
-        if (!this.isConfigured()) throw new Error("Trendyol API credentials not configured");
+        if (!this.isConfigured()) throw new InternalError("Trendyol API credentials not configured");
 
         const url = new URL(`${this.config.baseUrl}/integration/order/sellers/${this.config.sellerId}/orders`);
         if (params?.status) url.searchParams.append("status", params.status);
@@ -289,7 +290,7 @@ class TrendyolService {
      * URL: /integration/order/sellers/{sellerId}/claims
      */
     async getClaims(params?: { page?: number; size?: number }): Promise<any> {
-        if (!this.isConfigured()) throw new Error("Trendyol API credentials not configured");
+        if (!this.isConfigured()) throw new InternalError("Trendyol API credentials not configured");
 
         const url = new URL(`${this.config.baseUrl}/integration/order/sellers/${this.config.sellerId}/claims`);
         if (params?.page !== undefined) url.searchParams.append("page", String(params.page));
@@ -303,7 +304,7 @@ class TrendyolService {
      * URL: /integration/order/sellers/{sellerId}/claims/items/{claimItemsId}/audit
      */
     async getClaimAudits(claimItemsId: string): Promise<any> {
-        if (!this.isConfigured()) throw new Error("Trendyol API credentials not configured");
+        if (!this.isConfigured()) throw new InternalError("Trendyol API credentials not configured");
 
         const url = `${this.config.baseUrl}/integration/order/sellers/${this.config.sellerId}/claims/items/${claimItemsId}/audit`;
         return this.makeRequest(url);
@@ -314,7 +315,7 @@ class TrendyolService {
      * URL: /integration/order/claim-issue-reasons
      */
     async getClaimIssueReasons(): Promise<any> {
-        if (!this.isConfigured()) throw new Error("Trendyol API credentials not configured");
+        if (!this.isConfigured()) throw new InternalError("Trendyol API credentials not configured");
 
         const url = `${this.config.baseUrl}/integration/order/claim-issue-reasons`;
         return this.makeRequest(url);
@@ -335,7 +336,7 @@ class TrendyolService {
         page?: number;
         size?: number;
     }): Promise<any> {
-        if (!this.isConfigured()) throw new Error("Trendyol API credentials not configured");
+        if (!this.isConfigured()) throw new InternalError("Trendyol API credentials not configured");
 
         const url = new URL(`${this.config.baseUrl}/integration/qna/sellers/${this.config.sellerId}/questions/filter`);
         if (params?.startDate) url.searchParams.append("startDate", String(params.startDate));
@@ -356,7 +357,7 @@ class TrendyolService {
      * URL: /integration/sellers/{sellerId}/addresses
      */
     async getSupplierAddresses(): Promise<any> {
-        if (!this.isConfigured()) throw new Error("Trendyol API credentials not configured");
+        if (!this.isConfigured()) throw new InternalError("Trendyol API credentials not configured");
 
         const url = `${this.config.baseUrl}/integration/sellers/${this.config.sellerId}/addresses`;
         return this.makeRequest(url);
@@ -371,7 +372,7 @@ class TrendyolService {
      * URL: /integration/webhook/sellers/{sellerId}/webhooks
      */
     async getWebhooks(): Promise<any> {
-        if (!this.isConfigured()) throw new Error("Trendyol API credentials not configured");
+        if (!this.isConfigured()) throw new InternalError("Trendyol API credentials not configured");
 
         const url = `${this.config.baseUrl}/integration/webhook/sellers/${this.config.sellerId}/webhooks`;
         return this.makeRequest(url);
@@ -386,7 +387,7 @@ class TrendyolService {
      * URL: /integration/tex/compensation/sellers/{sellerId}/tickets
      */
     async getCompensationTickets(params?: { page?: number; size?: number }): Promise<any> {
-        if (!this.isConfigured()) throw new Error("Trendyol API credentials not configured");
+        if (!this.isConfigured()) throw new InternalError("Trendyol API credentials not configured");
 
         const url = new URL(`${this.config.baseUrl}/integration/tex/compensation/sellers/${this.config.sellerId}/tickets`);
         if (params?.page !== undefined) url.searchParams.append("page", String(params.page));
@@ -404,7 +405,7 @@ class TrendyolService {
      * URL: /integration/sellers/{sellerId}/common-label/{cargoTrackingNumber}
      */
     async getCommonLabel(cargoTrackingNumber: string): Promise<any> {
-        if (!this.isConfigured()) throw new Error("Trendyol API credentials not configured");
+        if (!this.isConfigured()) throw new InternalError("Trendyol API credentials not configured");
 
         const url = `${this.config.baseUrl}/integration/sellers/${this.config.sellerId}/common-label/${cargoTrackingNumber}`;
         return this.makeRequest(url);
@@ -419,7 +420,7 @@ class TrendyolService {
      * URL: /integration/member/countries/domestic/TR/cities/{CityCode}/districts
      */
     async getDistricts(cityCode: string): Promise<any> {
-        if (!this.isConfigured()) throw new Error("Trendyol API credentials not configured");
+        if (!this.isConfigured()) throw new InternalError("Trendyol API credentials not configured");
 
         const url = `${this.config.baseUrl}/integration/member/countries/domestic/TR/cities/${cityCode}/districts`;
         return this.makeRequest(url);
@@ -430,7 +431,7 @@ class TrendyolService {
      * URL: /integration/member/countries/domestic/TR/cities/{CityCode}/districts/{DistrictCode}/neighborhoods
      */
     async getNeighborhoods(cityCode: string, districtCode: string): Promise<any> {
-        if (!this.isConfigured()) throw new Error("Trendyol API credentials not configured");
+        if (!this.isConfigured()) throw new InternalError("Trendyol API credentials not configured");
 
         const url = `${this.config.baseUrl}/integration/member/countries/domestic/TR/cities/${cityCode}/districts/${districtCode}/neighborhoods`;
         return this.makeRequest(url);
@@ -455,7 +456,7 @@ class TrendyolService {
 
             if (!response.ok) {
                 const errorText = await response.text();
-                throw new Error(`Trendyol API error: ${response.status} - ${errorText}`);
+                throw new MarketplaceError(`Trendyol API error: ${response.status} - ${errorText}`);
             }
 
             return await response.json();
