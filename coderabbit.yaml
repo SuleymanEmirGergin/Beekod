@@ -1,0 +1,24 @@
+# CodeRabbit Configuration File
+# Documentation: https://docs.coderabbit.ai/
+
+language: "tr-TR" # İncelemelerin Türkçe yapılmasını sağlar
+tone_instructions: "Samimi, yapıcı ve profesyonel bir dil kullan. Kod kalitesini artıracak önerilere odaklan."
+
+reviews:
+  profile: "chill" # 'chill', 'assertive' veya 'strict' olabilir
+  high_level_summary: true
+  auto_review:
+    enabled: true
+    drafts: false
+  
+  # Kod analizi ayarları
+  tools:
+    ast_grep:
+      enabled: true
+    turbopuffer: 
+      enabled: true # Benzer kod araması
+
+chat:
+  enabled: true # PR üzerinde chat özelliğini açar
+
+request_changes_workflow: false # CodeRabbit'in PR'ı engellemesini istemiyorsan false
