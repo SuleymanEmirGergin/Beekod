@@ -6,8 +6,15 @@ import { logger } from "../logger.js";
 import { logStockChange } from "./stockHistoryService.js";
 import { auditService } from "./auditService.js";
 import { NotFoundError, InternalError } from "../errors/AppError.js";
+import { getCache, setCache } from "./cacheService.js";
 
 export async function getProductByBarcode(barcode: string): Promise<Product | null> {
+  const cacheKey = `product:${barcode}`;
+  const cached = await getCache<Product>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const rows = await query<Product[]>(
     "SELECT id, barcode, name, category, description, price, cost_price, stock, alert_threshold, currency, brand, product_code, vat_rate, unit, images, attributes, cargo_company, cargo_desi, width, height, length, weight, max_order_limit, auto_stock_update, parent_barcode, variants, product_type, preparation_days, translations FROM products WHERE barcode = ? LIMIT 1",
     [barcode],
@@ -18,6 +25,9 @@ export async function getProductByBarcode(barcode: string): Promise<Product | nu
     if (typeof rows[0].images === "string") rows[0].images = JSON.parse(rows[0].images);
     if (typeof rows[0].attributes === "string") rows[0].attributes = JSON.parse(rows[0].attributes);
     if (typeof rows[0].variants === "string") rows[0].variants = JSON.parse(rows[0].variants);
+
+    // Cache for 1 hour
+    await setCache(cacheKey, rows[0], 3600);
   }
   return rows[0] ?? null;
 }

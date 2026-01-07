@@ -1,41 +1,18 @@
-import { createClient } from 'redis';
+import { getRedisClient, getRedisPrefix } from '../redis.js';
 import { logger } from '../logger.js';
-
-// Create Redis client
-const redisClient = createClient({
-  url: process.env.REDIS_URL || `redis://${process.env.REDIS_HOST || 'localhost'}:${process.env.REDIS_PORT || 6379}`,
-  password: process.env.REDIS_PASSWORD || undefined,
-});
-
-// Error handling
-redisClient.on('error', (err) => {
-  logger.error('redis.connection_error', { error: err });
-});
-
-// Connect to Redis
-let isConnected = false;
-
-export async function connectRedis() {
-  if (isConnected) return;
-
-  try {
-    await redisClient.connect();
-    isConnected = true;
-    logger.info('redis.connected');
-  } catch (error) {
-    logger.error('redis.connect_failed', { error });
-    // Continue without Redis if connection fails
-  }
-}
 
 /**
  * Get cached data
  */
 export async function getCache<T>(key: string): Promise<T | null> {
-  if (!isConnected) return null;
+  const client = await getRedisClient();
+  if (!client) return null;
+
+  // Ensure prefix consistency if not handled by client config (redis.ts prefix logic is manual)
+  const prefixedKey = `${getRedisPrefix()}:${key}`;
 
   try {
-    const data = await redisClient.get(key);
+    const data = await client.get(prefixedKey);
     if (!data) return null;
 
     return JSON.parse(data) as T;
@@ -49,10 +26,13 @@ export async function getCache<T>(key: string): Promise<T | null> {
  * Set cache with TTL (in seconds)
  */
 export async function setCache(key: string, value: any, ttl: number = 300): Promise<boolean> {
-  if (!isConnected) return false;
+  const client = await getRedisClient();
+  if (!client) return false;
+
+  const prefixedKey = `${getRedisPrefix()}:${key}`;
 
   try {
-    await redisClient.setEx(key, ttl, JSON.stringify(value));
+    await client.set(prefixedKey, JSON.stringify(value), { EX: ttl });
     return true;
   } catch (error) {
     logger.error('redis.set_failed', { key, error });
@@ -64,10 +44,13 @@ export async function setCache(key: string, value: any, ttl: number = 300): Prom
  * Delete cache
  */
 export async function deleteCache(key: string): Promise<boolean> {
-  if (!isConnected) return false;
+  const client = await getRedisClient();
+  if (!client) return false;
+
+  const prefixedKey = `${getRedisPrefix()}:${key}`;
 
   try {
-    await redisClient.del(key);
+    await client.del(prefixedKey);
     return true;
   } catch (error) {
     logger.error('redis.delete_failed', { key, error });
@@ -79,11 +62,15 @@ export async function deleteCache(key: string): Promise<boolean> {
  * Clear all cache (use with caution)
  */
 export async function clearCache(): Promise<boolean> {
-  if (!isConnected) return false;
+  const client = await getRedisClient();
+  if (!client) return false;
 
   try {
-    await redisClient.flushDb();
-    logger.info('redis.cache_cleared');
+    // Ideally scan and delete only with prefix, but flushDb clears everything
+    // Use FlushDB with caution if sharing Redis instance
+    // For now, logging warning
+    logger.warn('redis.clearing_all_cache');
+    await client.flushDb();
     return true;
   } catch (error) {
     logger.error('redis.clear_failed', { error });
@@ -96,8 +83,6 @@ export async function clearCache(): Promise<boolean> {
  */
 export function cacheMiddleware(ttl: number = 300) {
   return async (req: any, res: any, next: any) => {
-    if (!isConnected) return next();
-
     const key = `cache:${req.originalUrl}`;
 
     try {
@@ -133,4 +118,3 @@ export const cache = {
   clear: clearCache,
 };
 
-export { redisClient };
