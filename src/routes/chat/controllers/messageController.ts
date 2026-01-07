@@ -1,0 +1,289 @@
+import { Request, Response } from "express";
+import { t } from "../../../i18n.js";
+import { createLog } from "../../../services/logService.js";
+import { sendErrorResponse } from "../../../utils/responseHelper.js";
+import { parseMessage, ParsedMessage } from "../../../services/nlp.js";
+import { logger, chatLogger } from "../../../logger.js";
+import { Locale } from "../../../types.js";
+import * as Handlers from "../../../handlers/chat/index.js";
+import * as SessionService from "../../../services/chatSessionService.js";
+import { getUserPreferences } from "../../../services/userPreferenceService.js";
+import { applyPending, getIntentHandler } from "../utils.js";
+
+export const handleChatMessage = async (req: Request, res: Response) => {
+    const message = (req.body?.message || "").trim();
+    // history can be an array if JSON or a string if FormData
+    let history: any[] = [];
+    try {
+        if (typeof req.body.history === "string") {
+            history = JSON.parse(req.body.history);
+        } else if (Array.isArray(req.body.history)) {
+            history = req.body.history;
+        }
+    } catch (e) {
+        logger.warn("chat.history_parse_failed", { err: e });
+    }
+
+    const action = req.body?.action;
+
+    if (!message && !action) {
+        return sendErrorResponse({
+            res,
+            statusCode: 400,
+            code: "BAD_REQUEST",
+            message: "Message or action is required",
+            error: "Missing parameters",
+        });
+    }
+
+    const sessionKey = SessionService.getSessionKey(req) || req.body.sessionId || 'default-session';
+    const pending = SessionService.getPending(sessionKey);
+
+    if (/^\s*(iptal|vazgeç|sıfırla|reset)\s*$/i.test(message)) {
+        SessionService.clearPending(sessionKey);
+    }
+
+    const localeHint: Locale | undefined =
+        req.body?.locale === "en" ? "en" : req.body?.locale === "tr" ? "tr" : undefined;
+
+    let parsed: ParsedMessage = parseMessage(message, localeHint);
+
+    // If an explicit action is provided, override the intent
+    if (action === "TOP_SELLERS") {
+        parsed.intent = "report.top_products";
+        parsed.amount = req.body.limit || 5;
+    } else if (action === "CRITICAL_STOCK") {
+        parsed.intent = "stock.alert.list";
+        parsed.amount = req.body.threshold || 10;
+    } else if (action === "SALES_SUMMARY") {
+        parsed.intent = "report.sales";
+        parsed.period = "this_week";
+    }
+
+    if (req.body?.barcode) {
+        parsed.barcode = req.body.barcode;
+        // Fix: Typescript might complain about missing filter if not checked, but parsed.missing usually array from nlp
+        if (Array.isArray(parsed.missing)) {
+            parsed.missing = parsed.missing.filter((m: string) => m !== "barcode");
+        }
+    }
+
+    const file = (req as any).file as Express.Multer.File | undefined;
+
+    if (file) {
+        const intent = String(parsed.intent || "");
+        const isImageIntent = intent.startsWith("image.") || intent.startsWith("visual.");
+        if (!isImageIntent) {
+            const isSearchQuery = /\b(ara|bul|bak|search|find|lookup|fiyat|ne\s*kadar)\b/i.test(message);
+
+            if (isSearchQuery) {
+                parsed.intent = "image.search";
+                if (Array.isArray(parsed.missing)) {
+                    parsed.missing = parsed.missing.filter((x: string) => !x.startsWith("image_"));
+                }
+            } else if (intent !== "unknown" || !message) {
+                parsed.intent = "image.inspect";
+                if (Array.isArray(parsed.missing)) {
+                    parsed.missing = parsed.missing.filter((x: string) => !x.startsWith("image_"));
+                }
+            }
+        }
+    }
+
+    applyPending(parsed, message, pending);
+
+    // Save user message
+    if (message) {
+        await SessionService.saveMessage(sessionKey, "user", message);
+    }
+
+    // 1. Context injection: If barcode is missing, try to get from previous context
+    if (!parsed.barcode) {
+        const activeBarcode = await SessionService.getActiveBarcode(sessionKey);
+        if (activeBarcode) {
+            parsed.barcode = activeBarcode;
+            if (Array.isArray(parsed.missing)) {
+                parsed.missing = parsed.missing.filter((m: string) => m !== "barcode");
+            }
+            logger.debug("chat.context_barcode_injected", { sessionKey, barcode: activeBarcode });
+        }
+    }
+
+    const userPreferences = getUserPreferences(sessionKey);
+
+    const context: Handlers.ChatContext = {
+        locale: parsed.locale,
+        requestId: res.locals?.requestId,
+        userId: sessionKey,
+        message,
+        history,
+        userPreferences,
+        body: { ...req.body, file },
+    };
+
+    let reply = "";
+    let success = true;
+    let status = 200;
+    let data: any = null;
+    let logBarcode = parsed.barcode;
+    let errorText: string | undefined;
+
+    try {
+        if (parsed.missing.length && parsed.intent !== "marketplace.add") {
+            if (parsed.missing.includes("image_inspect_info")) reply = t(context.locale, "image_inspect_info");
+            else if (parsed.missing.includes("image_search_info")) reply = t(context.locale, "image_search_missing");
+            else if (parsed.missing.includes("batch_request_id")) reply = t(context.locale, "missing_batch_request_id");
+            else if (parsed.missing.includes("product_info")) reply = t(context.locale, "missing_product_info");
+            else if (parsed.missing.includes("marketplace")) reply = t(context.locale, "missing_marketplace");
+            else if (parsed.missing.includes("name")) reply = t(context.locale, "missing_product_name");
+            else if (parsed.missing.includes("price")) reply = t(context.locale, "missing_price");
+            else if (parsed.missing.includes("stock")) reply = t(context.locale, "missing_stock");
+            else if (parsed.missing.includes("search_query")) reply = t(context.locale, "search_missing_query");
+            else if (parsed.missing.includes("barcode") && parsed.missing.includes("amount"))
+                reply = t(context.locale, "missing_both");
+            else if (parsed.missing.includes("barcode")) reply = t(context.locale, "missing_barcode");
+            else {
+                const needsPercent = parsed.intent.includes("increase") || parsed.intent.includes("decrease");
+                reply = t(context.locale, needsPercent ? "missing_amount_or_percent" : "missing_amount");
+            }
+            success = false;
+        } else {
+            const handler = getIntentHandler(parsed.intent);
+            if (handler) {
+                const startTime = Date.now();
+                const result = await handler(parsed, context);
+                reply = result.reply;
+                data = result.data;
+                success = result.success;
+                if (result.logBarcode) logBarcode = result.logBarcode;
+
+                let finalIntent = parsed.intent;
+
+                // SPECIAL: If gemini suggests a different intent, we can re-route or just attach it
+                if (parsed.intent === "unknown" && reply) {
+                    try {
+                        const jsonMatch = reply.match(/\{.*"suggested_intent"\s*:\s*"([^"]+)".*\}/s);
+                        if (jsonMatch) {
+                            const suggestion = JSON.parse(jsonMatch[0]);
+                            const newIntent = suggestion.suggested_intent;
+                            const newHandler = getIntentHandler(newIntent);
+                            if (newHandler && newIntent !== "unknown") {
+                                logger.info("chat.rerouting_to_suggested_intent", { newIntent });
+                                const newParsed = { ...parsed, intent: newIntent, ...suggestion.params };
+                                const newResult = await newHandler(newParsed, context);
+                                // Merge or override? Let's prefix the original reply if it had text
+                                let cleanReply = reply.replace(/\{.*"suggested_intent".*\}/s, "").trim();
+
+                                // Remove common technical prefixes if they are the only thing left
+                                if (cleanReply.includes("Özet:") || cleanReply.includes("Adımlar:") || cleanReply.includes("Düşünce Süreci:")) {
+                                    // Only keep if it seems like a real human-friendly message (heuristic: has more than just the notes)
+                                    // For now, let's just strip the notes sections if possible or discard if it's mostly notes
+                                    cleanReply = cleanReply.replace(/(?:Özet|Adımlar|Düşünce Süreci|Onay Gerekmiyor):.*$/is, "").trim();
+                                }
+
+                                reply = (cleanReply ? cleanReply + "\n\n" : "") + newResult.reply;
+                                data = { ...data, ...newResult.data, appliedIntent: newIntent };
+                                success = newResult.success;
+                                finalIntent = newIntent;
+                            }
+                        }
+                    } catch (e) {
+                        logger.warn("chat.suggested_intent_parse_failed", { err: e });
+                    }
+                }
+
+                // Log intent analytics
+                chatLogger.info("chat.intent", {
+                    event: "intent_execution",
+                    intent: finalIntent,
+                    duration: Date.now() - startTime,
+                    success,
+                    locale: context.locale,
+                });
+
+                if (success) {
+                    const intent = String(parsed.intent || "");
+                    const shouldPend =
+                        intent.startsWith("analytics.") || intent.startsWith("report.") || intent.startsWith("marketplace.");
+
+                    if (shouldPend) {
+                        SessionService.setPending(sessionKey, intent, {
+                            barcode: logBarcode,
+                            marketplace: parsed.marketplace,
+                        });
+                    } else {
+                        SessionService.clearPending(sessionKey);
+                    }
+                }
+            } else {
+                reply = t(context.locale, "unknown_intent");
+                success = false;
+            }
+        }
+    } catch (error) {
+        logger.error("chat.handle_failed", { requestId: context.requestId, err: error });
+        reply = t(context.locale, "server_error");
+        success = false;
+        status = 500;
+        errorText = error instanceof Error ? error.message : String(error);
+    }
+
+    // Ensure we always have a reply
+    if (!reply || reply.trim() === "") {
+        reply = context.locale === "tr"
+            ? "Üzgünüm kanka, bir şeyler ters gitti. Tekrar deneyebilir misin? 🤔"
+            : "Sorry buddy, something went wrong. Could you try again? 🤔";
+        success = false;
+        logger.warn("chat.empty_reply", {
+            intent: parsed.intent,
+            message,
+            requestId: context.requestId
+        });
+    }
+
+    // Save AI response
+    if (reply) {
+        const messageMeta = { ...data, barcode: logBarcode || data?.barcode || parsed.barcode };
+        await SessionService.saveMessage(sessionKey, "ai", reply, messageMeta);
+    }
+
+    await createLog({
+        intent: parsed.intent,
+        locale: context.locale,
+        message,
+        barcode: logBarcode,
+        amount: parsed.amount ?? parsed.percent ?? undefined,
+        response: reply,
+        success,
+        error: errorText,
+    });
+
+    if (status >= 400) {
+        return sendErrorResponse({
+            res,
+            statusCode: status,
+            code: status === 400 ? "BAD_REQUEST" : "INTERNAL_SERVER_ERROR",
+            message: reply,
+            error: errorText,
+            requestId: context.requestId,
+        });
+    }
+
+    // --- DEBUG_FAKE_AI MANTIĞI ---
+    const DEBUG_FAKE_AI = false;
+    if (DEBUG_FAKE_AI) {
+        return res.json({
+            success: true,
+            reply: "Test cevabı çalışıyor ✅ (Fake AI Mode)",
+            data: null,
+            meta: { locale: context.locale }
+        });
+    }
+
+    return res.json({
+        success: success && !!reply,
+        reply: reply || (context.locale === "tr" ? "Cevap yok (Backend)" : "No reply (Backend)"),
+        data: data || {},
+        meta: { locale: context.locale }
+    });
+};

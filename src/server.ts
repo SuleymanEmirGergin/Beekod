@@ -15,7 +15,7 @@ import { authRouter } from './routes/authRoutes.js';
 import { auditRouter } from './routes/auditRoutes.js';
 import { adminSettingsRouter } from "./routes/adminSettingsRoutes.js";
 import { cacheRouter } from "./routes/cacheRoutes.js";
-import { chatRouter } from "./routes/chatRoutes.js";
+import { chatRouter } from "./routes/chat/index.js";
 import { competitorRouter } from "./routes/competitorRoutes.js";
 import { contentConfigRouter } from "./routes/contentConfigRoutes.js";
 import { contentPreviewRouter } from "./routes/contentPreviewRoutes.js";
