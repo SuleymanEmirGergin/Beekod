@@ -65,4 +65,8 @@ router.get("/health", validateQuery(healthQuerySchema), async (req, res) => {
   });
 });
 
+router.get("/debug-sentry", (req, res) => {
+  throw new Error("Sentry Debug Error - Testing Integration");
+});
+
 export { router as healthRouter };
