@@ -2,6 +2,7 @@ import { GoogleGenAI } from "@google/genai";
 import { getProductByBarcode } from "./productService.js";
 import { logger } from "../logger.js";
 import { runImageToVideo } from "./wiroService.js";
+import { NotFoundError, InternalError } from "../errors/AppError.js";
 
 export interface VideoScript {
   title: string;
@@ -23,11 +24,11 @@ export const generateVideoScript = async (
   platform: "instagram" | "tiktok" | "youtube_shorts",
 ): Promise<VideoScript> => {
   const product = await getProductByBarcode(barcode);
-  if (!product) throw new Error("Product not found");
+  if (!product) throw new NotFoundError("Product not found");
 
   const apiKey = (process.env.GEMINI_API_KEY ?? "").trim();
   if (!apiKey) {
-    throw new Error("GEMINI_API_KEY is required for video script generation");
+    throw new InternalError("GEMINI_API_KEY is required for video script generation");
   }
   const genAI = new GoogleGenAI({ apiKey });
   const modelName = process.env.GEMINI_MODEL || "gemini-1.5-flash";
@@ -85,7 +86,7 @@ export const generateVideoScript = async (
     return JSON.parse(jsonStr);
   } catch (error) {
     logger.error("video.script_generation_failed", { err: error });
-    throw new Error("Video senaryosu oluşturulamadı.");
+    throw new InternalError("Video senaryosu oluşturulamadı.", { originalError: error });
   }
 };
 
@@ -93,7 +94,7 @@ const PEXELS_API_KEY = process.env.PEXELS_API_KEY || "563492ad6f9170000100000190
 
 export const generateVideoMedia = async (barcode: string, script: VideoScript): Promise<{ url: string }> => {
   const product = await getProductByBarcode(barcode);
-  if (!product) throw new Error("Product not found");
+  if (!product) throw new NotFoundError("Product not found");
 
   // Extract simple search terms from product name (e.g., "iPhone 15" -> "smartphone", "Nike Air" -> "running shoes")
   // For now, we take the first 2 words or category fallback
@@ -146,7 +147,7 @@ export const generateVideoMedia = async (barcode: string, script: VideoScript): 
  */
 export const generateAIDrivenVideo = async (barcode: string, vibe: string): Promise<{ taskId: string; token: string }> => {
   const product = await getProductByBarcode(barcode);
-  if (!product) throw new Error("Product not found");
+  if (!product) throw new NotFoundError("Product not found");
 
   // 1. Generate a viral script
   const script = await generateVideoScript(barcode, vibe, "instagram");
@@ -154,7 +155,7 @@ export const generateAIDrivenVideo = async (barcode: string, vibe: string): Prom
   // 2. Select product image
   const imageUrl = (product.images && product.images.length > 0) ? product.images[0] : product.imageUrl;
   if (!imageUrl) {
-    throw new Error("Product has no images to generate video from");
+    throw new NotFoundError("Product has no images to generate video from");
   }
 
   // 3. Trigger Wiro AI task
