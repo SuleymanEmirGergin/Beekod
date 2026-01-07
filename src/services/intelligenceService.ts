@@ -12,6 +12,17 @@ interface TotalResult {
   total: number;
 }
 
+interface MetricResult {
+  count: number;
+  revenue: number;
+}
+
+interface TopProductResult {
+  product_name: string;
+  qty: number;
+  revenue: number;
+}
+
 export interface DashboardSummary {
   title: string;
   subtitle: string;
@@ -184,12 +195,12 @@ export async function getDailyBrief(): Promise<DashboardSummary> {
     yesterdayStart.setDate(yesterdayStart.getDate() - 1);
     const yesterdayEnd = new Date(todayStart);
 
-    const todayStats = await query<any[]>(
+    const todayStats = await query<MetricResult[]>(
       "SELECT COUNT(*) as count, SUM(total_amount_numeric) as revenue FROM orders WHERE created_at >= ?",
       [todayStart]
     );
 
-    const yesterdayStats = await query<any[]>(
+    const yesterdayStats = await query<MetricResult[]>(
       "SELECT COUNT(*) as count, SUM(total_amount_numeric) as revenue FROM orders WHERE created_at >= ? AND created_at < ?",
       [yesterdayStart, yesterdayEnd]
     );
@@ -298,11 +309,11 @@ export async function getTrends() {
 export async function askAssistant(question: string): Promise<string> {
   try {
     // 1. Gather Context Data
-    const salesStats = await query<any[]>(
+    const salesStats = await query<MetricResult[]>(
       "SELECT COUNT(*) as count, SUM(total_amount_numeric) as revenue FROM orders WHERE created_at >= NOW() - INTERVAL 30 DAY"
     );
 
-    const topProducts = await query<any[]>(
+    const topProducts = await query<TopProductResult[]>(
       `SELECT product_name, SUM(quantity) as qty, SUM(price_numeric) as revenue 
        FROM order_items 
        GROUP BY product_name 
