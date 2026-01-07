@@ -8,6 +8,7 @@ import {
   MarketplaceListResult,
   MarketplaceProductPayload,
   MarketplaceUpdatePayload,
+  MarketplaceOrderResult,
 } from "./types.js";
 import { BaseMarketplaceProvider } from "./baseProvider.js";
 
@@ -47,6 +48,58 @@ type TrendyolProductDefaults = {
   sizeVariants?: TrendyolSizeVariant[];
   [key: string]: unknown;
 };
+
+interface TrendyolAddress {
+  fullAddress: string;
+  address1: string;
+  address2: string;
+  city: string;
+  district: string;
+  postalCode: string;
+  countryCode: string;
+  fullName: string;
+}
+
+interface TrendyolOrderLine {
+  quantity: number;
+  salesCampaignId: number;
+  productSize: string;
+  merchantSku: string;
+  productName: string;
+  productCode: number;
+  merchantId: number;
+  amount: number;
+  discount: number;
+  currencyCode: string;
+  id: number;
+  sku: string;
+  vatBaseAmount: number;
+  barcode: string;
+  orderLineItemStatusName: string;
+  price: number;
+  discountedPrice?: number;
+}
+
+interface TrendyolOrder {
+  shipmentAddress: TrendyolAddress;
+  orderNumber: string;
+  grossAmount: number;
+  totalDiscount: number;
+  totalPrice: number;
+  customerFirstName: string;
+  customerLastName: string;
+  customerEmail: string;
+  customerPhone?: string;
+  customerId: number;
+  cargoTrackingNumber: number;
+  cargoProviderName: string;
+  lines: TrendyolOrderLine[];
+  orderDate: number;
+  tcIdentityNumber: string;
+  currencyCode: string;
+  shipmentPackageStatus: string;
+  orderStatus: string;
+}
 
 export class TrendyolProvider extends BaseMarketplaceProvider {
   name = "Trendyol" as const;
@@ -227,7 +280,7 @@ export class TrendyolProvider extends BaseMarketplaceProvider {
     return { status: "ok", message: response.message, items: filtered };
   }
 
-  async getNewOrders(params?: { startDate?: string; endDate?: string }): Promise<any> {
+  async getNewOrders(params?: { startDate?: string; endDate?: string }): Promise<MarketplaceOrderResult> {
     if (!this.isConfigured()) {
       return { status: "not_configured", message: "Trendyol not configured", orders: [] };
     }
@@ -249,19 +302,21 @@ export class TrendyolProvider extends BaseMarketplaceProvider {
     }
 
     // Map Trendyol orders to our internal MarketplaceOrder format
-    const trendyolOrders = (response.data as any)?.content || [];
-    const mappedOrders = trendyolOrders.map((order: any) => ({
+    const content = (response.data as { content?: unknown })?.content;
+    const trendyolOrders = (Array.isArray(content) ? content : []) as TrendyolOrder[];
+
+    const mappedOrders = trendyolOrders.map((order) => ({
       marketplace: this.name,
       orderNumber: order.orderNumber,
       customerName: `${order.customerFirstName} ${order.customerLastName}`,
       customerEmail: order.customerEmail,
       customerPhone: order.customerPhone,
       customerAddress: `${order.shipmentAddress.address1} ${order.shipmentAddress.address2 || ""}, ${order.shipmentAddress.city}, ${order.shipmentAddress.district}`,
-      items: order.lines.map((line: any) => ({
+      items: order.lines.map((line) => ({
         sku: line.merchantSku,
         barcode: line.barcode,
         name: line.productName,
-        price: line.salesCampaignId > 0 ? line.discountedPrice : line.price,
+        price: line.salesCampaignId > 0 && line.discountedPrice ? line.discountedPrice : line.price,
         quantity: line.quantity,
       })),
       totalAmount: order.totalPrice,
