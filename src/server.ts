@@ -63,11 +63,11 @@ import { logger } from "./logger.js";
 import { registerProcessHandlers } from "./monitoring/processHandlers.js";
 
 process.on("unhandledRejection", (reason: any) => {
-  console.error("UNHANDLED REJECTION:", reason?.stack || reason);
+  logger.error("process.unhandled_rejection", { reason: reason?.stack || reason });
 });
 
 process.on("uncaughtException", (err: any) => {
-  console.error("UNCAUGHT EXCEPTION:", err?.stack || err);
+  logger.error("process.uncaught_exception", { err: err?.stack || err });
 });
 
 const app = express();

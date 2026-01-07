@@ -73,15 +73,6 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
         ...err,
       },
     });
-
-    // In development, log detailed error to console for easier debugging
-    if (isDevelopment) {
-      console.error('\n=== Internal Server Error ===');
-      console.error('Path:', _req.method, _req.path);
-      console.error('Error:', err.message);
-      console.error('Stack:', err.stack);
-      console.error('=============================\n');
-    }
   } else {
     logger.warn("request.client_error", {
       requestId,

@@ -1,4 +1,5 @@
 import { query } from '../db.js';
+import { logger } from '../logger.js';
 
 interface AuditLogParams {
     userId?: number;
@@ -29,7 +30,7 @@ export const auditService = {
             );
         } catch (error) {
             // Audit logging should not break the main flow, so we just log the error
-            console.error('Failed to create audit log:', error);
+            logger.error('Failed to create audit log:', { error, params });
         }
     },
 
