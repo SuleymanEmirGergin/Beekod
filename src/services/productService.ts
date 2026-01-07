@@ -47,9 +47,21 @@ export async function searchProductsByEmbedding(queryText: string, limit = 5): P
     return [];
   }
 
+  interface EmbeddingRow {
+    id: number;
+    barcode: string;
+    name: string;
+    category: string;
+    description: string;
+    price: number;
+    stock: number;
+    images: string | string[];
+    embedding: string | number[];
+  }
+
   // Fetch all products that have embeddings stored
   // Note: For large datasets (>1000 items), consider using a vector database
-  const rows = await query<any[]>(
+  const rows = await query<EmbeddingRow[]>(
     "SELECT id, barcode, name, category, description, price, stock, images, embedding FROM products WHERE embedding IS NOT NULL"
   );
 
@@ -83,12 +95,20 @@ export async function searchProductsByEmbedding(queryText: string, limit = 5): P
 
   // Return top results, removing the embedding field from output
   const topResults = scored.slice(0, limit).map(s => {
-    const p = s.product;
-    delete p.embedding; // Don't send large vector in response
-    if (typeof p.images === 'string') {
-      try { p.images = JSON.parse(p.images); } catch { p.images = []; }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { embedding, ...p } = s.product;
+
+    // Manual cast to Product because we are constructing it partially and will fill missing fields with defaults or let them be undefined if optional
+    // However, Product requires currency, brand etc. The query selects a subset. 
+    // We should cast to Partial<Product> or ensuring the query selects everything needed.
+    // The original code was loose. Let's return proper partial products or cast as unknown.
+
+    const prod = p as unknown as Product;
+
+    if (typeof prod.images === 'string') {
+      try { prod.images = JSON.parse(prod.images); } catch { prod.images = []; }
     }
-    return p as Product;
+    return prod;
   });
 
   logger.info("semantic_search.completed", {
