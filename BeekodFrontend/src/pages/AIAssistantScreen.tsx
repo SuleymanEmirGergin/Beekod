@@ -27,7 +27,7 @@ import { SearchBar } from '../components/shared/';
 import { ChatWidget } from '../components/ChatWidget';
 import { ToastV2 } from '../components/shared/';
 import { HelpModal } from '../components/HelpModal';
-import { sendMessage } from '../services/chatService';
+import { sendMessage, ChatMessage } from '../services/chatService';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Typewriter } from '../components/shared/Typewriter';
@@ -71,9 +71,7 @@ export function AIAssistantScreen({ onNavigate, onSelectProductForModel }: AIAss
     image: string;
     category: string;
   } | null>(null);
-  const [chatMessages, setChatMessages] = useState<
-    Array<{ role: 'user' | 'ai'; message: string; data?: any; image?: string }>
-  >([]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [selectedImportItem, setSelectedImportItem] = useState<any>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [chatInput, setChatInput] = useState('');

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, Component, ErrorInfo, ReactNode } from 'react';
 import { MessageCircle, X, Send, Loader2, Sparkles, User, Bot, Trash2, Mic, ThumbsUp, ThumbsDown, Settings, Volume2, VolumeX, Paperclip, Plus, Image as ImageIcon, RotateCcw } from 'lucide-react';
 import chatbotIcon from 'figma:asset/9d96f3bbf44d3ec04b17cf47ee8392a065d2b41b.png';
-import { sendMessage, saveToChatHistory, sendFeedback } from '../services/chatService';
+import { sendMessage, saveToChatHistory, sendFeedback, ChatMessage, ChatData } from '../services/chatService';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -69,6 +69,16 @@ const MessageSkeleton = () => (
   </div>
 );
 
+// Extended type for Widget state
+type WidgetMessage = ChatMessage & {
+  isError?: boolean;
+  retryContext?: {
+    action?: string;
+    opts?: any;
+    image?: File;
+  };
+};
+
 export function ChatWidget() {
   const navigate = useNavigate();
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -83,19 +93,7 @@ export function ChatWidget() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const speechSynthesisRef = useRef<SpeechSynthesisUtterance | null>(null);
-  const [chatHistory, setChatHistory] = useState<Array<{
-    role: 'user' | 'ai' | 'assistant',
-    message: string,
-    reply?: string,
-    data?: any,
-    isError?: boolean,
-    // Store retry context
-    retryContext?: {
-      action?: string,
-      opts?: any,
-      image?: File
-    }
-  }>>([]);
+  const [chatHistory, setChatHistory] = useState<WidgetMessage[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const suggestedPrompts: Array<
@@ -479,10 +477,10 @@ export function ChatWidget() {
                           {/* Sales Summary Stats */}
                           {msg.data.orders !== undefined && msg.data.revenue !== undefined && (
                             <div className="grid grid-cols-1 gap-2 my-2">
-                              <StatsCard label="Toplam Ciro" value={`${msg.data.revenue.toLocaleString()} ${msg.data.currency || 'TL'}`} icon="profit" />
+                              <StatsCard label="Toplam Ciro" value={`${(msg.data.revenue ?? 0).toLocaleString()} ${msg.data.currency || 'TL'}`} icon="profit" />
                               <div className="grid grid-cols-2 gap-2">
-                                <StatsCard label="Sipariş" value={msg.data.orders} icon="sales" />
-                                <StatsCard label="Ürün" value={msg.data.items} icon="products" />
+                                <StatsCard label="Sipariş" value={msg.data.orders ?? 0} icon="sales" />
+                                <StatsCard label="Ürün" value={typeof msg.data.items === 'number' ? msg.data.items : Array.isArray(msg.data.items) ? msg.data.items.length : 0} icon="products" />
                               </div>
                             </div>
                           )}
@@ -499,7 +497,7 @@ export function ChatWidget() {
                           {/* Product List */}
                           {(Array.isArray(msg.data.items) || Array.isArray(msg.data.lowStockProducts) || Array.isArray(msg.data.topProducts) || Array.isArray(msg.data.profitData)) && (
                             <ProductList
-                              items={(msg.data.items || msg.data.lowStockProducts || msg.data.topProducts || msg.data.profitData).slice(0, 5)}
+                              items={(Array.isArray(msg.data.items) ? msg.data.items : (msg.data.lowStockProducts || msg.data.topProducts || msg.data.profitData || [])).slice(0, 5)}
                               title={msg.data.lowStockProducts ? "Kritik Stok Listesi" : (msg.data.profitData ? "En Kârlı Ürünler" : "Öne Çıkan Ürünler")}
                               onItemClick={(barcode) => handleSendMessage(`${barcode} bilgisi getir`)}
                             />

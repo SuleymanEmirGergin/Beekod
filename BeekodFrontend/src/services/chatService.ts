@@ -1,5 +1,31 @@
 import api from './api';
 
+export interface ChatData {
+  contentType?: 'content_card' | string;
+  barcode?: string;
+  // Stats
+  stats?: {
+    totalProducts: number;
+    lowStockCount: number;
+    [key: string]: any;
+  };
+  revenue?: number;
+  orders?: number;
+  items?: number | any[]; // count or array of items
+  currency?: string;
+  // Lists & Charts
+  timeline?: Array<{ date?: string; day?: string; revenue?: number; amount?: number;[key: string]: any }>;
+  marketplaces?: Array<{ name: string; status: string;[key: string]: any }>;
+  lowStockProducts?: any[];
+  topProducts?: any[];
+  profitData?: any[];
+  // Search
+  type?: 'product_search_results' | string;
+  results?: any[];
+  // Fallback
+  [key: string]: any;
+}
+
 export interface ChatMessage {
   id?: string;
   role: 'user' | 'assistant' | 'ai';
@@ -8,7 +34,7 @@ export interface ChatMessage {
   image?: string;
   timestamp?: Date;
   success?: boolean;
-  data?: any;
+  data?: ChatData;
 }
 
 export type ChatAction = 'TOP_SELLERS' | 'CRITICAL_STOCK' | 'SALES_SUMMARY';
@@ -61,14 +87,16 @@ export function resetChat(): void {
 export type SendMessageOptions = { days?: number; limit?: number; threshold?: number };
 
 /**
- * NEW: Deterministic action support + optional image/barcode + sessionId
- * Returns full payload: { reply, data, locale }
+ * Standardized response interface matching Backend
  */
-// Standardized response interface
 export interface ChatResponse {
+  success?: boolean; // Backend returns success
   reply: string;
-  data?: any;
-  locale?: string;
+  data?: ChatData;
+  meta?: {
+    locale?: string;
+    [key: string]: any;
+  };
   error?: string; // e.g. "NETWORK_ERROR", "SERVER_ERROR"
 }
 
@@ -79,7 +107,7 @@ export const sendMessage = async (
   action?: ChatAction,
   opts?: SendMessageOptions,
   history: ChatMessage[] = [],
-): Promise<any> => {
+): Promise<ChatResponse> => {
   try {
     const sessionId = getSessionId();
     let response;
