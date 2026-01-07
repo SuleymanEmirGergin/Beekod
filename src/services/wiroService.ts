@@ -55,7 +55,7 @@ async function processImageInput(formData: FormData, fieldName: string, input: s
                 const blob = new Blob([buffer]);
                 formData.append(fieldName, blob, path.basename(input));
             } else {
-                console.warn(`File not found: ${input}, ignoring...`);
+                logger.warn(`wiro.input.file_not_found`, { path: input });
             }
         } catch (e) {
             logger.error(`wiro.input.file_error`, { input, error: e });

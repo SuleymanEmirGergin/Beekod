@@ -513,13 +513,13 @@ export function parseMessage(message: string, localeHint?: Locale): ParsedMessag
   const isExplicitProductAdd = hasAddKeyword && hasProductKeyword && !wantsMarketplaceAdd && !wantsNetworkStockQuery && !wantsMarketplaceConfiguredList;
 
   // DEBUG
-  console.log("🔍 NLP Debug:", {
-    hasAddKeyword,
-    hasProductKeyword,
-    wantsMarketplaceAdd,
-    isExplicitProductAdd,
-    normalized: normalized.substring(0, 100)
-  });
+  // logger.debug("nlp.debug", {
+  //   hasAddKeyword,
+  //   hasProductKeyword,
+  //   wantsMarketplaceAdd,
+  //   isExplicitProductAdd,
+  //   normalized: normalized.substring(0, 100)
+  // });
 
   if (wantsContextImport) {
     intent = "product.import";
