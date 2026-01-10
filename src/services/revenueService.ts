@@ -1,6 +1,6 @@
 import { pool } from "../db.js";
 import { logger } from "../logger.js";
-import { generateGeminiReply } from "./geminiService.js";
+import { generateGeminiReply } from "./geminiClient.js";
 import { Locale } from "../types.js";
 
 export interface BundleSuggestion {

@@ -15,7 +15,7 @@ import { authRouter } from './routes/authRoutes.js';
 import { auditRouter } from './routes/auditRoutes.js';
 import { adminSettingsRouter } from "./routes/adminSettingsRoutes.js";
 import { cacheRouter } from "./routes/cacheRoutes.js";
-import { chatRouter } from "./routes/chat/index.js";
+
 import { competitorRouter } from "./routes/competitorRoutes.js";
 import { contentConfigRouter } from "./routes/contentConfigRoutes.js";
 import { contentPreviewRouter } from "./routes/contentPreviewRoutes.js";
@@ -59,6 +59,8 @@ import { hepsiburadaRouter } from "./routes/hepsiburadaRoutes.js";
 import { ciceksepetiRouter } from "./routes/ciceksepetiRoutes.js";
 import { inventoryRouter } from "./routes/inventoryRoutes.js";
 import aiModelRouter from "./routes/aiModelRoutes.js";
+import chatbotRouter from "./routes/chatbotRoutes.js";
+import wholesalerRouter from "./routes/wholesalerRoutes.js";
 import { logger } from "./logger.js";
 import { registerProcessHandlers } from "./monitoring/processHandlers.js";
 
@@ -137,7 +139,6 @@ app.use("/api/team", teamRouter);
 app.use("/api/competitors", competitorRouter);
 app.use("/api/jobs", jobRouter);
 // Chat router'ı daha spesifik route'lardan sonra ama genel /api route'larından önce
-app.use("/api", chatRouter);
 app.use("/api/ops", opsRouter);
 app.use("/api", dashboardRouter);
 app.use("/api/config", configRouter);
@@ -146,6 +147,10 @@ app.use("/api/profiles", profileRouter);
 app.use("/api/invoices", invoiceRouter);
 app.use("/api/inventory", inventoryRouter);
 app.use("/api/ai-model", aiModelRouter);
+
+// Chatbot & Wholesaler Network
+app.use("/api/chat", chatbotRouter);
+app.use("/api/wholesaler", wholesalerRouter);
 
 // SPA Fallback - Serve index.html for unknown routes
 app.get("*", (req, res, next) => {
@@ -171,6 +176,8 @@ if (process.env.NODE_ENV !== 'test') {
     logger.info("server.listen", { port: config.port });
     // Initialize socket service with the http server instance
     socketService.initialize(server);
+    // Set server timeout to 5 minutes to handle long polling AI tasks
+    server.setTimeout(300000);
   });
 }
 

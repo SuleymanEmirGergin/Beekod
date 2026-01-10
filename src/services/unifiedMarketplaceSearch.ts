@@ -1,6 +1,7 @@
 // REMOVED: import { getMarketplaceProviders } from "../marketplaces/index.js";
 import { scrapeMarketplace, ScrapedProduct } from "./webScraperService.js";
 import { logger } from "../logger.js";
+import { ChatEntity } from "../chatbot/types.js";
 
 export type SearchResult = {
     title: string;
@@ -17,7 +18,7 @@ export type SearchResult = {
  * Unified marketplace search combining Google CSE and web scraping.
  * Uses CSE for broad coverage and scraping for high-confidence site data.
  */
-export async function unifiedMarketplaceSearch(query: string): Promise<SearchResult[]> {
+export async function unifiedMarketplaceSearch(query: string, entities?: ChatEntity): Promise<SearchResult[]> {
     const sanitizedQuery = sanitizeQuery(query);
     logger.info("unified_search.start", { query, sanitizedQuery });
     query = sanitizedQuery;
@@ -119,7 +120,7 @@ export async function unifiedMarketplaceSearch(query: string): Promise<SearchRes
     });
 
     const deduped = Array.from(urlMap.values());
-    const filtered = filterAccessories(deduped, query);
+    const filtered = filterAccessories(deduped, query, entities);
 
     // Sort to ensure best items are picked in getUniqueBySite
     filtered.sort((a, b) => {
@@ -133,7 +134,7 @@ export async function unifiedMarketplaceSearch(query: string): Promise<SearchRes
     // 3. AI Semantic Filter (only if many results)
     if (uniqueBySite.length > 3) {
         try {
-            const { filterSearchResults } = await import("./geminiService.js");
+            const { filterSearchResults } = await import("./geminiClient.js");
             const relevantIndices = await filterSearchResults(query, uniqueBySite);
             const semanticFiltered = uniqueBySite.filter((_, i) => relevantIndices.includes(i));
             if (semanticFiltered.length > 0) return semanticFiltered;
@@ -148,27 +149,61 @@ export async function unifiedMarketplaceSearch(query: string): Promise<SearchRes
 /**
  * Filter out accessories if query doesn't explicitly ask for them.
  */
-function filterAccessories(products: SearchResult[], query: string): SearchResult[] {
+function filterAccessories(products: SearchResult[], query: string, entities?: ChatEntity): SearchResult[] {
     const ACCESSORY_KEYWORDS = [
         "kılıf", "kilif", "case", "kapak", "cover",
         "ekran koruyucu", "screen protector", "cam", "glass",
         "şarj", "sarj", "charger", "kablo", "cable",
         "kulaklık", "kulaklik", "headphone",
         "aksesuar", "accessory",
+        "şeffaf", "silikon", "uyumlu", "for", "için", "film",
+        "lens", "koruyucu", "adaptör", "askı"
     ];
 
-    const queryIsAccessory = ACCESSORY_KEYWORDS.some(k =>
-        query.toLowerCase().includes(k)
-    );
+    const lowerQuery = query.toLowerCase();
 
-    if (queryIsAccessory) {
+    // Check AI classification first
+    const isMainProductQuery = entities?.queryProductType === "MAIN_PRODUCT";
+    const isAccessoryQuery = entities?.queryProductType === "ACCESSORY" ||
+        ACCESSORY_KEYWORDS.some(k => lowerQuery.includes(k));
+
+    if (isAccessoryQuery && !isMainProductQuery) {
         return products; // User wants accessories, don't filter
+    }
+
+    // Identify average price to catch suspicious "cheap" accessories if we are looking for a main product
+    let avgPrice = 0;
+    const productsWithPrice = products.filter(p => p.price > 0);
+    if (productsWithPrice.length > 0) {
+        avgPrice = productsWithPrice.reduce((sum, p) => sum + p.price, 0) / productsWithPrice.length;
     }
 
     // Filter out products with accessory keywords in title
     return products.filter(p => {
         const titleLower = p.title.toLowerCase();
-        return !ACCESSORY_KEYWORDS.some(k => titleLower.includes(k));
+
+        // If searching for a main product (like iPhone), filter out anything with accessory keywords
+        // IF the price is significantly lower than average (e.g., < 20% of avg price)
+        // This prevents filtering out "iPhone + Kılıf Hediyeli" (expensive) while catching "iPhone Kılıfı" (cheap)
+        const hasKeyword = ACCESSORY_KEYWORDS.some(k => titleLower.includes(k));
+
+        if (hasKeyword) {
+            // If it's very cheap compared to average, it's definitely an accessory
+            if (avgPrice > 1000 && p.price < avgPrice / 10) {
+                return false;
+            }
+
+            // If we are VERY sure it's a main product query, be stricter
+            if (isMainProductQuery) {
+                // BUT don't filter if it contains "hediyeli" or "paketi" (likely a bundle)
+                if (titleLower.includes("hediyeli") || titleLower.includes("paketi") || titleLower.includes("seti")) {
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        return true;
     });
 }
 

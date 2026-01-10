@@ -4,6 +4,8 @@ import { getBrowser, createPage } from "./scraper/browser.js";
 
 export type ScrapedProduct = Partial<Product> & {
   originalUrl: string;
+  reviews?: string[];
+  rating?: number;
 };
 
 export async function scrapeProductFromUrl(url: string): Promise<ScrapedProduct | null> {
@@ -133,7 +135,81 @@ export async function scrapeProductFromUrl(url: string): Promise<ScrapedProduct 
         if (key && val) specs[key] = val;
       });
 
+      // Pazarama spec pattern
+      const pzRows = document.querySelectorAll('.product-detail-specs .spec-item, .product-features tr');
+      pzRows.forEach(row => {
+        const key = row.querySelector('.spec-label, td:first-child')?.textContent?.trim();
+        const val = row.querySelector('.spec-value, td:last-child')?.textContent?.trim();
+        if (key && val) specs[key] = val;
+      });
+
+      // Ciceksepeti spec pattern
+      const csRows = document.querySelectorAll('.product-specs__item, .product-info__properties tr');
+      csRows.forEach(row => {
+        const key = row.querySelector('.product-specs__title, .product-info__property-name')?.textContent?.trim();
+        const val = row.querySelector('.product-specs__value, .product-info__property-value')?.textContent?.trim();
+        if (key && val) specs[key] = val;
+      });
+
       return specs;
+    });
+
+    // --- NEW: Variant Extraction ---
+    const variants = await page.evaluate(() => {
+      const vars: any[] = [];
+
+      // Trendyol Color variants
+      const tyColors = document.querySelectorAll('.sl-item');
+      tyColors.forEach(item => {
+        const title = item.getAttribute('title') || item.querySelector('img')?.getAttribute('alt');
+        if (title) {
+          vars.push({
+            sku: `VAR-${title.replace(/\s+/g, '-').toUpperCase()}`,
+            description: title,
+            attributes: { "Renk": title },
+            price: 0, // Will fallback to main price if 0
+            stock: 10
+          });
+        }
+      });
+
+      // Hepsiburada variants
+      const hbVariants = document.querySelectorAll('.variant-property-list .variant-item');
+      hbVariants.forEach(item => {
+        const title = item.getAttribute('title') || item.textContent?.trim();
+        if (title) {
+          vars.push({
+            sku: `VAR-${title.replace(/\s+/g, '-').toUpperCase()}`,
+            description: title,
+            attributes: { "Seçenek": title },
+            price: 0,
+            stock: 10
+          });
+        }
+      });
+
+      return vars;
+    });
+
+    // --- NEW: Review Extraction ---
+    const reviews = await page.evaluate(() => {
+      const items: string[] = [];
+
+      // Trendyol reviews
+      document.querySelectorAll('.comment-text').forEach(el => items.push(el.textContent?.trim() || ""));
+
+      // Hepsiburada reviews
+      document.querySelectorAll('.review-text').forEach(el => items.push(el.textContent?.trim() || ""));
+
+      // N11 reviews
+      document.querySelectorAll('.commentText').forEach(el => items.push(el.textContent?.trim() || ""));
+
+      return items.filter(t => t.length > 10).slice(0, 50); // Take top 50 significant reviews
+    });
+
+    const rating = await page.evaluate(() => {
+      const el = document.querySelector('.rating-score, .hermes-RatingSummary-actual-score, .ratingScore');
+      return el ? parseFloat(el.textContent?.trim() || "0") : 0;
     });
 
     // Fallback cleanup
@@ -162,6 +238,9 @@ export async function scrapeProductFromUrl(url: string): Promise<ScrapedProduct 
       barcode: barcode || `IMP${Date.now()}`,
       imageUrl,
       attributes,
+      variants: variants.length > 0 ? variants : undefined,
+      reviews: reviews.length > 0 ? reviews : undefined,
+      rating: rating > 0 ? rating : undefined,
       originalUrl: url,
     };
   } catch (error) {

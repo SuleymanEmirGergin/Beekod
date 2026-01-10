@@ -4,7 +4,7 @@ import { getOrders, updateOrderStatus, createOrder, syncOrders, generateShipping
 import { createBulkInvoices } from '../services/invoice';
 import { SidebarV2 } from '../layouts/SidebarV2';
 import { SearchBar } from '../components/shared/';
-import { ChatWidget } from '../components/ChatWidget';
+
 import { HelpModal } from '../components/HelpModal';
 import {
   Bell,
@@ -92,6 +92,27 @@ export function OrdersListScreen({ onNavigate }: OrdersListScreenProps) {
       setNewOrderAddress('');
       setTimeout(() => setShowToast(false), 3000);
     },
+    onError: (error: any) => {
+      console.error("Create order failed:", error);
+
+      let errMsg = "Sipariş oluşturulamadı";
+      if (error.response?.data?.error) {
+        if (typeof error.response.data.error === 'object') {
+          errMsg = JSON.stringify(error.response.data.error);
+        } else {
+          errMsg = String(error.response.data.error);
+        }
+      } else if (error.message) {
+        errMsg = error.message;
+      }
+
+      setToastMessage({
+        title: '❌ Hata',
+        message: errMsg
+      });
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 5000);
+    }
   });
 
   // React Query - Bulk Create Invoices Mutation
@@ -285,17 +306,45 @@ export function OrdersListScreen({ onNavigate }: OrdersListScreenProps) {
   };
 
   const handleCreateOrder = () => {
-    if (!newOrderCustomer) return;
+    console.log("handleCreateOrder triggered", { newOrderCustomer });
+    if (!newOrderCustomer) {
+      alert("Lütfen müşteri adını giriniz.");
+      return;
+    }
 
     createOrderMutation.mutate({
-      customer: { name: newOrderCustomer },
+      customer: {
+        name: newOrderCustomer,
+        email: newOrderEmail,
+        phone: newOrderPhone,
+        address: newOrderAddress,
+        initials: newOrderCustomer.substring(0, 2).toUpperCase(),
+        color: 'bg-gray-500' // Default color
+      },
       source: { name: 'Beekod Direct', color: 'bg-yellow-500', icon: 'B' },
-      // Add other fields as needed
+      items: [
+        {
+          name: "Manuel Satış / Hizmet",
+          sku: "MANUAL-001",
+          price: "₺0.00",
+          quantity: 1,
+          image: "https://via.placeholder.com/150"
+        }
+      ],
+      total: "₺0.00"
     });
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen overflow-hidden" style={{ fontFamily: "'Outfit', sans-serif" }}>
+      {/* Premium Background with Mesh Gradient */}
+      <div className="fixed inset-0 -z-10">
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50" />
+        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-to-br from-blue-200/20 via-cyan-200/10 to-transparent rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-to-tr from-indigo-200/20 via-purple-200/10 to-transparent rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-gradient-to-br from-amber-200/10 to-orange-200/10 rounded-full blur-3xl" />
+      </div>
+
       <SidebarV2
         activeItem="orders"
         onNavigate={onNavigate}
@@ -305,29 +354,39 @@ export function OrdersListScreen({ onNavigate }: OrdersListScreenProps) {
       />
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top bar */}
-        <header className="bg-white border-b border-gray-200 px-8 py-4">
-          <div className="flex items-center justify-between">
+        {/* Premium Header */}
+        <header className="relative px-8 py-5 flex items-center justify-between border-b border-white/20 bg-white/40 backdrop-blur-xl">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div className="absolute -inset-1 bg-gradient-to-r from-blue-400 to-cyan-500 rounded-xl blur opacity-30" />
+              <div className="relative w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
+                <PackageIcon className="w-6 h-6 text-white" />
+              </div>
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Sipariş Yönetimi</h1>
+              <p className="text-sm text-gray-500">{filteredOrders.length} sipariş listeleniyor</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
             <SearchBar
               placeholder="Sipariş, müşteri veya ürün ara..."
               value={searchQuery}
               onChange={setSearchQuery}
             />
-            <div className="flex items-center gap-3">
-              <button
-                className="p-2 hover:bg-gray-50 rounded-lg transition-colors relative"
-                onClick={() => setShowNotifications(!showNotifications)}
-              >
-                <Bell className="w-5 h-5 text-gray-600" />
-                <div className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-              </button>
-              <button
-                className="p-2 hover:bg-gray-50 rounded-lg transition-colors"
-                onClick={() => setShowHelpModal(true)}
-              >
-                <HelpCircle className="w-5 h-5 text-gray-600" />
-              </button>
-            </div>
+            <button
+              className="relative p-2.5 bg-white/60 hover:bg-white/80 rounded-xl border border-white/40 transition-all shadow-sm"
+              onClick={() => setShowNotifications(!showNotifications)}
+            >
+              <Bell className="w-5 h-5 text-gray-600" />
+              <div className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+            </button>
+            <button
+              className="p-2.5 bg-white/60 hover:bg-white/80 rounded-xl border border-white/40 transition-all shadow-sm"
+              onClick={() => setShowHelpModal(true)}
+            >
+              <HelpCircle className="w-5 h-5 text-gray-600" />
+            </button>
           </div>
         </header>
 
@@ -381,112 +440,106 @@ export function OrdersListScreen({ onNavigate }: OrdersListScreenProps) {
 
         {/* Main content */}
         <main className="flex-1 overflow-y-auto px-8 py-6">
-          {/* Page header */}
-          <div className="mb-6">
-            <h1 className="text-2xl text-gray-900 mb-1">Sipariş Listesi</h1>
-            <p className="text-sm text-gray-500">
-              Siparişleri yönetin, stok atayın ve pazaryeri entegrasyonlarını takip edin.
-            </p>
-          </div>
-
           {/* Tabs and Actions */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setActiveTab('all')}
-                className={`px-4 py-2 text-sm rounded-lg transition-colors ${activeTab === 'all'
-                  ? 'text-gray-900 bg-white border-b-2 border-[#F5B800]'
-                  : 'text-gray-600 hover:text-gray-900'
-                  }`}
-              >
-                Tüm Siparişler
-              </button>
-              <button
-                onClick={() => setActiveTab('new')}
-                className={`px-4 py-2 text-sm rounded-lg transition-colors flex items-center gap-2 ${activeTab === 'new'
-                  ? 'text-gray-900 bg-white border-b-2 border-[#F5B800]'
-                  : 'text-gray-600 hover:text-gray-900'
-                  }`}
-              >
-                Yeni
-                <span className="px-1.5 py-0.5 bg-[#F5B800] text-gray-900 text-xs rounded">12</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('processing')}
-                className={`px-4 py-2 text-sm rounded-lg transition-colors ${activeTab === 'processing'
-                  ? 'text-gray-900 bg-white border-b-2 border-[#F5B800]'
-                  : 'text-gray-600 hover:text-gray-900'
-                  }`}
-              >
-                İşlemde
-              </button>
-              <button
-                onClick={() => setActiveTab('shipped')}
-                className={`px-4 py-2 text-sm rounded-lg transition-colors ${activeTab === 'shipped'
-                  ? 'text-gray-900 bg-white border-b-2 border-[#F5B800]'
-                  : 'text-gray-600 hover:text-gray-900'
-                  }`}
-              >
-                Kargoda
-              </button>
-              <button
-                onClick={() => setActiveTab('returned')}
-                className={`px-4 py-2 text-sm rounded-lg transition-colors ${activeTab === 'returned'
-                  ? 'text-gray-900 bg-white border-b-2 border-[#F5B800]'
-                  : 'text-gray-600 hover:text-gray-900'
-                  }`}
-              >
-                İade Edildi
-              </button>
-              <button
-                onClick={() => setActiveTab('cancelled')}
-                className={`px-4 py-2 text-sm rounded-lg transition-colors ${activeTab === 'cancelled'
-                  ? 'text-gray-900 bg-white border-b-2 border-[#F5B800]'
-                  : 'text-gray-600 hover:text-gray-900'
-                  }`}
-              >
-                İptal Edildi
-              </button>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                onClick={handleExportCSV}
-              >
-                <Download className="w-4 h-4" />
-                Dışa Aktar (CSV)
-              </button>
-              <button
-                className="flex items-center gap-2 px-4 py-2 border border-[#F5B800] text-[#F5B800] hover:bg-yellow-50 rounded-lg text-sm transition-colors disabled:opacity-50"
-                onClick={() => syncOrdersMutation.mutate()}
-                disabled={syncOrdersMutation.isPending}
-              >
-                <RefreshCw
-                  className={`w-4 h-4 ${syncOrdersMutation.isPending ? 'animate-spin' : ''}`}
-                />
-                {syncOrdersMutation.isPending ? 'Eşitleniyor...' : 'Siparişleri Eşitle'}
-              </button>
-              <button
-                className="flex items-center gap-2 px-4 py-2 bg-[#F5B800] hover:bg-[#E5A800] text-gray-900 rounded-lg text-sm transition-colors"
-                onClick={() => setShowCreateOrderModal(true)}
-              >
-                <Plus className="w-4 h-4" />
-                Manuel Sipariş Oluştur
-              </button>
-              {selectedOrders.length > 0 && (
+          <div className="bg-white/60 backdrop-blur-sm rounded-2xl border border-white/40 shadow-lg p-4 mb-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1 bg-gray-100/50 rounded-xl p-1">
                 <button
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors"
-                  onClick={handleBulkCreate}
+                  onClick={() => setActiveTab('all')}
+                  className={`px-4 py-2 text-sm rounded-lg transition-colors ${activeTab === 'all'
+                    ? 'text-gray-900 bg-white border-b-2 border-[#F5B800]'
+                    : 'text-gray-600 hover:text-gray-900'
+                    }`}
                 >
-                  <PackageIcon className="w-4 h-4" />
-                  Toplu Fatura ({selectedOrders.length})
+                  Tüm Siparişler
                 </button>
-              )}
+                <button
+                  onClick={() => setActiveTab('new')}
+                  className={`px-4 py-2 text-sm rounded-lg transition-colors flex items-center gap-2 ${activeTab === 'new'
+                    ? 'text-gray-900 bg-white border-b-2 border-[#F5B800]'
+                    : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                >
+                  Yeni
+                  <span className="px-1.5 py-0.5 bg-[#F5B800] text-gray-900 text-xs rounded">12</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('processing')}
+                  className={`px-4 py-2 text-sm rounded-lg transition-colors ${activeTab === 'processing'
+                    ? 'text-gray-900 bg-white border-b-2 border-[#F5B800]'
+                    : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                >
+                  İşlemde
+                </button>
+                <button
+                  onClick={() => setActiveTab('shipped')}
+                  className={`px-4 py-2 text-sm rounded-lg transition-colors ${activeTab === 'shipped'
+                    ? 'text-gray-900 bg-white border-b-2 border-[#F5B800]'
+                    : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                >
+                  Kargoda
+                </button>
+                <button
+                  onClick={() => setActiveTab('returned')}
+                  className={`px-4 py-2 text-sm rounded-lg transition-colors ${activeTab === 'returned'
+                    ? 'text-gray-900 bg-white border-b-2 border-[#F5B800]'
+                    : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                >
+                  İade Edildi
+                </button>
+                <button
+                  onClick={() => setActiveTab('cancelled')}
+                  className={`px-4 py-2 text-sm rounded-lg transition-colors ${activeTab === 'cancelled'
+                    ? 'text-gray-900 bg-white border-b-2 border-[#F5B800]'
+                    : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                >
+                  İptal Edildi
+                </button>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  className="flex items-center gap-2 px-4 py-2.5 bg-white/60 hover:bg-white/80 border border-white/40 rounded-xl text-sm text-gray-700 transition-all shadow-sm"
+                  onClick={handleExportCSV}
+                >
+                  <Download className="w-4 h-4" />
+                  Dışa Aktar
+                </button>
+                <button
+                  className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl text-sm font-medium transition-all shadow-md disabled:opacity-50"
+                  onClick={() => syncOrdersMutation.mutate()}
+                  disabled={syncOrdersMutation.isPending}
+                >
+                  <RefreshCw
+                    className={`w-4 h-4 ${syncOrdersMutation.isPending ? 'animate-spin' : ''}`}
+                  />
+                  {syncOrdersMutation.isPending ? 'Eşitleniyor...' : 'Siparişleri Eşitle'}
+                </button>
+                <button
+                  className="relative z-10 flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white rounded-xl text-sm font-medium transition-all shadow-md"
+                  onClick={() => setShowCreateOrderModal(true)}
+                >
+                  <Plus className="w-4 h-4" />
+                  Manuel Sipariş
+                </button>
+                {selectedOrders.length > 0 && (
+                  <button
+                    className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white rounded-xl text-sm font-medium transition-all shadow-md"
+                    onClick={handleBulkCreate}
+                  >
+                    <PackageIcon className="w-4 h-4" />
+                    Toplu Fatura ({selectedOrders.length})
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
           {/* Orders Table */}
-          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+          <div className="bg-white/60 backdrop-blur-sm rounded-2xl border border-white/40 shadow-lg overflow-hidden">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
@@ -659,12 +712,11 @@ export function OrdersListScreen({ onNavigate }: OrdersListScreenProps) {
       </div>
 
       {/* Floating Chat Button */}
-      <ChatWidget />
 
-      {/* Create Order Modal */}
+
       {showCreateOrderModal && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-8 rounded-lg shadow-lg w-96">
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-50 flex items-center justify-center z-[60]">
+          <div className="bg-white p-8 rounded-lg shadow-lg w-96 relative z-[70]">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl text-gray-900">Manuel Sipariş Oluştur</h2>
               <button
@@ -720,10 +772,14 @@ export function OrdersListScreen({ onNavigate }: OrdersListScreenProps) {
                 Vazgeç
               </button>
               <button
-                className="px-4 py-2 bg-[#F5B800] text-gray-900 rounded-lg"
-                onClick={handleCreateOrder}
+                className="relative z-[80] px-4 py-2 bg-[#F5B800] text-gray-900 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer hover:bg-[#E5A800] transition-colors shadow-sm"
+                onClick={() => {
+                  console.log("Create Order Button Clicked");
+                  handleCreateOrder();
+                }}
+                disabled={createOrderMutation.isPending}
               >
-                Sipariş Oluştur
+                {createOrderMutation.isPending ? 'Oluşturuluyor...' : 'Sipariş Oluştur'}
               </button>
             </div>
           </div>

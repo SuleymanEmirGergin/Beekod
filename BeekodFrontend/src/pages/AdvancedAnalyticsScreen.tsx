@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { SidebarV2 } from '../layouts/SidebarV2';
-import { ChatWidget } from '../components/ChatWidget';
+
 import { SalesTrendChart } from '../components/charts/SalesTrendChart';
 import { TopProductsTable } from '../components/charts/TopProductsTable';
 import {
@@ -157,7 +157,7 @@ export function AdvancedAnalyticsScreen({ onNavigate }: AdvancedAnalyticsScreenP
                 </main>
             </div>
 
-            <ChatWidget />
+            
         </div>
     );
 }

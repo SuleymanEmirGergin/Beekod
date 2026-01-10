@@ -1,5 +1,5 @@
 import { query } from "../db.js";
-import { generateGeminiReply } from "./geminiService.js";
+import { generateGeminiReply } from "./geminiClient.js";
 import { getInvoices } from "./invoiceStore.js";
 import { logger } from "../logger.js";
 import { Product } from "../types.js";

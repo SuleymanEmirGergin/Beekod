@@ -1,4 +1,4 @@
-import { generateGeminiReply } from "./geminiService.js";
+import { generateGeminiReply } from "./geminiClient.js";
 import { SalesSummary, TopProduct, MarketplaceSummary } from "./reportService.js";
 import { Locale } from "../types.js";
 import { t } from "../i18n.js";

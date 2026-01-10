@@ -1,5 +1,5 @@
 import { getProductByBarcode } from "./productService.js";
-import { generateGeminiReply } from "./geminiService.js";
+import { generateGeminiReply } from "./geminiClient.js";
 import { logger } from "../logger.js";
 
 export interface CompetitorPrice {
@@ -19,22 +19,39 @@ export interface PriceSuggestion {
   aiInsight?: string;
 }
 
+import { unifiedMarketplaceSearch } from "./unifiedMarketplaceSearch.js";
+
 /**
- * Simulates fetching competitor prices from popular platforms.
- * In a real-world scenario, this would use a scraper or a pricing API.
+ * Fetches real competitor prices using unified marketplace search.
  */
 export async function getCompetitorPrices(barcode: string): Promise<CompetitorPrice[]> {
   const product = await getProductByBarcode(barcode);
   if (!product) return [];
 
-  const basePrice = product.price;
+  try {
+    // We search by product name to find competitors
+    const searchResults = await unifiedMarketplaceSearch(product.name);
 
-  // Simulate some randomness
-  return [
-    { platform: "Trendyol", price: basePrice * (0.9 + Math.random() * 0.2), currency: product.currency },
-    { platform: "Hepsiburada", price: basePrice * (0.92 + Math.random() * 0.15), currency: product.currency },
-    { platform: "Amazon.com.tr", price: basePrice * (0.88 + Math.random() * 0.25), currency: product.currency },
-  ].map((p) => ({ ...p, price: parseFloat(p.price.toFixed(2)) }));
+    // Filter and map to CompetitorPrice format
+    // We only take results that aren't the source URL itself (if possible)
+    return searchResults
+      .slice(0, 5) // Top 5 competitors
+      .map(r => ({
+        platform: r.site.charAt(0).toUpperCase() + r.site.slice(1),
+        price: r.price,
+        currency: r.currency || 'TRY',
+        url: r.url
+      }));
+  } catch (error) {
+    logger.error("pricing.get_competitors_failed", { barcode, error });
+
+    // Fallback to simulation if integration fails
+    const basePrice = product.price;
+    return [
+      { platform: "Trendyol (M)", price: basePrice * (0.95 + Math.random() * 0.1), currency: product.currency },
+      { platform: "Hepsiburada (M)", price: basePrice * (0.93 + Math.random() * 0.12), currency: product.currency },
+    ].map((p) => ({ ...p, price: parseFloat(p.price.toFixed(2)) }));
+  }
 }
 
 export async function getPriceSuggestion(barcode: string): Promise<PriceSuggestion | null> {

@@ -27,6 +27,36 @@ router.get("/mappings", async (req, res) => {
   }
 });
 
+// Product Discovery Agent Search
+router.get("/discovery/search", async (req, res) => {
+  try {
+    const query = req.query.q as string;
+    if (!query) return res.status(400).json({ error: "Query is required" });
+
+    const { searchMarketplaceAgent } = await import("../services/marketplaceFinderAgent.js");
+    const result = await searchMarketplaceAgent(query);
+    res.json(result);
+  } catch (error) {
+    logger.error("marketplace_agent_search_failed", { error });
+    res.status(500).json({ error: "Agent search failed" });
+  }
+});
+
+// Prepare Import Payload
+router.post("/import/prepare", async (req, res) => {
+  try {
+    const { offer } = req.body;
+    if (!offer) return res.status(400).json({ error: "Offer data required" });
+
+    const { generateImportPayload } = await import("../services/marketplaceFinderAgent.js");
+    const payload = await generateImportPayload(offer);
+    res.json(payload);
+  } catch (error) {
+    logger.error("marketplace_agent_import_failed", { error });
+    res.status(500).json({ error: "Import preparation failed" });
+  }
+});
+
 // POST /api/marketplace/mappings
 router.post("/mappings", async (req, res) => {
   try {

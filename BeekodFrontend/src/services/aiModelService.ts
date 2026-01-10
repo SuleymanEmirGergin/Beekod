@@ -16,7 +16,11 @@ export interface AIModelStatusResponse {
 }
 
 export const aiModelService = {
-    generate: async (humanImage: File | string, clothesImages: File | string | (File | string)[]): Promise<GenerateAIModelResponse> => {
+    generate: async (
+        humanImage: File | string,
+        clothesImages: File | string | (File | string)[],
+        attributes?: any
+    ): Promise<GenerateAIModelResponse> => {
         const formData = new FormData();
 
         // Handle human image
@@ -35,6 +39,11 @@ export const aiModelService = {
                 formData.append('inputImageClothes', img);
             }
         });
+
+        // Handle attributes
+        if (attributes) {
+            formData.append('attributes', JSON.stringify(attributes));
+        }
 
         const response = await fetch(`${API_URL}/ai-model/generate`, {
             method: 'POST',
@@ -57,13 +66,26 @@ export const aiModelService = {
         return response.json();
     },
 
-    pollUntilComplete: async (taskId: string, intervalMs = 2000, timeoutMs = 60000): Promise<string> => {
+    pollUntilComplete: async (taskId: string, intervalMs = 1000, timeoutMs = 60000): Promise<string> => {
         const startTime = Date.now();
 
         while (Date.now() - startTime < timeoutMs) {
             const status = await aiModelService.getStatus(taskId);
-            console.log("Polling status:", status.status);
+            console.log("Polling status:", status.status, "outputs:", status.outputs?.length || 0);
 
+            // Check if we have outputs (success condition)
+            if (status.outputs && status.outputs.length > 0) {
+                console.log("Found output:", status.outputs[0]);
+                return status.outputs[0];
+            }
+
+            // Check result field - must be a string URL, not boolean
+            if (status.result && typeof status.result === 'string' && status.result.startsWith('http')) {
+                console.log("Found result URL:", status.result);
+                return status.result;
+            }
+
+            // Check for completion status
             if (status.status === 'task_postprocess_end') {
                 if (status.result) return status.result;
                 if (status.outputs && status.outputs.length > 0) return status.outputs[0];

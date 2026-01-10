@@ -16,6 +16,7 @@ export const pool = mysql.createPool({
   connectTimeout: db.pool.connectTimeout,
   enableKeepAlive: db.pool.enableKeepAlive,
   keepAliveInitialDelay: db.pool.keepAliveInitialDelay,
+  multipleStatements: true, // Required for migrations
 });
 
 logger.info("db.connect", {

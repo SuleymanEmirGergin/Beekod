@@ -50,7 +50,7 @@ async function processMarketplaceOrder(mOrder: MarketplaceOrder) {
   if (existing) return false;
 
   // Helper properties
-  const initials = mOrder.customerName
+  const initials = (mOrder.customerName || "Customer Name")
     .split(" ")
     .map((n) => n[0])
     .join("")
@@ -110,7 +110,7 @@ async function processMarketplaceOrder(mOrder: MarketplaceOrder) {
 
   // Insert items and Deduct stock
   for (const item of mOrder.items) {
-    const itemPrice = `₺${item.price.toLocaleString("tr-TR", { minimumFractionDigits: 2 })}`;
+    const itemPrice = `₺${(item.price || 0).toLocaleString("tr-TR", { minimumFractionDigits: 2 })}`;
 
     await query(
       `INSERT INTO order_items (order_id, product_name, sku, price, price_numeric, quantity, image_url)

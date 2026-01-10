@@ -247,25 +247,14 @@ router.post("/import-url", requireAdminKey, requireJsonBody, async (req, res) =>
   }
 
   try {
-    const { scrapeProductFromUrl } = await import("../services/productScraper.js");
-    const scraped = await scrapeProductFromUrl(url);
+    const { importProductFromUrl } = await import("../services/productImportService.js");
+    const result = await importProductFromUrl(url);
 
-    if (!scraped) {
-      return res.status(422).json({ error: "scraper_failed_to_extract" });
+    if (!result.success) {
+      return res.status(422).json({ error: result.error || "import_failed" });
     }
 
-    // Auto-save the product
-    const saved = await upsertProduct({
-      barcode: scraped.barcode || `IMP${Date.now()}`,
-      name: scraped.name || "Unknown Product",
-      category: scraped.category,
-      description: scraped.description,
-      price: scraped.price || 0,
-      stock: scraped.stock || 0,
-      currency: scraped.currency || "TRY",
-    });
-
-    res.json({ status: "ok", item: saved, scraped });
+    res.json({ status: "ok", ...result });
   } catch (error) {
     logger.error("products.import_url_failed", { requestId: res.locals?.requestId, err: error });
     res.status(500).json({ error: "product_import_url_failed" });
@@ -356,7 +345,7 @@ router.post("/try-on", requireAdminKey, requireJsonBody, async (req, res) => {
 
   try {
     const { generateVirtualTryOn } = await import("../services/virtualTryOnService.js");
-    const result = await generateVirtualTryOn(clothingImage, modelImage, category || "upper_body");
+    const result = await generateVirtualTryOn(modelImage, clothingImage);
 
     res.json({
       status: "ok",
@@ -468,10 +457,10 @@ router.post("/", requireAdminKey, validateBody(productCreateSchema), async (req,
   const currency = currencyRaw || "TRY";
 
   // Extract user ID
-  let userId = undefined;
+  let userId: number | undefined = undefined;
   if (req.headers.authorization) {
     const token = req.headers.authorization.split(' ')[1];
-    const decoded: any = jwt.decode(token);
+    const decoded = jwt.decode(token) as { id: number } | null;
     if (decoded && decoded.id) userId = decoded.id;
   }
 
@@ -545,10 +534,10 @@ router.put("/:barcode/price", requireAdminKey, validateBody(priceUpdateSchema), 
   }
 
   // Extract user ID
-  let userId = undefined;
+  let userId: number | undefined = undefined;
   if (req.headers.authorization) {
     const token = req.headers.authorization.split(' ')[1];
-    const decoded: any = jwt.decode(token);
+    const decoded = jwt.decode(token) as { id: number } | null;
     if (decoded && decoded.id) userId = decoded.id;
   }
 
@@ -589,10 +578,10 @@ router.put("/:barcode/stock", requireAdminKey, validateBody(stockUpdateSchema), 
   }
 
   // Extract user ID
-  let userId = undefined;
+  let userId: number | undefined = undefined;
   if (req.headers.authorization) {
     const token = req.headers.authorization.split(' ')[1];
-    const decoded: any = jwt.decode(token);
+    const decoded = jwt.decode(token) as { id: number } | null;
     if (decoded && decoded.id) userId = decoded.id;
   }
 
@@ -631,6 +620,25 @@ router.put("/:barcode/stock", requireAdminKey, validateBody(stockUpdateSchema), 
   } catch (error) {
     logger.error("products.stock_update_failed", { requestId: res.locals?.requestId, err: error });
     res.status(500).json({ error: "product_stock_update_failed" });
+  }
+});
+
+router.delete("/:barcode", requireAdminKey, async (req, res) => {
+  const { barcode } = req.params;
+  if (!barcode) {
+    return res.status(400).json({ error: "barcode_required" });
+  }
+
+  try {
+    const success = await deleteProduct(barcode);
+    if (success) {
+      res.json({ status: "ok" });
+    } else {
+      res.status(404).json({ error: "product_not_found" });
+    }
+  } catch (error) {
+    logger.error("products.delete_failed", { barcode, err: error });
+    res.status(500).json({ error: "delete_failed" });
   }
 });
 

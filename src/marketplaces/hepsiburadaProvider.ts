@@ -162,35 +162,50 @@ export class HepsiburadaProvider implements MarketplaceProvider {
       return { status: "not_configured", message: "Hepsiburada not configured", orders: [] };
     }
 
-    // Mock orders for demo/testing
-    const mockOrders = [
-      {
-        marketplace: this.name,
-        orderNumber: `HB-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-        customerName: "Mehmet Çetin",
-        customerEmail: "mehmet@example.com",
-        customerPhone: "5559876543",
-        customerAddress: "Bahçelievler Mah. 7. Cadde No:12, Çankaya, Ankara",
-        items: [
-          {
-            sku: "SK-GT-100",
-            barcode: "8681234567890", // Example barcode
-            name: "Siyah Gömlek - L",
-            price: 599.0,
-            quantity: 1,
-          },
-        ],
-        totalAmount: 599.0,
-        currency: "TRY",
-        orderDate: new Date().toISOString(),
-        status: "New",
-      },
-    ];
+    const merchantId = process.env.HEPSIBURADA_MERCHANT_ID;
+    // Hepsiburada OMS Endpoint for packages (orders usually come as packages)
+    // Common endpoint: https://oms-external.hepsiburada.com/packages/merchantid/{id}
+    // Note: If using the 'mpop-gateway' base, path might be /packages/merchantid/{id}
+
+    // We'll target "packages" with status "Open" or "Packed" (New/Preparing)
+    // ?status=Unpacked (New) usually
+    const path = `/packages/merchantid/${merchantId}?status=Unpacked`;
+
+    const response = await this.requestRaw("GET", path);
+    if (!response.ok) {
+      // Fallback if packages endpoint fails, maybe try orders? 
+      // But standard integration uses packages for fulfillment.
+      return { status: "failed", message: response.message, orders: [] };
+    }
+
+    const rawList = (response.data as any) || [];
+    // Ensure rawList is array
+    const packages = Array.isArray(rawList) ? rawList : (rawList.packages || []);
+
+    const orders = packages.map((pkg: any) => ({
+      marketplace: this.name,
+      orderNumber: pkg.orderNumber,
+      customerName: pkg.customerName || pkg.recipientName || "Hepsiburada Customer",
+      customerEmail: "", // Usually masked
+      customerPhone: "", // Usually masked
+      customerAddress: [pkg.deliveryAddress?.addressLine1, pkg.deliveryAddress?.city, pkg.deliveryAddress?.country].filter(Boolean).join(", "),
+      items: (pkg.items || []).map((i: any) => ({
+        sku: i.merchantSku || i.sku,
+        barcode: i.merchantSku || i.sku,
+        name: i.productName || "Unknown Product",
+        price: Number(i.totalPrice?.amount || i.unitPrice?.amount || 0),
+        quantity: Number(i.quantity || 1)
+      })),
+      totalAmount: Number(pkg.totalPrice?.amount || 0),
+      currency: pkg.totalPrice?.currency || "TRY",
+      orderDate: pkg.orderDate || new Date().toISOString(),
+      status: pkg.status // Unpacked, Packed, etc.
+    }));
 
     return {
       status: "ok",
-      message: "Synced 1 order (mock)",
-      orders: mockOrders,
+      message: `Synced ${orders.length} orders from Hepsiburada`,
+      orders: orders,
     };
   }
 

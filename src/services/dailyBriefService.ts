@@ -1,6 +1,6 @@
 import { getRevenueTimeline } from "./analyticsService.js";
 import { getLowStockProducts } from "./productService.js";
-import { generateGeminiReply } from "./geminiService.js";
+import { generateGeminiReply } from "./geminiClient.js";
 import { logger } from "../logger.js";
 import { Locale } from "../types.js";
 import { getUserPreferences } from "./userPreferenceService.js";

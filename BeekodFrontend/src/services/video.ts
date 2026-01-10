@@ -34,8 +34,9 @@ export const generateVideoMedia = async (
 export const generateAIVideo = async (
   productId: string,
   vibe: string,
+  customPrompt?: string,
 ): Promise<{ taskId: string; token: string }> => {
-  const res = await api.post('/video/generate-ai-media', { productId, vibe });
+  const res = await api.post('/video/generate-ai-media', { productId, vibe, customPrompt });
   return res.data.data;
 };
 

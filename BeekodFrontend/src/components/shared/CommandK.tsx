@@ -104,15 +104,7 @@ export const CommandK = () => {
                         </Command.Item>
                     </Command.Group>
 
-                    <Command.Group heading="Hızlı İşlemler" className="text-xs font-semibold text-gray-400 mt-2 mb-2 px-2">
-                        <Command.Item
-                            className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-black cursor-pointer transition-colors aria-selected:bg-gray-100 aria-selected:text-black"
-                            onSelect={() => runCommand(() => navigate("/ai-assistant"))}
-                        >
-                            <Sparkles size={16} className="text-[#F5B800]" />
-                            AI Asistan'a Sor
-                        </Command.Item>
-                    </Command.Group>
+
                 </Command.List>
 
                 <div className="border-t border-gray-100 p-2 flex justify-between items-center bg-gray-50 text-[10px] text-gray-400 px-4">

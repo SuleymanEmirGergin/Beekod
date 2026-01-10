@@ -1,36 +1,48 @@
 import { logger } from "../logger.js";
+import { runVirtualTryOn, getTaskDetail } from "./wiroService.js";
 
 interface TryOnRequest {
-  clothingImage: string;
-  modelImage: string;
-  category: string;
+  humanImage: string;
+  clothingImages: string | string[];
 }
 
 interface TryOnResult {
-  imageUrl: string;
-  debug?: any;
+  taskId: string;
+  token: string;
+  status: string;
+  imageUrl?: string;
 }
 
 /**
- * Mock implementation of Virtual Try-On.
- * In a real scenario, this would call an external API like Replicate, OpenAI, or a custom model.
- * Currently, it waits a bit to simulate processing and returns the clothing image as the "result"
- * to demonstrate the flow in the UI without requiring actual GPU inference.
+ * Generates a Virtual Try-On task using Wiro AI.
  */
 export async function generateVirtualTryOn(
-  clothingImage: string,
-  modelImage: string,
-  category: string,
+  humanImage: string,
+  clothingImages: string | string[],
 ): Promise<TryOnResult> {
-  logger.info("vto.generate_request", { category, clothingImage, modelImage });
+  logger.info("vto.generate_request_real", { humanImage: humanImage.substring(0, 50), clothesCount: Array.isArray(clothingImages) ? clothingImages.length : 1 });
 
-  // Simulate processing time (2-4 seconds) to give the "AI is thinking" feel
-  await new Promise((resolve) => setTimeout(resolve, 3000));
+  const result = await runVirtualTryOn(humanImage, clothingImages);
 
-  // Return the clothing image as the result.
-  // In a real VTO, this would be the merged image.
-  // We return the input as output to ensuring validity of the URL.
   return {
-    imageUrl: clothingImage,
+    taskId: result.taskid,
+    token: result.socketaccesstoken,
+    status: result.status || "queued"
   };
+}
+
+/**
+ * Polls for the result of a VTO task.
+ */
+export async function pollTryOnResult(token: string): Promise<string | null> {
+  try {
+    const detail = await getTaskDetail(token);
+    if (detail && detail.status === "done" && detail.output && detail.output.length > 0) {
+      return detail.output[0];
+    }
+    return null;
+  } catch (error) {
+    logger.error("vto.poll_failed", { token, error });
+    return null;
+  }
 }

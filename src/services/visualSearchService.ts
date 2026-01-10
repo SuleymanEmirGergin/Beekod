@@ -1,4 +1,4 @@
-import { analyzeImage } from "./geminiService.js";
+import { analyzeImage } from "./geminiClient.js";
 import { searchProductsByName } from "./productService.js";
 import { Product } from "../types.js";
 import { logger } from "../logger.js";

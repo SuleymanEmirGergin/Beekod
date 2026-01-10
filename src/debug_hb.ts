@@ -1,9 +1,9 @@
-
 import fs from 'fs';
+import { logger } from './logger.js';
 
 async function run() {
     const url = "https://www.hepsiburada.com/samsung-galaxy-s23-256-gb-8-gb-ram-samsung-turkiye-garantili-siyah-pm-HBC00003P2GFX";
-    console.log("Fetching HTML for:", url);
+    logger.info(`Fetching HTML for: ${url}`);
 
     // Custom fetch headers
     const response = await fetch(url, {
@@ -16,7 +16,7 @@ async function run() {
 
     const html = await response.text();
     fs.writeFileSync("debug_hb_raw.html", html);
-    console.log("Saved debug_hb_raw.html (" + html.length + " bytes)");
+    logger.info(`Saved debug_hb_raw.html (${html.length} bytes)`);
 }
 
-run().catch(console.error);
+run().catch((e) => logger.error("Fatal error", { error: e }));

@@ -1,5 +1,5 @@
 import { pool } from "../db.js";
-import { generateGeminiReply } from "./geminiService.js";
+import { generateGeminiReply } from "./geminiClient.js";
 import { searchProductsByName } from "./productService.js";
 import { IQuestion, mapQuestionRow } from "../models/Question.js";
 

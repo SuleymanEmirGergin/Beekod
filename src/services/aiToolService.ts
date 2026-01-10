@@ -1,4 +1,4 @@
-import { generateGeminiReply } from "./geminiService.js";
+import { generateGeminiReply } from "./geminiClient.js";
 
 /**
  * Generates product description using Gemini AI.

@@ -80,7 +80,15 @@ export function AnalyticsScreen({ onNavigate }: AnalyticsScreenProps) {
   const TrendingIcon = (val?: number) => (val && val >= 0 ? TrendingUp : TrendingDown);
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen overflow-hidden" style={{ fontFamily: "'Outfit', sans-serif" }}>
+      {/* Premium Background with Mesh Gradient */}
+      <div className="fixed inset-0 -z-10">
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-purple-50/30 to-indigo-50/50" />
+        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-to-br from-purple-200/20 via-pink-200/10 to-transparent rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-to-tr from-indigo-200/20 via-blue-200/10 to-transparent rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-gradient-to-br from-amber-200/10 to-orange-200/10 rounded-full blur-3xl" />
+      </div>
+
       <SidebarV2
         activeItem="analytics"
         onNavigate={onNavigate}
@@ -89,62 +97,42 @@ export function AnalyticsScreen({ onNavigate }: AnalyticsScreenProps) {
       />
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top bar */}
-        <header className="bg-white border-b border-gray-200 px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex-1 max-w-xl">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Sipariş, ürün veya rapor ara..."
-                  className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gray-300"
-                />
+        {/* Premium Header */}
+        <header className="relative px-8 py-5 flex items-center justify-between border-b border-white/20 bg-white/40 backdrop-blur-xl">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div className="absolute -inset-1 bg-gradient-to-r from-purple-400 to-pink-500 rounded-xl blur opacity-30" />
+              <div className="relative w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
+                <TrendingUp className="w-6 h-6 text-white" />
               </div>
             </div>
-            <div className="flex items-center gap-3 ml-6">
-              <button className="p-2 hover:bg-gray-50 rounded-lg transition-colors relative">
-                <Bell className="w-5 h-5 text-gray-600" />
-                <div className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-              </button>
-              <button
-                onClick={() => console.log('Help clicked')}
-                className="p-2 hover:bg-gray-50 rounded-lg transition-colors"
-              >
-                <HelpCircle className="w-5 h-5 text-gray-600" />
-              </button>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Analitik Merkezi</h1>
+              <p className="text-sm text-gray-500">Performans ve satış verileri</p>
             </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Rapor ara..."
+                className="pl-9 pr-4 py-2.5 bg-white/60 border border-white/40 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 w-64"
+              />
+            </div>
+            <button className="flex items-center gap-2 px-4 py-2.5 bg-white/60 hover:bg-white/80 border border-white/40 rounded-xl text-sm text-gray-700 transition-all shadow-sm">
+              <Calendar className="w-4 h-4" />
+              Son 30 Gün
+            </button>
+            <button className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-xl text-sm font-medium transition-all shadow-md">
+              <Download className="w-4 h-4" />
+              Dışa Aktar
+            </button>
           </div>
         </header>
 
         {/* Main content */}
         <main className="flex-1 overflow-y-auto px-8 py-6">
-          {/* Breadcrumb */}
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-6">
-            <span>Ana Sayfa</span>
-            <span>›</span>
-            <span className="text-gray-900">Analitik</span>
-          </div>
-
-          {/* Page header */}
-          <div className="flex items-start justify-between mb-6">
-            <div>
-              <h1 className="text-3xl text-gray-900 mb-2">Analitik Genel Bakış</h1>
-              <p className="text-gray-500">
-                Toptan satış performansınızı, satış trendlerinizi ve envanter sağlığınızı takip edin.
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm hover:bg-gray-50 transition-colors">
-                <Calendar className="w-4 h-4" />
-                Son 30 Gün
-              </button>
-              <Button className="flex items-center gap-2">
-                <Download className="w-4 h-4" />
-                Raporları Dışa Aktar
-              </Button>
-            </div>
-          </div>
 
           {/* AI Insight banner */}
           {showBanner && (
@@ -175,12 +163,12 @@ export function AnalyticsScreen({ onNavigate }: AnalyticsScreenProps) {
 
           {/* Metrics grid */}
           <div className="grid grid-cols-4 gap-6 mb-6">
-            <Card padding="lg">
+            <div className="bg-white/60 backdrop-blur-sm rounded-2xl border border-white/40 shadow-lg p-6 hover:shadow-xl transition-all group">
               <div className="flex items-start justify-between mb-4">
-                <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <Euro className="w-5 h-5 text-gray-600" />
+                <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
+                  <Euro className="w-6 h-6 text-white" />
                 </div>
-                <div className="flex items-center gap-1 text-xs">
+                <div className="flex items-center gap-1 text-xs px-2 py-1 bg-green-50 rounded-full">
                   {stats && (
                     <TrendingUp className={`w-3 h-3 ${getPercentColor(stats.revenueChange)}`} />
                   )}
@@ -190,21 +178,21 @@ export function AnalyticsScreen({ onNavigate }: AnalyticsScreenProps) {
                 </div>
               </div>
               <div className="text-sm text-gray-500 mb-1">Toplam Gelir</div>
-              <div className="text-2xl text-gray-900">
+              <div className="text-2xl font-bold text-gray-900">
                 {stats
                   ? new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(
                     stats.totalRevenue,
                   )
                   : '...'}
               </div>
-            </Card>
+            </div>
 
-            <Card padding="lg">
+            <div className="bg-white/60 backdrop-blur-sm rounded-2xl border border-white/40 shadow-lg p-6 hover:shadow-xl transition-all group">
               <div className="flex items-start justify-between mb-4">
-                <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <ShoppingBag className="w-5 h-5 text-gray-600" />
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
+                  <ShoppingBag className="w-6 h-6 text-white" />
                 </div>
-                <div className="flex items-center gap-1 text-xs">
+                <div className="flex items-center gap-1 text-xs px-2 py-1 bg-blue-50 rounded-full">
                   {stats && (
                     <TrendingUp className={`w-3 h-3 ${getPercentColor(stats.ordersChange)}`} />
                   )}
@@ -214,36 +202,35 @@ export function AnalyticsScreen({ onNavigate }: AnalyticsScreenProps) {
                 </div>
               </div>
               <div className="text-sm text-gray-500 mb-1">İşlenen Siparişler</div>
-              <div className="text-2xl text-gray-900">{stats?.totalOrders ?? '...'}</div>
-            </Card>
+              <div className="text-2xl font-bold text-gray-900">{stats?.totalOrders ?? '...'}</div>
+            </div>
 
-            <Card padding="lg">
+            <div className="bg-white/60 backdrop-blur-sm rounded-2xl border border-white/40 shadow-lg p-6 hover:shadow-xl transition-all group">
               <div className="flex items-start justify-between mb-4">
-                <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <AlertTriangle className="w-5 h-5 text-gray-600" />
+                <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
+                  <AlertTriangle className="w-6 h-6 text-white" />
                 </div>
-                <div className="flex items-center gap-1 text-xs">
-                  <span className="text-gray-400">—</span>
+                <div className="flex items-center gap-1 text-xs px-2 py-1 bg-amber-50 rounded-full">
+                  <span className="text-amber-600">Dikkat</span>
                 </div>
               </div>
               <div className="text-sm text-gray-500 mb-1">Düşük Stok Ürünleri</div>
-              <div className="text-2xl text-gray-900">{stats?.lowStockCount ?? '...'}</div>
-            </Card>
+              <div className="text-2xl font-bold text-gray-900">{stats?.lowStockCount ?? '...'}</div>
+            </div>
 
-            <Card padding="lg">
-              {/* Keeping Return Rate separate or mocked as we don't have it in stats yet */}
+            <div className="bg-white/60 backdrop-blur-sm rounded-2xl border border-white/40 shadow-lg p-6 hover:shadow-xl transition-all group">
               <div className="flex items-start justify-between mb-4">
-                <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <RotateCcw className="w-5 h-5 text-gray-600" />
+                <div className="w-12 h-12 bg-gradient-to-br from-red-400 to-rose-500 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
+                  <RotateCcw className="w-6 h-6 text-white" />
                 </div>
-                <div className="flex items-center gap-1 text-xs">
+                <div className="flex items-center gap-1 text-xs px-2 py-1 bg-red-50 rounded-full">
                   <TrendingDown className="w-3 h-3 text-red-600" />
                   <span className="text-red-600">+2%</span>
                 </div>
               </div>
               <div className="text-sm text-gray-500 mb-1">İade Oranı</div>
-              <div className="text-2xl text-gray-900">3.2%</div>
-            </Card>
+              <div className="text-2xl font-bold text-gray-900">3.2%</div>
+            </div>
           </div>
 
           {/* Sales Performance Chart */}

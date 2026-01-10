@@ -1,6 +1,6 @@
 import { pool, query } from "../db.js";
 import { logger } from "../logger.js";
-import { saveMessage } from "./chatSessionService.js";
+
 import { notificationService } from "./notificationService.js";
 
 const ALERT_THRESHOLD = 5; // Critical level
@@ -11,22 +11,9 @@ const ALERT_COOLDOWN_MS = 24 * 60 * 60 * 1000; // Don't alert same product for 2
 const lastAlerts: Map<string, number> = new Map();
 
 async function broadcastAlert(message: string) {
-  try {
-    // Find sessions active in last 24 hours
-    const sessions = await query<{ id: string }[]>(
-      `SELECT id FROM chat_sessions WHERE updated_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)`
-    );
-
-    for (const session of sessions) {
-      await saveMessage(session.id, "ai", message, { isSystemAlert: true });
-    }
-
-    if (sessions.length > 0) {
-      logger.info("alerts.broadcast_sent", { count: sessions.length });
-    }
-  } catch (error) {
-    logger.error("alerts.broadcast_failed", { err: error });
-  }
+  // Chatbot silindiği için broadcastAlert şu an pasif.
+  // Gelecekte farklı bir bildirim kanalı eklenebilir.
+  logger.info("alerts.broadcast_skipped", { reason: "Chatbot removed" });
 }
 
 export async function checkLowStock() {

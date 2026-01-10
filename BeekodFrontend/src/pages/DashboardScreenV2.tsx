@@ -6,7 +6,7 @@ import { SidebarV2 } from '../layouts/SidebarV2';
 import { SearchBar } from '../components/shared/';
 import { MetricCard } from '../components/shared/';
 import { ActivityItem } from '../components/ActivityItem';
-import { ChatWidget } from '../components/ChatWidget';
+
 import { ToastV2 } from '../components/shared/';
 import {
   TodaysOrdersModal,
@@ -132,19 +132,41 @@ export function DashboardScreenV2({ onNavigate }: DashboardScreenV2Props) {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen overflow-hidden" style={{ fontFamily: "'Outfit', sans-serif" }}>
+      {/* Premium Background with Mesh Gradient */}
+      <div className="fixed inset-0 -z-10">
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50" />
+        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-to-br from-amber-200/20 via-orange-200/10 to-transparent rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-to-tr from-blue-200/20 via-indigo-200/10 to-transparent rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-gradient-to-br from-purple-200/10 to-pink-200/10 rounded-full blur-3xl" />
+      </div>
+
       <SidebarV2
         activeItem={activeItem}
         onNavigate={onNavigate}
         userName="Emir"
         userEmail="emir@beekod.com"
-        ordersBadge={3} // Mock badge
+        ordersBadge={3}
       />
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top bar */}
-        <header className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-end gap-3">
-          <ActionCenter onNavigate={onNavigate} />
+        {/* Premium Header */}
+        <header className="relative px-8 py-5 flex items-center justify-between border-b border-white/20 bg-white/40 backdrop-blur-xl">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div className="absolute -inset-1 bg-gradient-to-r from-amber-400 to-orange-500 rounded-xl blur opacity-30" />
+              <div className="relative w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center shadow-lg">
+                <Sparkles className="w-6 h-6 text-white" />
+              </div>
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Komuta Merkezi</h1>
+              <p className="text-sm text-gray-500">İşletmenizin anlık durumu</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <ActionCenter onNavigate={onNavigate} />
+          </div>
         </header>
 
         {/* Main content */}
@@ -206,14 +228,30 @@ export function DashboardScreenV2({ onNavigate }: DashboardScreenV2Props) {
 
           {/* Analytics Dashboard Section */}
           <div className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Finansal Analitik</h2>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                <TrendingUp className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Finansal Analitik</h2>
+                <p className="text-xs text-gray-500">Son 30 günlük performans verileri</p>
+              </div>
+            </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-              <RevenueChart days={30} />
-              <MarketplacePerformanceChart />
+              <div className="bg-white/60 backdrop-blur-sm rounded-2xl border border-white/40 shadow-lg overflow-hidden">
+                <RevenueChart days={30} />
+              </div>
+              <div className="bg-white/60 backdrop-blur-sm rounded-2xl border border-white/40 shadow-lg overflow-hidden">
+                <MarketplacePerformanceChart />
+              </div>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <ProfitMarginCard />
-              <InventoryHealthWidget />
+              <div className="bg-white/60 backdrop-blur-sm rounded-2xl border border-white/40 shadow-lg overflow-hidden">
+                <ProfitMarginCard />
+              </div>
+              <div className="bg-white/60 backdrop-blur-sm rounded-2xl border border-white/40 shadow-lg overflow-hidden">
+                <InventoryHealthWidget />
+              </div>
             </div>
           </div>
 
@@ -265,33 +303,47 @@ export function DashboardScreenV2({ onNavigate }: DashboardScreenV2Props) {
           <div className="grid grid-cols-3 gap-6">
             {/* Left column - 2/3 width */}
             <div className="col-span-2 space-y-6">
-              {/* Quick Actions ... (Keep as is) */}
-              <div>{/* ... */}</div>
-
               {/* Recent Activity */}
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-base text-gray-900">Son Aktiviteler</h2>
-                  <a href="#" className="text-sm text-[#F5B800] hover:text-[#E5A800]">
+              <div className="bg-white/60 backdrop-blur-sm rounded-2xl border border-white/40 shadow-lg p-6">
+                <div className="flex items-center justify-between mb-5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow">
+                      <Clock className="w-4 h-4 text-white" />
+                    </div>
+                    <h2 className="text-lg font-bold text-gray-900">Son Aktiviteler</h2>
+                  </div>
+                  <button
+                    onClick={() => onNavigate('orders')}
+                    className="text-sm text-amber-600 hover:text-amber-700 font-medium flex items-center gap-1 transition-colors"
+                  >
                     Tümünü Gör
-                  </a>
+                    <ArrowUpRight className="w-4 h-4" />
+                  </button>
                 </div>
-                <div className="bg-white rounded-xl border border-gray-100 divide-y divide-gray-50">
+                <div className="space-y-3">
                   {mappedActivities.map((activity: any) => (
-                    <div className="px-5" key={activity.id}>
-                      <ActivityItem
-                        icon={ShoppingBag}
-                        iconColor="text-blue-600"
-                        iconBgColor="bg-blue-50"
-                        title={activity.title}
-                        description={activity.description}
-                        time={activity.time}
-                        onClick={() => setSelectedActivity(activity)}
-                      />
+                    <div
+                      key={activity.id}
+                      onClick={() => setSelectedActivity(activity)}
+                      className="flex items-center gap-4 p-4 bg-white/50 hover:bg-white/80 rounded-xl border border-white/60 cursor-pointer transition-all hover:shadow-md group"
+                    >
+                      <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform">
+                        <ShoppingBag className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">{activity.title}</p>
+                        <p className="text-xs text-gray-500 truncate">{activity.description}</p>
+                      </div>
+                      <span className="text-xs text-gray-400">{activity.time}</span>
                     </div>
                   ))}
                   {mappedActivities.length === 0 && (
-                    <div className="p-5 text-center text-gray-500">Son aktivite yok</div>
+                    <div className="p-8 text-center">
+                      <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                        <Package className="w-6 h-6 text-gray-400" />
+                      </div>
+                      <p className="text-sm text-gray-500">Henüz aktivite yok</p>
+                    </div>
                   )}
                 </div>
               </div>
@@ -300,50 +352,60 @@ export function DashboardScreenV2({ onNavigate }: DashboardScreenV2Props) {
             {/* Right column - 1/3 width */}
             <div className="space-y-6">
               {/* Marketplaces */}
-              <div>
-                <h2 className="text-base text-gray-900 mb-4">Pazar Yerleri</h2>
-                <div className="bg-white rounded-xl border border-gray-100 p-5">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-orange-50 rounded flex items-center justify-center overflow-hidden border border-orange-100">
-                          <img
-                            src={trendyolLogo}
-                            alt="Trendyol"
-                            className="w-full h-full object-contain p-0.5"
-                          />
-                        </div>
-                        <div>
-                          <div className="text-sm text-gray-900">Trendyol</div>
-                          <div className="text-xs text-gray-500">Marketplace</div>
-                        </div>
+              <div className="bg-white/60 backdrop-blur-sm rounded-2xl border border-white/40 shadow-lg p-6">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-9 h-9 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center shadow">
+                    <Users className="w-4 h-4 text-white" />
+                  </div>
+                  <h2 className="text-lg font-bold text-gray-900">Pazar Yerleri</h2>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-white/50 rounded-xl border border-white/60 hover:bg-white/80 transition-all cursor-pointer group">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center overflow-hidden border border-orange-100 group-hover:scale-105 transition-transform">
+                        <img
+                          src={trendyolLogo}
+                          alt="Trendyol"
+                          className="w-full h-full object-contain p-1"
+                        />
                       </div>
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">Trendyol</div>
+                        <div className="text-xs text-gray-500">Aktif</div>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-orange-50 rounded flex items-center justify-center overflow-hidden border border-orange-100">
-                          <img
-                            src={hepsiburadaLogo}
-                            alt="Hepsiburada"
-                            className="w-full h-full object-contain p-0.5"
-                          />
-                        </div>
-                        <div>
-                          <div className="text-sm text-gray-900">Hepsiburada</div>
-                          <div className="text-xs text-gray-500">Marketplace</div>
-                        </div>
-                      </div>
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                      <span className="text-xs text-green-600 font-medium">Bağlı</span>
                     </div>
                   </div>
-                  <button
-                    onClick={() => onNavigate('integrations')}
-                    className="w-full mt-5 px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                  >
-                    Bağlantıları Yönet
-                  </button>
+                  <div className="flex items-center justify-between p-3 bg-white/50 rounded-xl border border-white/60 hover:bg-white/80 transition-all cursor-pointer group">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center overflow-hidden border border-orange-100 group-hover:scale-105 transition-transform">
+                        <img
+                          src={hepsiburadaLogo}
+                          alt="Hepsiburada"
+                          className="w-full h-full object-contain p-1"
+                        />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">Hepsiburada</div>
+                        <div className="text-xs text-gray-500">Aktif</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                      <span className="text-xs text-green-600 font-medium">Bağlı</span>
+                    </div>
+                  </div>
                 </div>
+                <button
+                  onClick={() => onNavigate('integrations')}
+                  className="w-full mt-5 px-4 py-2.5 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white rounded-xl text-sm font-medium transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Bağlantıları Yönet
+                </button>
               </div>
 
               {/* AI Assistant Tips */}
@@ -408,8 +470,7 @@ export function DashboardScreenV2({ onNavigate }: DashboardScreenV2Props) {
         </main>
       </div>
 
-      {/* Floating Chat Button */}
-      <ChatWidget />
+
 
       {/* Activity Detail Modal */}
       {selectedActivity && (

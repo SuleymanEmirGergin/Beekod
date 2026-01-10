@@ -5,7 +5,6 @@ import {
   RotateCcw,
   Sparkles,
   Shirt,
-  Palette,
   User,
   Upload,
   Wand2,
@@ -13,35 +12,29 @@ import {
   ChevronRight,
   Check,
   Video,
+  Frame,
+  Paintbrush,
+  Briefcase,
+  Heart,
+  Smile,
+  Zap,
+  Gem,
+  Dumbbell,
+  Minimize2,
+  Camera
 } from 'lucide-react';
 import { aiModelService } from '../services/aiModelService';
 import { useState } from 'react';
 import { SidebarV2 } from '../layouts/SidebarV2';
 import { SearchBar } from '../components/shared/';
-import { ChatWidget } from '../components/ChatWidget';
+
 import { ToastV2 } from '../components/shared/';
 import { HelpModal } from '../components/HelpModal';
 import { NotificationPanel } from '../components/NotificationPanel';
-import hairColorsImage from 'figma:asset/02f5b50387e462570178335f8c876e2f912235a6.png';
-import eyeColorsImage from 'figma:asset/6d37b0c530cf33a8f55054e6c82ada5b31c1056e.png';
-import sariHairImage from 'figma:asset/98dc71e13dc2d35d408fb6e3664ec78513edb19f.png';
-import turuncuHairImage from 'figma:asset/dbe268abcfed23a245a6570fcf378fa05c9db1cc.png';
-import siyahHairImage from 'figma:asset/bb008c0bb03c26e978fab5b13ab8cd2e1da0615e.png';
-import griHairImage from 'figma:asset/fbe0e199ceb6b21d8b5a00808093d52051b5787e.png';
-import kahverengiHairImage from 'figma:asset/92e0e858a0272e479083d7ccf22ab26b72269d48.png';
-import kizilHairImage from 'figma:asset/268194b97aa6db62a4c4195aacff1fcb0f19f11b.png';
-import shortHairLengthImage from 'figma:asset/cb72f6dce201c666472dc8d32b9eedb482e1510e.png';
-import mediumHairLengthImage from 'figma:asset/ff07eef6fed6afc5fbcd46f649305375382805c9.png';
-import longHairLengthImage from 'figma:asset/c30be34ff20097037fd4d5c68805466971f7cb08.png';
-import zayifBodyImage from 'figma:asset/47763b5513f64acd986685a9d5e10bd4314defe9.png';
-import ortaKiloluBodyImage from 'figma:asset/64dc6519a41c808e79b146fe45a387ef0feaa1e3.png';
-import kiloluBodyImage from 'figma:asset/9b68cc0466e0009fad17ab706b6d2cbcaef51769.png';
-import uzunBoyluImage from 'figma:asset/5fa5209c94af33a11d3aaaf2a174b2cb5272e14c.png';
-import ortaBoyImage from 'figma:asset/d9e7858ce1064fa81f9436bd9a9555bab0a0b90e.png';
-import kisaBoyImage from 'figma:asset/c0d82a7204c9fe75fd4e1885989d8780eea69d6e.png';
-import frontPoseImage from 'figma:asset/faa1458c5295db0f7e44f05d2570257e3b9ea5cc.png';
-import sidePoseImage from 'figma:asset/93b2295c6ddd5a8c10d08a31a7ba575178617577.png';
-import walkingPoseImage from 'figma:asset/db66e26aa7224f7020be1ee7db35f0c2b3e94a26.png';
+
+// Default model images
+import femaleModelImage from '../assets/models/latin_female.png';
+import maleModelImage from '../assets/models/latin_male.png';
 
 interface ModelDesignerScreenV3Props {
   onNavigate: (screen: string) => void;
@@ -52,160 +45,148 @@ export function ModelDesignerScreenV3({ onNavigate }: ModelDesignerScreenV3Props
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState({ title: '', message: '' });
   const [selectedModel, setSelectedModel] = useState<'female' | 'male'>('female');
-  const [selectedEthnicity, setSelectedEthnicity] = useState<string>('caucasian');
   const [selectedGarment, setSelectedGarment] = useState<string | null>(null);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [tokenBalance, setTokenBalance] = useState(150);
   const [showTokenModal, setShowTokenModal] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [selectedBodyType, setSelectedBodyType] = useState<string>('orta-kilolu');
-  const [selectedHairColor, setSelectedHairColor] = useState<string>('siyah');
-  const [selectedHairLength, setSelectedHairLength] = useState<string>('medium');
-  const [selectedEyeColor, setSelectedEyeColor] = useState<string>('kahverengi');
-  const [selectedHeight, setSelectedHeight] = useState<string>('orta');
-  const [selectedPose, setSelectedPose] = useState<string>('front');
   const [expandedSection, setExpandedSection] = useState<string | null>('model');
   const [isVideoGenerating, setIsVideoGenerating] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [selectedPackage, setSelectedPackage] = useState<{
-    name: string;
-    tokens: number;
-    price: number;
-    savings?: number;
-  } | null>(null);
+  const [selectedPackage, setSelectedPackage] = useState<any>(null);
+  const [selectedCategory, setSelectedCategory] = useState<'upper_body' | 'lower_body' | 'dresses'>('upper_body');
+
+  // New customization states
+  const [selectedEthnicity, setSelectedEthnicity] = useState<string>('caucasian');
+  const [selectedBodyType, setSelectedBodyType] = useState<string>('orta');
+  const [selectedHairColor, setSelectedHairColor] = useState<string>('siyah');
+  const [selectedHairLength, setSelectedHairLength] = useState<string>('orta');
+  const [selectedEyeColor, setSelectedEyeColor] = useState<string>('kahverengi');
+  const [selectedHeight, setSelectedHeight] = useState<string>('orta');
+  const [selectedPose, setSelectedPose] = useState<string>('front');
+  const [showVideoSettings, setShowVideoSettings] = useState(false);
+  const [videoVibe, setVideoVibe] = useState('Energetic');
+  const [videoCustomPrompt, setVideoCustomPrompt] = useState('');
+  const [isVideoManualMode, setIsVideoManualMode] = useState(false);
 
   const GENERATION_COST = 10;
 
-  const models = [
-    {
-      id: 'female',
-      label: 'Female',
-      image: 'https://images.unsplash.com/photo-1721003080966-423d4017d09d?w=400&h=600&fit=crop',
-    },
-    {
-      id: 'male',
-      label: 'Male',
-      image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=600&fit=crop',
-    },
-  ];
-
+  // Attribute options
   const ethnicities = [
-    { id: 'caucasian', label: 'Caucasian', flag: '🇪🇺' },
-    { id: 'asian', label: 'Asian', flag: '🇯🇵' },
-    { id: 'african', label: 'African', flag: '🇿🇦' },
+    { id: 'caucasian', label: 'Kafkas', flag: '🇪🇺' },
+    { id: 'asian', label: 'Asyalı', flag: '🇯🇵' },
+    { id: 'african', label: 'Afrikalı', flag: '🇿🇦' },
     { id: 'latin', label: 'Latin', flag: '🇧🇷' },
-    { id: 'middle-eastern', label: 'Middle Eastern', flag: '🇦🇪' },
-    { id: 'mixed', label: 'Mixed', flag: '🌍' },
+    { id: 'middle-eastern', label: 'Orta Doğulu', flag: '🇹🇷' },
+    { id: 'mixed', label: 'Karışık', flag: '🌍' },
   ];
 
   const bodyTypes = [
-    { id: 'zayif', label: 'Slim', image: zayifBodyImage },
-    { id: 'orta-kilolu', label: 'Medium', image: ortaKiloluBodyImage },
-    { id: 'kilolu', label: 'Plus Size', image: kiloluBodyImage },
+    { id: 'ince', label: 'İnce', icon: '🧍' },
+    { id: 'orta', label: 'Orta', icon: '🧍‍♂️' },
+    { id: 'dolgun', label: 'Dolgun', icon: '🧍‍♀️' },
   ];
 
   const hairColors = [
-    { id: 'siyah', label: 'Black', image: siyahHairImage },
-    { id: 'kahverengi', label: 'Brown', image: kahverengiHairImage },
-    { id: 'sari', label: 'Blonde', image: sariHairImage },
-    { id: 'gri', label: 'Gray', image: griHairImage },
-    { id: 'kizil', label: 'Red', image: kizilHairImage },
-    { id: 'turuncu', label: 'Auburn', image: turuncuHairImage },
+    { id: 'siyah', label: 'Siyah', color: '#000000' },
+    { id: 'kahverengi', label: 'Kahverengi', color: '#4A2511' },
+    { id: 'sari', label: 'Sarı', color: '#F5D547' },
+    { id: 'kizil', label: 'Kızıl', color: '#8B0000' },
+    { id: 'gri', label: 'Gri', color: '#808080' },
+    { id: 'beyaz', label: 'Beyaz', color: '#FFFFFF' },
   ];
 
   const hairLengths = [
-    { id: 'short', label: 'Short', image: shortHairLengthImage },
-    { id: 'medium', label: 'Medium', image: mediumHairLengthImage },
-    { id: 'long', label: 'Long', image: longHairLengthImage },
+    { id: 'kisa', label: 'Kısa' },
+    { id: 'orta', label: 'Orta' },
+    { id: 'uzun', label: 'Uzun' },
   ];
 
   const eyeColors = [
-    { id: 'kahverengi', label: 'Brown', bgPosition: '50% 50%' },
-    { id: 'mavi', label: 'Blue', bgPosition: '50% 0%' },
-    { id: 'yesil', label: 'Green', bgPosition: '100% 0%' },
-    { id: 'ela', label: 'Hazel', bgPosition: '0% 50%' },
-    { id: 'gri', label: 'Gray', bgPosition: '0% 0%' },
-    { id: 'siyah', label: 'Black', bgPosition: '100% 100%' },
+    { id: 'kahverengi', label: 'Kahverengi', color: '#654321' },
+    { id: 'mavi', label: 'Mavi', color: '#1E90FF' },
+    { id: 'yesil', label: 'Yeşil', color: '#228B22' },
+    { id: 'ela', label: 'Ela', color: '#B8860B' },
+    { id: 'gri', label: 'Gri', color: '#808080' },
+    { id: 'siyah', label: 'Siyah', color: '#000000' },
   ];
 
   const heights = [
-    { id: 'kisa', label: 'Short', image: kisaBoyImage },
-    { id: 'orta', label: 'Medium', image: ortaBoyImage },
-    { id: 'uzun', label: 'Tall', image: uzunBoyluImage },
+    { id: 'kisa', label: 'Kısa', range: '150-165 cm' },
+    { id: 'orta', label: 'Orta', range: '165-175 cm' },
+    { id: 'uzun', label: 'Uzun', range: '175-190 cm' },
   ];
 
   const poses = [
-    { id: 'front', label: 'Front View', image: frontPoseImage },
-    { id: 'side', label: 'Side View', image: sidePoseImage },
-    { id: 'walking', label: 'Walking', image: walkingPoseImage },
+    { id: 'front', label: 'Önden', icon: '🧍' },
+    { id: 'side', label: 'Yandan', icon: '🚶' },
+    { id: 'walking', label: 'Yürüyen', icon: '🚶‍♀️' },
   ];
 
   const garments = [
     {
       id: 't-shirt',
       name: 'T-Shirt',
-      category: 'Tops',
+      category: 'Üst Giyim',
       thumbnail:
         'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=200&h=200&fit=crop',
     },
     {
       id: 'dress',
-      name: 'Summer Dress',
-      category: 'Dresses',
+      name: 'Yazlık Elbise',
+      category: 'Elbiseler',
       thumbnail:
         'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=200&h=200&fit=crop',
     },
     {
       id: 'jacket',
-      name: 'Denim Jacket',
-      category: 'Outerwear',
+      name: 'Kot Ceket',
+      category: 'Dış Giyim',
       thumbnail: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=200&h=200&fit=crop',
     },
     {
       id: 'jeans',
-      name: 'Jeans',
-      category: 'Bottoms',
+      name: 'Kot Pantolon',
+      category: 'Alt Giyim',
       thumbnail: 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=200&h=200&fit=crop',
     },
     {
       id: 'sweater',
-      name: 'Knit Sweater',
-      category: 'Tops',
+      name: 'Kazak',
+      category: 'Üst Giyim',
       thumbnail:
         'https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=200&h=200&fit=crop',
     },
     {
       id: 'skirt',
-      name: 'Pleated Skirt',
-      category: 'Bottoms',
+      name: 'Pileli Etek',
+      category: 'Alt Giyim',
       thumbnail:
         'https://images.unsplash.com/photo-1583496661160-fb5886a0aaaa?w=200&h=200&fit=crop',
     },
   ];
 
-
-
   /* Updated handleGenerate */
   const handleGenerate = async () => {
     if (!selectedGarment) {
       setToastMessage({
-        title: 'Please Select a Product',
-        message: 'You need to select a clothing item before generating.',
+        title: 'Lütfen Ürün Seçin',
+        message: 'Manken üzerinde görmek istediğiniz kıyafeti seçin veya yükleyin.',
       });
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
       return;
     }
 
-    // Check local balance (optional, could be server side enforced too)
     if (tokenBalance < GENERATION_COST) {
       setToastMessage({
-        title: 'Insufficient Tokens',
-        message: 'You do not have enough tokens.',
+        title: 'Yetersiz Token',
+        message: 'Bu işlem için yeterli bakiyeniz bulunmuyor.',
       });
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
@@ -214,100 +195,114 @@ export function ModelDesignerScreenV3({ onNavigate }: ModelDesignerScreenV3Props
 
     setIsGenerating(true);
     setToastMessage({
-      title: 'Generating Design...',
-      message: 'AI is creating your model visualization. This takes about 10-20 seconds.',
+      title: 'Tasarım Oluşturuluyor...',
+      message: 'Yapay zeka modelinizi oluşturuyor. Bu işlem 10-20 saniye sürebilir.',
     });
     setShowToast(true);
 
     try {
-      // 1. Determine Human Image
-      // For now, if using presets, we need a real ID or mapped URL that backend can download.
-      // Or we send the preset URL directly. Backend checks for http.
-      const modelObj = models.find(m => m.id === selectedModel);
-      const humanImg = modelObj?.image || "";
+      // Helper to convert image URL to base64 data URI
+      const urlToBase64 = async (url: string): Promise<string> => {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      };
 
-      // 2. Determine Clothes Image
-      let clothesImg = "";
-      if (selectedGarment === 'uploaded' && uploadedImage) {
-        // Need to convert Base64/Blob URL to File if strictly required, 
-        // OR if backend handles base64, good.
-        // Our wiroService expects file path or URL.
-        // If uploadedImage is a blob:url, backend can't read it from client browser memory.
-        // WE NEED TO UPLOAD THE FILE. 
-        // Assumption: uploadedImage is base64 string or we have the File object stored?
-        // "uploadedImage" in state seems to be string.
-        // If it's a data url, we might need to convert.
+      // Convert Vite-served asset to base64 that backend can use directly
+      const modelImageUrl = selectedModel === 'female' ? femaleModelImage : maleModelImage;
+      const humanImg = await urlToBase64(modelImageUrl);
+
+      let clothesImg: File | string = "";
+      if (selectedGarment === 'uploaded' && uploadedFile) {
+        clothesImg = uploadedFile;
+      } else if (selectedGarment === 'uploaded' && uploadedImage) {
         clothesImg = uploadedImage;
       } else {
         const g = garments.find(i => i.id === selectedGarment);
         clothesImg = g?.thumbnail || "";
       }
 
-      // Note: Sending data URI (base64) to backend requires backend to handle it or frontend to convert to Blob -> FormData file.
-      // Current implementation: aiModelService accepts string or File. 
-      // Backend Message: "File not found" if simple string path is sent that doesn't exist on server. 
-      // If ModelDesigner uses remote URLs for presets, it works.
-      // If user uploads from local, selectedGarment='uploaded', visual is Blob/Base64.
+      const attributes = {
+        gender: selectedModel,
+        ethnicity: selectedEthnicity,
+        bodyType: selectedBodyType,
+        hairColor: selectedHairColor,
+        hairLength: selectedHairLength,
+        eyeColor: selectedEyeColor,
+        height: selectedHeight,
+        pose: selectedPose,
+        category: selectedGarment === 'uploaded' ? selectedCategory : (garments.find(i => i.id === selectedGarment)?.category === 'Üst Giyim' ? 'upper_body' : garments.find(i => i.id === selectedGarment)?.category === 'Alt Giyim' ? 'lower_body' : 'dresses')
+      };
 
-      // Let's assume for this step we pass whatever is in state, and ensure backend/service handles it.
-      // Ideally we should pass the FILE object for uploads. 
-      // But ModelDesignerScreenV3 state only stores string `uploadedImage`.
+      const response = await aiModelService.generate(humanImg, clothesImg, attributes);
+      const { socketaccesstoken } = response;
 
-      if (!humanImg || !clothesImg) throw new Error("Missing images");
-
-      setToastMessage({
-        title: 'Generating Design...',
-        message: 'Preprocessing inputs...',
-      });
-      setShowToast(true);
-
-      console.log("Calling generate with:", { humanImg, clothesImg });
-      const response = await aiModelService.generate(humanImg, clothesImg);
-      console.log("Generate response:", response);
-      const { socketaccesstoken, taskid } = response;
-      console.log("Extracted tokens:", { socketaccesstoken, taskid });
-
-      // 3. Connect Socket for UX updates (Non-critical)
       let ws: WebSocket | null = null;
+      let socketResult: string | null = null;
+
       try {
         ws = aiModelService.connectSocket(socketaccesstoken, (msg) => {
-          console.log("Socket Update:", msg);
-          if (msg.type) {
-            let statusText = "";
-            switch (msg.type) {
-              case 'task_queue': statusText = "Waiting in queue..."; break;
-              case 'task_start': statusText = "Generation started..."; break;
-              case 'task_output': statusText = "Generating..."; break;
+          if (msg.type === 'task_postprocess_end' || msg.type === 'task_output_full') {
+            if (msg.message && Array.isArray(msg.message) && msg.message.length > 0) {
+              const possibleUrl = msg.message[0];
+              if (typeof possibleUrl === 'string' && possibleUrl.startsWith('http')) {
+                socketResult = possibleUrl;
+              }
             }
-            if (statusText) setToastMessage(prev => ({ ...prev, message: statusText }));
+            if (msg.outputs && Array.isArray(msg.outputs) && msg.outputs.length > 0) {
+              const possibleUrl = msg.outputs[0];
+              if (typeof possibleUrl === 'string' && possibleUrl.startsWith('http')) {
+                socketResult = possibleUrl;
+              }
+            }
+          }
+          if (msg.type) {
+            // simplified checks for brevity
           }
         });
-      } catch (e) {
-        console.warn("Socket connection failed, relying on polling:", e);
+      } catch (e) { console.warn(e); }
+
+      let resultUrl: string | null = null;
+      const maxWaitTime = 300000;
+      const checkInterval = 3000;
+      const startTime = Date.now();
+
+      while (Date.now() - startTime < maxWaitTime) {
+        if (socketResult) {
+          resultUrl = socketResult;
+          break;
+        }
+        try {
+          const polledResult = await aiModelService.pollUntilComplete(socketaccesstoken, checkInterval, checkInterval + 5000);
+          if (polledResult && polledResult.startsWith('http')) {
+            resultUrl = polledResult;
+            break;
+          }
+        } catch (pollError) { }
+        await new Promise(resolve => setTimeout(resolve, checkInterval));
       }
 
-      // 4. Reliable Polling (Primary)
-      // Poll every 2s, timeout 2 mins
-      // IMPORTANT: Wiro API expects 'tasktoken' (socketaccesstoken) for status check, NOT taskid
-      const resultUrl = await aiModelService.pollUntilComplete(socketaccesstoken, 2000, 120000);
+      if (ws) (ws as WebSocket).close();
 
-      if (ws) {
-        (ws as WebSocket).close();
-      }
+      if (!resultUrl) throw new Error("İşlem zaman aşımına uğradı.");
 
       setGeneratedImage(resultUrl);
       setTokenBalance(prev => prev - GENERATION_COST);
       setToastMessage({
-        title: 'Design Generated!',
-        message: 'Your AI-powered model visualization is ready.',
+        title: 'Tasarım Hazır!',
+        message: 'Yapay zeka destekli modeliniz oluşturuldu.',
       });
 
     } catch (error: any) {
       setToastMessage({
-        title: 'Generation Failed',
-        message: error.message || 'Something went wrong.',
+        title: 'Hata',
+        message: error.message || 'Bir sorun oluştu.',
       });
-      console.error("Gen Error:", error);
     } finally {
       setIsGenerating(false);
       setShowToast(true);
@@ -315,69 +310,77 @@ export function ModelDesignerScreenV3({ onNavigate }: ModelDesignerScreenV3Props
     }
   };
 
-  const handleAnimate = async () => {
+  const handleAnimateClick = () => {
     if (!generatedImage) return;
 
-    // Check balance
     if (tokenBalance < 20) {
       setToastMessage({
-        title: 'Insufficient Tokens',
-        message: 'Video generation costs 20 tokens.',
+        title: 'Yetersiz Token',
+        message: 'Video oluşturma bedeli 20 tokendir.',
       });
       setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
       return;
+    }
+    setShowVideoSettings(true);
+  };
+
+  const handleStartAnimation = async () => {
+    if (!generatedImage) return;
+
+    setShowVideoSettings(false);
+
+    // Construct prompt based on settings
+    let finalPrompt = videoCustomPrompt;
+
+    if (!isVideoManualMode) {
+      // Map vibe to a simple effective prompt for Wiro
+      const vibePrompts: Record<string, string> = {
+        'Energetic': "Dynamic camera movement, energetic model pose, high energy fashion video, neon lighting, fast pace, 4k",
+        'Professional': "Professional studio lighting, steady camera, elegant model movement, clean white background focus, high quality",
+        'Emotional': "Slow motion, cinematic lighting, emotional mood, soft focus, dramatic shadows, 4k",
+        'Funny': "Playful movement, colorful background, dynamic angles, upbeat energy, commercial style",
+        'Luxury': "Luxurious atmosphere, gold lighting accents, slow elegant movement, high fashion editorial style, 8k",
+        'Sports': "Action camera, dynamic movement, athletic pose, high contrast, outdoor lighting style",
+        'Minimalist': "Clean minimal aesthetic, subtle movement, soft natural lighting, high key, studio quality",
+        'Retro': "Vintage film grain, warm color grading, nostalgia mood, 80s fashion style camera work"
+      };
+
+      finalPrompt = vibePrompts[videoVibe] || "Natural movement, high quality fashion model walk";
     }
 
     setIsVideoGenerating(true);
     setToastMessage({
-      title: 'Generating Video...',
-      message: 'Converting your design into a video. This takes significantly longer (2-3 mins).',
+      title: 'Video Hazırlanıyor...',
+      message: 'Mankeniniz canlandırılıyor. Bu işlem biraz zaman alabilir.',
     });
     setShowToast(true);
 
     try {
-      const { socketaccesstoken, taskid } = await aiModelService.animate(generatedImage);
+      const response = await aiModelService.animate(generatedImage, finalPrompt);
+      const { socketaccesstoken } = response;
 
-      // Connect Socket (Optional for UX)
-      let ws: WebSocket | null = null;
-      try {
-        ws = aiModelService.connectSocket(socketaccesstoken, (msg) => {
-          console.log("Video Socket Update:", msg);
-          if (msg.type) {
-            let statusText = "";
-            switch (msg.type) {
-              case 'task_queue': statusText = "Video queued..."; break;
-              case 'task_start': statusText = "Generation started..."; break;
-            }
-            if (statusText) setToastMessage(prev => ({ ...prev, message: statusText }));
-          }
-        });
-      } catch (e) {
-        console.warn("Socket failed:", e);
-      }
-
-      // Reliable Polling (Primary) - 5 mins timeout
-      // IMPORTANT: Wiro API expects 'tasktoken' (socketaccesstoken) for status check, NOT taskid
-      const videoResultUrl = await aiModelService.pollUntilComplete(socketaccesstoken, 3000, 300000);
-
-      if (ws) (ws as WebSocket).close();
-
+      // ... existing polling logic ...
+      const videoResultUrl = await aiModelService.pollUntilComplete(socketaccesstoken, 2000, 300000);
       setVideoUrl(videoResultUrl);
       setTokenBalance(prev => prev - 20);
       setToastMessage({
-        title: 'Video Ready!',
-        message: 'Your AI video has been generated.',
+        title: 'Video Hazır!',
+        message: 'Canlandırma işlemi başarıyla tamamlandı.',
       });
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
 
     } catch (error: any) {
+      console.error(error);
       setToastMessage({
-        title: 'Video Failed',
-        message: error.message || 'Could not generate video.',
+        title: 'Hata',
+        message: error.message || 'Video oluşturulamadı.',
       });
-      console.error("Video Error:", error);
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
     } finally {
       setIsVideoGenerating(false);
-      setShowToast(true);
     }
   };
 
@@ -385,24 +388,37 @@ export function ModelDesignerScreenV3({ onNavigate }: ModelDesignerScreenV3Props
     setSelectedGarment(null);
     setUploadedImage(null);
     setGeneratedImage(null);
-    setToastMessage({ title: 'Design Reset', message: 'Canvas cleared. Start a new design.' });
+    setToastMessage({ title: 'Tasarım Sıfırlandı', message: 'Canvas temizlendi.' });
     setShowToast(true);
     setTimeout(() => setShowToast(false), 3000);
   };
 
   const handleDownload = () => {
-    setToastMessage({ title: 'Downloading Image...', message: 'Your design is being saved.' });
+    setToastMessage({ title: 'İndiriliyor...', message: 'Tasarımınız kaydediliyor.' });
     setShowToast(true);
     setTimeout(() => setShowToast(false), 3000);
   };
 
-  const handleImageUpload = (imageUrl: string) => {
-    setUploadedImage(imageUrl);
+  const handleImageUpload = (file: File) => {
+    // 10MB size limit check
+    if (file.size > 10 * 1024 * 1024) {
+      setToastMessage({
+        title: 'Dosya Çok Büyük',
+        message: 'Lütfen 10MB\'dan küçük bir görsel yükleyin.',
+      });
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    setUploadedImage(objectUrl);
+    setUploadedFile(file);
     setSelectedGarment('uploaded');
     setShowUploadModal(false);
     setToastMessage({
-      title: 'Image Uploaded!',
-      message: 'Your product image has been uploaded successfully.',
+      title: 'Görsel Yüklendi!',
+      message: 'Ürün görseliniz başarıyla yüklendi.',
     });
     setShowToast(true);
     setTimeout(() => setShowToast(false), 3000);
@@ -411,6 +427,8 @@ export function ModelDesignerScreenV3({ onNavigate }: ModelDesignerScreenV3Props
   const toggleSection = (section: string) => {
     setExpandedSection(expandedSection === section ? null : section);
   };
+
+  const activeModelLabel = selectedModel === 'female' ? 'Kadın Manken' : 'Erkek Manken';
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -428,9 +446,9 @@ export function ModelDesignerScreenV3({ onNavigate }: ModelDesignerScreenV3Props
         <header className="bg-white border-b border-gray-200 px-8 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl text-gray-900">AI Model Designer</h1>
+              <h1 className="text-xl text-gray-900">Manken Tasarımcısı</h1>
               <p className="text-xs text-gray-500 mt-1">
-                Create stunning product visualizations with AI
+                Yapay zeka ile ürünlerinizi manken üzerinde görün
               </p>
             </div>
             <div className="flex items-center gap-4">
@@ -459,7 +477,8 @@ export function ModelDesignerScreenV3({ onNavigate }: ModelDesignerScreenV3Props
             <div className="grid grid-cols-12 gap-6 mb-6">
               {/* Left: Configuration Panel */}
               <div className="col-span-8 space-y-4">
-                {/* Model & Basic Info */}
+
+                {/* 1. Model Selection (Gender Only) */}
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                   <button
                     onClick={() => toggleSection('model')}
@@ -470,11 +489,9 @@ export function ModelDesignerScreenV3({ onNavigate }: ModelDesignerScreenV3Props
                         <User className="w-5 h-5 text-white" />
                       </div>
                       <div className="text-left">
-                        <h3 className="text-sm text-gray-900">Model Configuration</h3>
+                        <h3 className="text-sm text-gray-900">Model Seçimi</h3>
                         <p className="text-xs text-gray-500">
-                          {models.find((m) => m.id === selectedModel)?.label} •{' '}
-                          {ethnicities.find((e) => e.id === selectedEthnicity)?.label} •{' '}
-                          {bodyTypes.find((b) => b.id === selectedBodyType)?.label}
+                          Seçili: {activeModelLabel}
                         </p>
                       </div>
                     </div>
@@ -486,129 +503,77 @@ export function ModelDesignerScreenV3({ onNavigate }: ModelDesignerScreenV3Props
                   {expandedSection === 'model' && (
                     <div className="px-6 pb-6 pt-2 space-y-5 border-t border-gray-100">
                       <div>
-                        <label className="text-xs text-gray-700 mb-2 block">Gender</label>
+                        <label className="text-xs text-gray-700 mb-2 block">Cinsiyet</label>
                         <div className="grid grid-cols-2 gap-3">
-                          {models.map((model) => (
-                            <button
-                              key={model.id}
-                              onClick={() => {
-                                setSelectedModel(model.id as 'female' | 'male');
-                                setGeneratedImage(null);
-                              }}
-                              className={`relative rounded-lg overflow-hidden border-2 transition-all group ${selectedModel === model.id
-                                ? 'border-[#F5B800] ring-2 ring-[#F5B800]/20'
-                                : 'border-gray-200 hover:border-gray-300'
-                                }`}
-                            >
-                              <img
-                                src={model.image}
-                                alt={model.label}
-                                className="w-full h-28 object-cover"
-                              />
-                              <div
-                                className={`absolute inset-0 flex items-center justify-center transition-opacity ${selectedModel === model.id
-                                  ? 'bg-[#F5B800]/20'
-                                  : 'bg-black/0 group-hover:bg-black/10'
-                                  }`}
-                              >
-                                {selectedModel === model.id && (
-                                  <div className="w-8 h-8 bg-[#F5B800] rounded-full flex items-center justify-center shadow-lg">
-                                    <Check className="w-5 h-5 text-gray-900" />
-                                  </div>
-                                )}
+                          {/* Female Button */}
+                          <button
+                            onClick={() => {
+                              setSelectedModel('female');
+                              setGeneratedImage(null);
+                            }}
+                            className={`relative rounded-lg overflow-hidden border-2 transition-all h-32 group ${selectedModel === 'female'
+                              ? 'border-[#F5B800] ring-2 ring-[#F5B800]/20 bg-[#F5B800]/5'
+                              : 'border-gray-200 hover:border-gray-300'
+                              }`}
+                          >
+                            <div className="flex flex-col items-center justify-center h-full">
+                              <div className="p-3 bg-white rounded-full shadow-sm mb-2">
+                                <User className="w-6 h-6 text-pink-500" />
                               </div>
-                              <div className="p-2 bg-white">
-                                <p className="text-xs text-gray-900 text-center">{model.label}</p>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
+                              <span className="text-sm font-medium text-gray-900">Kadın Manken</span>
+                            </div>
 
-                      <div>
-                        <label className="text-xs text-gray-700 mb-2 block">Ethnicity</label>
-                        <div className="grid grid-cols-6 gap-2">
-                          {ethnicities.map((ethnicity) => (
-                            <button
-                              key={ethnicity.id}
-                              onClick={() => {
-                                setSelectedEthnicity(ethnicity.id);
-                                setGeneratedImage(null);
-                              }}
-                              className={`relative rounded-lg border-2 p-3 transition-all ${selectedEthnicity === ethnicity.id
-                                ? 'border-[#F5B800] bg-[#F5B800]/5'
-                                : 'border-gray-200 hover:border-gray-300'
-                                }`}
-                            >
-                              <p className="text-2xl text-center mb-1">{ethnicity.flag}</p>
-                              <p className="text-xs text-gray-700 text-center truncate">
-                                {ethnicity.label}
-                              </p>
-                              {selectedEthnicity === ethnicity.id && (
-                                <div className="absolute -top-1 -right-1 w-5 h-5 bg-[#F5B800] rounded-full flex items-center justify-center">
-                                  <Check className="w-3 h-3 text-gray-900" />
-                                </div>
-                              )}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="text-xs text-gray-700 mb-2 block">Body Type</label>
-                        <div className="grid grid-cols-3 gap-3">
-                          {bodyTypes.map((bodyType) => (
-                            <button
-                              key={bodyType.id}
-                              onClick={() => {
-                                setSelectedBodyType(bodyType.id);
-                                setGeneratedImage(null);
-                              }}
-                              className={`relative rounded-lg overflow-hidden border-2 transition-all ${selectedBodyType === bodyType.id
-                                ? 'border-[#F5B800] ring-2 ring-[#F5B800]/20'
-                                : 'border-gray-200 hover:border-gray-300'
-                                }`}
-                            >
-                              <img
-                                src={bodyType.image}
-                                alt={bodyType.label}
-                                className="w-full h-24 object-cover"
-                              />
-                              <div className="p-2 bg-white">
-                                <p className="text-xs text-gray-900 text-center">
-                                  {bodyType.label}
-                                </p>
+                            {selectedModel === 'female' && (
+                              <div className="absolute top-2 right-2 w-6 h-6 bg-[#F5B800] rounded-full flex items-center justify-center shadow-lg">
+                                <Check className="w-4 h-4 text-gray-900" />
                               </div>
-                              {selectedBodyType === bodyType.id && (
-                                <div className="absolute top-2 right-2 w-6 h-6 bg-[#F5B800] rounded-full flex items-center justify-center shadow-lg">
-                                  <Check className="w-4 h-4 text-gray-900" />
-                                </div>
-                              )}
-                            </button>
-                          ))}
+                            )}
+                          </button>
+
+                          {/* Male Button */}
+                          <button
+                            onClick={() => {
+                              setSelectedModel('male');
+                              setGeneratedImage(null);
+                            }}
+                            className={`relative rounded-lg overflow-hidden border-2 transition-all h-32 group ${selectedModel === 'male'
+                              ? 'border-[#F5B800] ring-2 ring-[#F5B800]/20 bg-[#F5B800]/5'
+                              : 'border-gray-200 hover:border-gray-300'
+                              }`}
+                          >
+                            <div className="flex flex-col items-center justify-center h-full">
+                              <div className="p-3 bg-white rounded-full shadow-sm mb-2">
+                                <User className="w-6 h-6 text-blue-500" />
+                              </div>
+                              <span className="text-sm font-medium text-gray-900">Erkek Manken</span>
+                            </div>
+
+                            {selectedModel === 'male' && (
+                              <div className="absolute top-2 right-2 w-6 h-6 bg-[#F5B800] rounded-full flex items-center justify-center shadow-lg">
+                                <Check className="w-4 h-4 text-gray-900" />
+                              </div>
+                            )}
+                          </button>
                         </div>
                       </div>
                     </div>
                   )}
                 </div>
 
-                {/* Appearance */}
+                {/* 2. Appearance Customization */}
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                   <button
                     onClick={() => toggleSection('appearance')}
                     className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
-                        <Palette className="w-5 h-5 text-white" />
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center">
+                        <Sparkles className="w-5 h-5 text-white" />
                       </div>
                       <div className="text-left">
-                        <h3 className="text-sm text-gray-900">Appearance Details</h3>
+                        <h3 className="text-sm text-gray-900">Görünüm Özellikleri</h3>
                         <p className="text-xs text-gray-500">
-                          {hairColors.find((h) => h.id === selectedHairColor)?.label} •{' '}
-                          {hairLengths.find((h) => h.id === selectedHairLength)?.label} Hair •{' '}
-                          {eyeColors.find((e) => e.id === selectedEyeColor)?.label} Eyes •{' '}
-                          {heights.find((h) => h.id === selectedHeight)?.label}
+                          Köken, vücut, saç, göz rengi
                         </p>
                       </div>
                     </div>
@@ -618,143 +583,147 @@ export function ModelDesignerScreenV3({ onNavigate }: ModelDesignerScreenV3Props
                   </button>
 
                   {expandedSection === 'appearance' && (
-                    <div className="px-6 pb-6 pt-2 space-y-5 border-t border-gray-100">
+                    <div className="px-6 pb-6 pt-2 space-y-5 border-t border-gray-100 max-h-[400px] overflow-y-auto">
+                      {/* Ethnicity */}
                       <div>
-                        <label className="text-xs text-gray-700 mb-2 block">Hair Color</label>
-                        <div className="grid grid-cols-6 gap-2">
-                          {hairColors.map((hair) => (
+                        <label className="text-xs text-gray-700 mb-2 block">Köken</label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {ethnicities.map((eth) => (
                             <button
-                              key={hair.id}
-                              onClick={() => {
-                                setSelectedHairColor(hair.id);
-                                setGeneratedImage(null);
-                              }}
-                              className={`relative rounded-lg overflow-hidden border-2 transition-all ${selectedHairColor === hair.id
-                                ? 'border-[#F5B800] ring-2 ring-[#F5B800]/20'
+                              key={eth.id}
+                              onClick={() => setSelectedEthnicity(eth.id)}
+                              className={`p-2 rounded-lg border-2 transition-all text-center ${selectedEthnicity === eth.id
+                                ? 'border-[#F5B800] bg-[#F5B800]/10'
                                 : 'border-gray-200 hover:border-gray-300'
                                 }`}
                             >
-                              <img
-                                src={hair.image}
-                                alt={hair.label}
-                                className="w-full h-16 object-cover"
-                              />
-                              <div className="p-1.5 bg-white">
-                                <p className="text-xs text-gray-900 text-center truncate">
-                                  {hair.label}
-                                </p>
-                              </div>
-                              {selectedHairColor === hair.id && (
-                                <div className="absolute top-1 right-1 w-5 h-5 bg-[#F5B800] rounded-full flex items-center justify-center">
-                                  <Check className="w-3 h-3 text-gray-900" />
-                                </div>
-                              )}
+                              <span className="text-lg">{eth.flag}</span>
+                              <p className="text-xs text-gray-700 mt-1">{eth.label}</p>
                             </button>
                           ))}
                         </div>
                       </div>
 
+                      {/* Body Type */}
                       <div>
-                        <label className="text-xs text-gray-700 mb-2 block">Hair Length</label>
-                        <div className="grid grid-cols-3 gap-3">
-                          {hairLengths.map((hairLength) => (
+                        <label className="text-xs text-gray-700 mb-2 block">Vücut Tipi</label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {bodyTypes.map((bt) => (
                             <button
-                              key={hairLength.id}
-                              onClick={() => {
-                                setSelectedHairLength(hairLength.id);
-                                setGeneratedImage(null);
-                              }}
-                              className={`relative rounded-lg overflow-hidden border-2 transition-all ${selectedHairLength === hairLength.id
-                                ? 'border-[#F5B800] ring-2 ring-[#F5B800]/20'
+                              key={bt.id}
+                              onClick={() => setSelectedBodyType(bt.id)}
+                              className={`p-2 rounded-lg border-2 transition-all text-center ${selectedBodyType === bt.id
+                                ? 'border-[#F5B800] bg-[#F5B800]/10'
                                 : 'border-gray-200 hover:border-gray-300'
                                 }`}
                             >
-                              <img
-                                src={hairLength.image}
-                                alt={hairLength.label}
-                                className="w-full h-32 object-cover"
-                              />
-                              <div className="p-2 bg-white">
-                                <p className="text-xs text-gray-900 text-center">
-                                  {hairLength.label}
-                                </p>
-                              </div>
-                              {selectedHairLength === hairLength.id && (
-                                <div className="absolute top-2 right-2 w-6 h-6 bg-[#F5B800] rounded-full flex items-center justify-center shadow-lg">
-                                  <Check className="w-4 h-4 text-gray-900" />
-                                </div>
-                              )}
+                              <span className="text-lg">{bt.icon}</span>
+                              <p className="text-xs text-gray-700 mt-1">{bt.label}</p>
                             </button>
                           ))}
                         </div>
                       </div>
 
+                      {/* Height */}
                       <div>
-                        <label className="text-xs text-gray-700 mb-2 block">Eye Color</label>
-                        <div className="grid grid-cols-6 gap-2">
-                          {eyeColors.map((eye) => (
+                        <label className="text-xs text-gray-700 mb-2 block">Boy</label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {heights.map((h) => (
                             <button
-                              key={eye.id}
-                              onClick={() => {
-                                setSelectedEyeColor(eye.id);
-                                setGeneratedImage(null);
-                              }}
-                              className={`relative rounded-lg overflow-hidden border-2 transition-all ${selectedEyeColor === eye.id
-                                ? 'border-[#F5B800] ring-2 ring-[#F5B800]/20'
+                              key={h.id}
+                              onClick={() => setSelectedHeight(h.id)}
+                              className={`p-2 rounded-lg border-2 transition-all text-center ${selectedHeight === h.id
+                                ? 'border-[#F5B800] bg-[#F5B800]/10'
+                                : 'border-gray-200 hover:border-gray-300'
+                                }`}
+                            >
+                              <p className="text-xs text-gray-700 font-medium">{h.label}</p>
+                              <p className="text-[10px] text-gray-500">{h.range}</p>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Hair Color */}
+                      <div>
+                        <label className="text-xs text-gray-700 mb-2 block">Saç Rengi</label>
+                        <div className="grid grid-cols-6 gap-2">
+                          {hairColors.map((hc) => (
+                            <button
+                              key={hc.id}
+                              onClick={() => setSelectedHairColor(hc.id)}
+                              className={`p-2 rounded-lg border-2 transition-all flex flex-col items-center ${selectedHairColor === hc.id
+                                ? 'border-[#F5B800] bg-[#F5B800]/10'
                                 : 'border-gray-200 hover:border-gray-300'
                                 }`}
                             >
                               <div
-                                className="w-full h-16"
-                                style={{
-                                  backgroundImage: `url(${eyeColorsImage})`,
-                                  backgroundSize: '300% 300%',
-                                  backgroundPosition: eye.bgPosition,
-                                }}
+                                className="w-6 h-6 rounded-full border border-gray-300"
+                                style={{ backgroundColor: hc.color }}
                               />
-                              <div className="p-1.5 bg-white">
-                                <p className="text-xs text-gray-900 text-center truncate">
-                                  {eye.label}
-                                </p>
-                              </div>
-                              {selectedEyeColor === eye.id && (
-                                <div className="absolute top-1 right-1 w-5 h-5 bg-[#F5B800] rounded-full flex items-center justify-center">
-                                  <Check className="w-3 h-3 text-gray-900" />
-                                </div>
-                              )}
+                              <p className="text-[10px] text-gray-700 mt-1">{hc.label}</p>
                             </button>
                           ))}
                         </div>
                       </div>
 
+                      {/* Hair Length */}
                       <div>
-                        <label className="text-xs text-gray-700 mb-2 block">Height</label>
-                        <div className="grid grid-cols-3 gap-3">
-                          {heights.map((height) => (
+                        <label className="text-xs text-gray-700 mb-2 block">Saç Uzunluğu</label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {hairLengths.map((hl) => (
                             <button
-                              key={height.id}
-                              onClick={() => {
-                                setSelectedHeight(height.id);
-                                setGeneratedImage(null);
-                              }}
-                              className={`relative rounded-lg overflow-hidden border-2 transition-all ${selectedHeight === height.id
-                                ? 'border-[#F5B800] ring-2 ring-[#F5B800]/20'
+                              key={hl.id}
+                              onClick={() => setSelectedHairLength(hl.id)}
+                              className={`p-2 rounded-lg border-2 transition-all text-center ${selectedHairLength === hl.id
+                                ? 'border-[#F5B800] bg-[#F5B800]/10'
                                 : 'border-gray-200 hover:border-gray-300'
                                 }`}
                             >
-                              <img
-                                src={height.image}
-                                alt={height.label}
-                                className="w-full h-24 object-cover"
+                              <p className="text-xs text-gray-700">{hl.label}</p>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Eye Color */}
+                      <div>
+                        <label className="text-xs text-gray-700 mb-2 block">Göz Rengi</label>
+                        <div className="grid grid-cols-6 gap-2">
+                          {eyeColors.map((ec) => (
+                            <button
+                              key={ec.id}
+                              onClick={() => setSelectedEyeColor(ec.id)}
+                              className={`p-2 rounded-lg border-2 transition-all flex flex-col items-center ${selectedEyeColor === ec.id
+                                ? 'border-[#F5B800] bg-[#F5B800]/10'
+                                : 'border-gray-200 hover:border-gray-300'
+                                }`}
+                            >
+                              <div
+                                className="w-6 h-6 rounded-full border border-gray-300"
+                                style={{ backgroundColor: ec.color }}
                               />
-                              <div className="p-2 bg-white">
-                                <p className="text-xs text-gray-900 text-center">{height.label}</p>
-                              </div>
-                              {selectedHeight === height.id && (
-                                <div className="absolute top-2 right-2 w-6 h-6 bg-[#F5B800] rounded-full flex items-center justify-center shadow-lg">
-                                  <Check className="w-4 h-4 text-gray-900" />
-                                </div>
-                              )}
+                              <p className="text-[10px] text-gray-700 mt-1">{ec.label}</p>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Pose */}
+                      <div>
+                        <label className="text-xs text-gray-700 mb-2 block">Poz</label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {poses.map((p) => (
+                            <button
+                              key={p.id}
+                              onClick={() => setSelectedPose(p.id)}
+                              className={`p-3 rounded-lg border-2 transition-all text-center ${selectedPose === p.id
+                                ? 'border-[#F5B800] bg-[#F5B800]/10'
+                                : 'border-gray-200 hover:border-gray-300'
+                                }`}
+                            >
+                              <span className="text-2xl">{p.icon}</span>
+                              <p className="text-xs text-gray-700 mt-1">{p.label}</p>
                             </button>
                           ))}
                         </div>
@@ -763,64 +732,7 @@ export function ModelDesignerScreenV3({ onNavigate }: ModelDesignerScreenV3Props
                   )}
                 </div>
 
-                {/* Pose */}
-                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                  <button
-                    onClick={() => toggleSection('pose')}
-                    className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-                        <Sparkles className="w-5 h-5 text-white" />
-                      </div>
-                      <div className="text-left">
-                        <h3 className="text-sm text-gray-900">Pose Selection</h3>
-                        <p className="text-xs text-gray-500">
-                          {poses.find((p) => p.id === selectedPose)?.label}
-                        </p>
-                      </div>
-                    </div>
-                    <ChevronRight
-                      className={`w-5 h-5 text-gray-400 transition-transform ${expandedSection === 'pose' ? 'rotate-90' : ''}`}
-                    />
-                  </button>
-
-                  {expandedSection === 'pose' && (
-                    <div className="px-6 pb-6 pt-2 border-t border-gray-100">
-                      <div className="grid grid-cols-3 gap-3">
-                        {poses.map((pose) => (
-                          <button
-                            key={pose.id}
-                            onClick={() => {
-                              setSelectedPose(pose.id);
-                              setGeneratedImage(null);
-                            }}
-                            className={`relative rounded-xl overflow-hidden border-2 transition-all ${selectedPose === pose.id
-                              ? 'border-[#F5B800] ring-2 ring-[#F5B800]/20'
-                              : 'border-gray-200 hover:border-gray-300'
-                              }`}
-                          >
-                            <img
-                              src={pose.image}
-                              alt={pose.label}
-                              className="w-full h-32 object-cover"
-                            />
-                            <div className="p-2 bg-white">
-                              <p className="text-xs text-gray-900 text-center">{pose.label}</p>
-                            </div>
-                            {selectedPose === pose.id && (
-                              <div className="absolute top-2 right-2 w-6 h-6 bg-[#F5B800] rounded-full flex items-center justify-center shadow-lg">
-                                <Check className="w-4 h-4 text-gray-900" />
-                              </div>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Product */}
+                {/* 3. Product Selection */}
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                   <button
                     onClick={() => toggleSection('product')}
@@ -831,13 +743,13 @@ export function ModelDesignerScreenV3({ onNavigate }: ModelDesignerScreenV3Props
                         <Shirt className="w-5 h-5 text-white" />
                       </div>
                       <div className="text-left">
-                        <h3 className="text-sm text-gray-900">Product Selection</h3>
+                        <h3 className="text-sm text-gray-900">Ürün Seçimi</h3>
                         <p className="text-xs text-gray-500">
                           {selectedGarment === 'uploaded'
-                            ? 'Uploaded Image'
+                            ? 'Yüklenen Görsel'
                             : selectedGarment
                               ? garments.find((g) => g.id === selectedGarment)?.name
-                              : 'No product selected'}
+                              : 'Ürün seçilmedi'}
                         </p>
                       </div>
                     </div>
@@ -853,38 +765,75 @@ export function ModelDesignerScreenV3({ onNavigate }: ModelDesignerScreenV3Props
                         className="w-full px-4 py-3 bg-gradient-to-r from-[#F5B800] to-[#E5A800] hover:from-[#E5A800] hover:to-[#D59700] text-gray-900 rounded-xl text-sm flex items-center justify-center gap-2 transition-all shadow-sm"
                       >
                         <Upload className="w-4 h-4" />
-                        Upload Your Product
+                        Ürün Görseli Yükle
                       </button>
 
                       {uploadedImage && (
-                        <div
-                          onClick={() => {
-                            setSelectedGarment('uploaded');
-                            setGeneratedImage(null);
-                          }}
-                          className={`relative rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${selectedGarment === 'uploaded'
-                            ? 'border-[#F5B800] ring-2 ring-[#F5B800]/20'
-                            : 'border-gray-200 hover:border-gray-300'
-                            }`}
-                        >
-                          <img
-                            src={uploadedImage}
-                            alt="Uploaded Product"
-                            className="w-full h-28 object-cover"
-                          />
-                          <div className="p-2 bg-white">
-                            <p className="text-xs text-gray-900">Your Product</p>
+                        <div className="space-y-3">
+                          <div
+                            onClick={() => {
+                              setSelectedGarment('uploaded');
+                              setGeneratedImage(null);
+                            }}
+                            className={`relative rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${selectedGarment === 'uploaded'
+                              ? 'border-[#F5B800] ring-2 ring-[#F5B800]/20'
+                              : 'border-gray-200 hover:border-gray-300'
+                              }`}
+                          >
+                            <img
+                              src={uploadedImage}
+                              alt="Uploaded Product"
+                              className="w-full h-28 object-cover"
+                            />
+                            <div className="p-2 bg-white">
+                              <p className="text-xs text-gray-900">Yüklenen Ürün</p>
+                            </div>
+                            {selectedGarment === 'uploaded' && (
+                              <div className="absolute top-2 right-2 w-6 h-6 bg-[#F5B800] rounded-full flex items-center justify-center shadow-lg">
+                                <Check className="w-4 h-4 text-gray-900" />
+                              </div>
+                            )}
                           </div>
+
                           {selectedGarment === 'uploaded' && (
-                            <div className="absolute top-2 right-2 w-6 h-6 bg-[#F5B800] rounded-full flex items-center justify-center shadow-lg">
-                              <Check className="w-4 h-4 text-gray-900" />
+                            <div className="bg-gray-50 p-3 rounded-xl border border-gray-200">
+                              <label className="text-xs font-medium text-gray-700 block mb-2">Kıyafet Türü</label>
+                              <div className="grid grid-cols-3 gap-2">
+                                <button
+                                  onClick={() => setSelectedCategory('upper_body')}
+                                  className={`px-2 py-1.5 text-[10px] rounded-lg border transition-colors ${selectedCategory === 'upper_body'
+                                    ? 'bg-[#F5B800] border-[#F5B800] text-gray-900 font-bold'
+                                    : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+                                    }`}
+                                >
+                                  Üst Giyim
+                                </button>
+                                <button
+                                  onClick={() => setSelectedCategory('lower_body')}
+                                  className={`px-2 py-1.5 text-[10px] rounded-lg border transition-colors ${selectedCategory === 'lower_body'
+                                    ? 'bg-[#F5B800] border-[#F5B800] text-gray-900 font-bold'
+                                    : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+                                    }`}
+                                >
+                                  Alt Giyim
+                                </button>
+                                <button
+                                  onClick={() => setSelectedCategory('dresses')}
+                                  className={`px-2 py-1.5 text-[10px] rounded-lg border transition-colors ${selectedCategory === 'dresses'
+                                    ? 'bg-[#F5B800] border-[#F5B800] text-gray-900 font-bold'
+                                    : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+                                    }`}
+                                >
+                                  Elbise
+                                </button>
+                              </div>
                             </div>
                           )}
                         </div>
                       )}
 
                       <div>
-                        <p className="text-xs text-gray-500 mb-2">Or choose from templates:</p>
+                        <p className="text-xs text-gray-500 mb-2">Veya örneklerden seçin:</p>
                         <div className="grid grid-cols-3 gap-2">
                           {garments.map((garment) => (
                             <button
@@ -925,12 +874,12 @@ export function ModelDesignerScreenV3({ onNavigate }: ModelDesignerScreenV3Props
                 {/* Preview Card */}
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sticky top-0">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm text-gray-900">Live Preview</h3>
+                    <h3 className="text-sm text-gray-900">Canlı Önizleme</h3>
                     <div className="flex gap-2">
                       <button
                         onClick={handleReset}
                         className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                        title="Reset"
+                        title="Sıfırla"
                       >
                         <RotateCcw className="w-4 h-4 text-gray-600" />
                       </button>
@@ -938,7 +887,7 @@ export function ModelDesignerScreenV3({ onNavigate }: ModelDesignerScreenV3Props
                         <button
                           onClick={handleDownload}
                           className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                          title="Download"
+                          title="İndir"
                         >
                           <Download className="w-4 h-4 text-gray-600" />
                         </button>
@@ -953,8 +902,8 @@ export function ModelDesignerScreenV3({ onNavigate }: ModelDesignerScreenV3Props
                           <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
                           <div className="absolute inset-0 border-4 border-[#F5B800] rounded-full border-t-transparent animate-spin"></div>
                         </div>
-                        <p className="text-xs text-gray-900">Creating Video Animation...</p>
-                        <p className="text-[10px] text-gray-500 mt-1">This might take ~2 mins</p>
+                        <p className="text-xs text-gray-900">Video Oluşturuluyor...</p>
+                        <p className="text-[10px] text-gray-500 mt-1">Bu işlem ~2 dk sürebilir</p>
                       </div>
                     ) : videoUrl ? (
                       <div className="w-full h-full relative group">
@@ -968,7 +917,7 @@ export function ModelDesignerScreenV3({ onNavigate }: ModelDesignerScreenV3Props
                         <button
                           onClick={() => setVideoUrl(null)}
                           className="absolute top-2 right-2 p-1 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                          title="Close Video"
+                          title="Videoyu Kapat"
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -979,7 +928,7 @@ export function ModelDesignerScreenV3({ onNavigate }: ModelDesignerScreenV3Props
                           <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
                           <div className="absolute inset-0 border-4 border-[#F5B800] rounded-full border-t-transparent animate-spin"></div>
                         </div>
-                        <p className="text-xs text-gray-900">Generating...</p>
+                        <p className="text-xs text-gray-900">Oluşturuluyor...</p>
                       </div>
                     ) : generatedImage ? (
                       <img
@@ -992,7 +941,7 @@ export function ModelDesignerScreenV3({ onNavigate }: ModelDesignerScreenV3Props
                         <div className="w-12 h-12 mx-auto mb-2 bg-gray-200 rounded-full flex items-center justify-center">
                           <Sparkles className="w-6 h-6 text-gray-400" />
                         </div>
-                        <p className="text-xs text-gray-500">Configure and generate</p>
+                        <p className="text-xs text-gray-500">Ayarlayın ve oluşturun</p>
                       </div>
                     )}
                   </div>
@@ -1008,15 +957,15 @@ export function ModelDesignerScreenV3({ onNavigate }: ModelDesignerScreenV3Props
                     >
                       <Wand2 className="w-5 h-5" />
                       {isGenerating
-                        ? 'Generating...'
+                        ? 'Oluşturuluyor...'
                         : !selectedGarment
-                          ? 'Select Product'
-                          : `Generate (${GENERATION_COST} tokens)`}
+                          ? 'Ürün Seçin'
+                          : `Oluştur (${GENERATION_COST} token)`}
                     </button>
 
                     {generatedImage && !videoUrl && (
                       <button
-                        onClick={handleAnimate}
+                        onClick={handleAnimateClick}
                         disabled={isVideoGenerating || tokenBalance < 20}
                         className={`w-full px-4 py-3 rounded-xl text-sm flex items-center justify-center gap-2 transition-all border-2 ${isVideoGenerating || tokenBalance < 20
                           ? 'bg-gray-50 border-gray-200 text-gray-400 cursor-not-allowed'
@@ -1024,7 +973,7 @@ export function ModelDesignerScreenV3({ onNavigate }: ModelDesignerScreenV3Props
                           }`}
                       >
                         <Video className="w-5 h-5" />
-                        {isVideoGenerating ? 'Animating...' : 'Animate as Video (20 tokens)'}
+                        {isVideoGenerating ? 'Video Hazırlanıyor...' : 'Video Olarak Canlandır (20 token)'}
                       </button>
                     )}
                   </div>
@@ -1036,14 +985,14 @@ export function ModelDesignerScreenV3({ onNavigate }: ModelDesignerScreenV3Props
                           <Sparkles className="w-3 h-3 text-white" />
                         </div>
                         <span className="text-xs text-gray-900">
-                          <strong>{tokenBalance}</strong> tokens
+                          <strong>{tokenBalance}</strong> token
                         </span>
                       </div>
                       <button
                         onClick={() => setShowTokenModal(true)}
                         className="px-2 py-1 bg-[#F5B800] hover:bg-[#E5A800] text-gray-900 rounded text-xs transition-colors"
                       >
-                        Buy
+                        Satın Al
                       </button>
                     </div>
                   </div>
@@ -1054,7 +1003,7 @@ export function ModelDesignerScreenV3({ onNavigate }: ModelDesignerScreenV3Props
         </main>
       </div>
 
-      <ChatWidget />
+
       <ToastV2
         title={toastMessage.title}
         message={toastMessage.message}
@@ -1070,7 +1019,7 @@ export function ModelDesignerScreenV3({ onNavigate }: ModelDesignerScreenV3Props
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg text-gray-900">Upload Product Image</h3>
+              <h3 className="text-lg text-gray-900">Ürün Görseli Yükle</h3>
               <button
                 onClick={() => setShowUploadModal(false)}
                 className="p-1 hover:bg-gray-100 rounded-lg"
@@ -1080,7 +1029,7 @@ export function ModelDesignerScreenV3({ onNavigate }: ModelDesignerScreenV3Props
             </div>
             <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center">
               <Upload className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-              <p className="text-sm text-gray-700 mb-2">Click to upload product image</p>
+              <p className="text-sm text-gray-700 mb-2">Görseli buraya sürükleyin veya seçin</p>
               <input
                 type="file"
                 accept="image/*"
@@ -1088,11 +1037,7 @@ export function ModelDesignerScreenV3({ onNavigate }: ModelDesignerScreenV3Props
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                      if (event.target?.result) handleImageUpload(event.target.result as string);
-                    };
-                    reader.readAsDataURL(file);
+                    handleImageUpload(file);
                   }
                 }}
                 id="file-upload"
@@ -1101,7 +1046,7 @@ export function ModelDesignerScreenV3({ onNavigate }: ModelDesignerScreenV3Props
                 htmlFor="file-upload"
                 className="inline-block mt-2 px-5 py-2.5 bg-[#F5B800] hover:bg-[#E5A800] text-gray-900 rounded-lg text-sm cursor-pointer transition-colors"
               >
-                Choose File
+                Dosya Seç
               </label>
             </div>
           </div>
@@ -1114,8 +1059,8 @@ export function ModelDesignerScreenV3({ onNavigate }: ModelDesignerScreenV3Props
           <div className="bg-white rounded-2xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-xl text-gray-900">Buy AI Generation Credits</h3>
-                <p className="text-sm text-gray-500 mt-1">Choose the perfect plan for your needs</p>
+                <h3 className="text-xl text-gray-900">AI Kredisi Satın Al</h3>
+                <p className="text-sm text-gray-500 mt-1">İhtiyacınıza uygun paketi seçin</p>
               </div>
               <button
                 onClick={() => setShowTokenModal(false)}
@@ -1126,222 +1071,72 @@ export function ModelDesignerScreenV3({ onNavigate }: ModelDesignerScreenV3Props
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {/* Starter Pack */}
-              <button
-                onClick={() => {
-                  setSelectedPackage({ name: 'Basic Pack', tokens: 50, price: 5 });
-                  setShowTokenModal(false);
-                  setShowPaymentModal(true);
-                }}
-                className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-5 border-2 border-gray-200 hover:border-gray-300 transition-all hover:shadow-lg group"
-              >
-                <div className="flex flex-col h-full">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 bg-gray-200 rounded-xl flex items-center justify-center group-hover:bg-gray-300 transition-colors">
-                      <Sparkles className="w-5 h-5 text-gray-600" />
-                    </div>
-                    <span className="px-2 py-1 bg-white rounded-lg text-xs text-gray-600 border border-gray-200">
-                      Starter
-                    </span>
-                  </div>
-                  <h4 className="text-base text-gray-900 mb-2">Basic Pack</h4>
-                  <div className="mb-3">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-2xl text-gray-900">$5</span>
-                    </div>
-                    <p className="text-xs text-gray-500">$0.10 per token</p>
-                  </div>
-                  <div className="mt-auto">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-8 h-8 bg-gradient-to-br from-[#F5B800] to-[#E5A800] rounded-lg flex items-center justify-center">
-                        <span className="text-sm text-gray-900">50</span>
-                      </div>
-                      <span className="text-xs text-gray-600">tokens</span>
-                    </div>
-                    <p className="text-xs text-gray-500">~5 AI generations</p>
-                  </div>
-                </div>
-              </button>
-
-              {/* Pro Pack - Most Popular */}
-              <button
-                onClick={() => {
-                  setSelectedPackage({ name: 'Professional', tokens: 150, price: 12, savings: 20 });
-                  setShowTokenModal(false);
-                  setShowPaymentModal(true);
-                }}
-                className="bg-gradient-to-br from-amber-50 to-yellow-50 rounded-2xl p-5 border-2 border-[#F5B800] transition-all hover:shadow-xl hover:scale-105 relative group"
-              >
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-[#F5B800] to-[#E5A800] rounded-full shadow-lg">
-                  <span className="text-xs text-gray-900">Most Popular</span>
-                </div>
-                <div className="flex flex-col h-full">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-[#F5B800] to-[#E5A800] rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <Sparkles className="w-5 h-5 text-white" />
-                    </div>
-                    <span className="px-2 py-1 bg-white rounded-lg text-xs text-gray-900 border border-[#F5B800]">
-                      Pro
-                    </span>
-                  </div>
-                  <h4 className="text-base text-gray-900 mb-2">Professional</h4>
-                  <div className="mb-3">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-2xl text-gray-900">$12</span>
-                      <span className="text-xs text-gray-500 line-through">$15</span>
-                    </div>
-                    <p className="text-xs text-[#F5B800]">$0.08 per token • Save 20%</p>
-                  </div>
-                  <div className="mt-auto">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-8 h-8 bg-gradient-to-br from-[#F5B800] to-[#E5A800] rounded-lg flex items-center justify-center">
-                        <span className="text-sm text-gray-900">150</span>
-                      </div>
-                      <span className="text-xs text-gray-900">tokens</span>
-                    </div>
-                    <p className="text-xs text-gray-700">~15 AI generations</p>
-                  </div>
-                </div>
-              </button>
-
-              {/* Business Pack */}
-              <button
-                onClick={() => {
-                  setSelectedPackage({
-                    name: 'Business Pack',
-                    tokens: 350,
-                    price: 25,
-                    savings: 30,
-                  });
-                  setShowTokenModal(false);
-                  setShowPaymentModal(true);
-                }}
-                className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-5 border-2 border-purple-200 hover:border-purple-300 transition-all hover:shadow-lg group"
-              >
-                <div className="flex flex-col h-full">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <Sparkles className="w-5 h-5 text-white" />
-                    </div>
-                    <span className="px-2 py-1 bg-white rounded-lg text-xs text-purple-700 border border-purple-200">
-                      Business
-                    </span>
-                  </div>
-                  <h4 className="text-base text-gray-900 mb-2">Business Pack</h4>
-                  <div className="mb-3">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-2xl text-gray-900">$25</span>
-                      <span className="text-xs text-gray-500 line-through">$35</span>
-                    </div>
-                    <p className="text-xs text-purple-600">$0.07 per token • Save 30%</p>
-                  </div>
-                  <div className="mt-auto">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-                        <span className="text-sm text-white">350</span>
-                      </div>
-                      <span className="text-xs text-gray-600">tokens</span>
-                    </div>
-                    <p className="text-xs text-gray-500">~35 AI generations</p>
-                  </div>
-                </div>
-              </button>
-
-              {/* Enterprise Pack - Best Value */}
-              <button
-                onClick={() => {
-                  setSelectedPackage({ name: 'Enterprise', tokens: 1000, price: 60, savings: 40 });
-                  setShowTokenModal(false);
-                  setShowPaymentModal(true);
-                }}
-                className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl p-5 border-2 border-blue-200 hover:border-blue-300 transition-all hover:shadow-lg relative group"
-              >
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full shadow-lg">
-                  <span className="text-xs text-white">Best Value</span>
-                </div>
-                <div className="flex flex-col h-full">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <Sparkles className="w-5 h-5 text-white" />
-                    </div>
-                    <span className="px-2 py-1 bg-white rounded-lg text-xs text-blue-700 border border-blue-200">
-                      Enterprise
-                    </span>
-                  </div>
-                  <h4 className="text-base text-gray-900 mb-2">Enterprise</h4>
-                  <div className="mb-3">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-2xl text-gray-900">$60</span>
-                      <span className="text-xs text-gray-500 line-through">$100</span>
-                    </div>
-                    <p className="text-xs text-blue-600">$0.06 per token • Save 40%</p>
-                  </div>
-                  <div className="mt-auto">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center">
-                        <span className="text-sm text-white">1K</span>
-                      </div>
-                      <span className="text-xs text-gray-600">tokens</span>
-                    </div>
-                    <p className="text-xs text-gray-500">~100 AI generations</p>
-                  </div>
-                </div>
-              </button>
+              {/* Simplified Package Display for Turkish */}
+              <div className="bg-gray-50 rounded-2xl p-4 border border-gray-200">
+                <h4 className="font-medium text-gray-900">Başlangıç</h4>
+                <p className="text-2xl text-gray-900 mt-2">$5</p>
+                <p className="text-sm text-gray-500">50 Kredi</p>
+                <button onClick={() => { setSelectedPackage({ name: 'Başlangıç', tokens: 50, price: 5 }); setShowTokenModal(false); setShowPaymentModal(true); }} className="w-full mt-4 py-2 bg-[#F5B800] text-gray-900 rounded-lg text-sm">Satın Al</button>
+              </div>
+              <div className="bg-amber-50 rounded-2xl p-4 border border-[#F5B800]">
+                <h4 className="font-medium text-gray-900">Profesyonel</h4>
+                <p className="text-2xl text-gray-900 mt-2">$12</p>
+                <p className="text-sm text-gray-500">150 Kredi</p>
+                <button onClick={() => { setSelectedPackage({ name: 'Profesyonel', tokens: 150, price: 12 }); setShowTokenModal(false); setShowPaymentModal(true); }} className="w-full mt-4 py-2 bg-[#F5B800] text-gray-900 rounded-lg text-sm">Satın Al</button>
+              </div>
+              <div className="bg-gray-50 rounded-2xl p-4 border border-gray-200">
+                <h4 className="font-medium text-gray-900">İşletme</h4>
+                <p className="text-2xl text-gray-900 mt-2">$25</p>
+                <p className="text-sm text-gray-500">350 Kredi</p>
+                <button onClick={() => { setSelectedPackage({ name: 'İşletme', tokens: 350, price: 25 }); setShowTokenModal(false); setShowPaymentModal(true); }} className="w-full mt-4 py-2 bg-[#F5B800] text-gray-900 rounded-lg text-sm">Satın Al</button>
+              </div>
+              <div className="bg-gray-50 rounded-2xl p-4 border border-gray-200">
+                <h4 className="font-medium text-gray-900">Kurumsal</h4>
+                <p className="text-2xl text-gray-900 mt-2">$60</p>
+                <p className="text-sm text-gray-500">1000 Kredi</p>
+                <button onClick={() => { setSelectedPackage({ name: 'Kurumsal', tokens: 1000, price: 60 }); setShowTokenModal(false); setShowPaymentModal(true); }} className="w-full mt-4 py-2 bg-[#F5B800] text-gray-900 rounded-lg text-sm">Satın Al</button>
+              </div>
             </div>
 
-            {/* Features List */}
             <div className="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
-              <h4 className="text-sm text-gray-900 mb-3">All plans include:</h4>
+              <h4 className="text-sm text-gray-900 mb-3">Tüm planlar şunları içerir:</h4>
               <div className="grid grid-cols-2 gap-2">
                 <div className="flex items-center gap-2">
                   <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
                     <Check className="w-3 h-3 text-green-600" />
                   </div>
-                  <span className="text-xs text-gray-700">AI-powered model generation</span>
+                  <span className="text-xs text-gray-700">Yapay zeka model üretimi</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
                     <Check className="w-3 h-3 text-green-600" />
                   </div>
-                  <span className="text-xs text-gray-700">High-resolution exports</span>
+                  <span className="text-xs text-gray-700">Yüksek çözünürlüklü çıktılar</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
                     <Check className="w-3 h-3 text-green-600" />
                   </div>
-                  <span className="text-xs text-gray-700">Unlimited customization</span>
+                  <span className="text-xs text-gray-700">Sınırsız özelleştirme</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
                     <Check className="w-3 h-3 text-green-600" />
                   </div>
-                  <span className="text-xs text-gray-700">Commercial usage rights</span>
+                  <span className="text-xs text-gray-700">Ticari kullanım hakları</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
                     <Check className="w-3 h-3 text-green-600" />
                   </div>
-                  <span className="text-xs text-gray-700">Priority processing</span>
+                  <span className="text-xs text-gray-700">Öncelikli işlem</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
                     <Check className="w-3 h-3 text-green-600" />
                   </div>
-                  <span className="text-xs text-gray-700">No expiration date</span>
+                  <span className="text-xs text-gray-700">Süre sınırı yok</span>
                 </div>
-              </div>
-            </div>
-
-            {/* Payment Info */}
-            <div className="mt-4 flex items-center justify-between px-4 py-3 bg-blue-50 rounded-xl border border-blue-200">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                  <Check className="w-4 h-4 text-white" />
-                </div>
-                <span className="text-xs text-gray-700">Secure payment processing</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-500">💳 All major cards accepted</span>
               </div>
             </div>
           </div>
@@ -1354,21 +1149,16 @@ export function ModelDesignerScreenV3({ onNavigate }: ModelDesignerScreenV3Props
           <div className="bg-white rounded-2xl p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-2xl text-gray-900">Complete Your Purchase</h3>
-                <p className="text-sm text-gray-500 mt-1">Secure checkout powered by Stripe</p>
+                <h3 className="text-2xl text-gray-900">Ödemeyi Tamamla</h3>
+                <p className="text-sm text-gray-500 mt-1">Stripe ile güvenli ödeme</p>
               </div>
-              <button
-                onClick={() => setShowPaymentModal(false)}
-                className="p-1 hover:bg-gray-100 rounded-lg"
-              >
+              <button onClick={() => setShowPaymentModal(false)} className="p-1 hover:bg-gray-100 rounded-lg">
                 <X className="w-5 h-5 text-gray-600" />
               </button>
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Left: Order Summary */}
               <div>
-                <h4 className="text-sm text-gray-900 mb-4">Order Summary</h4>
+                <h4 className="text-sm text-gray-900 mb-4">Sipariş Özeti</h4>
                 <div className="bg-gradient-to-br from-amber-50 to-yellow-50 rounded-xl p-5 border-2 border-[#F5B800]">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-12 h-12 bg-gradient-to-br from-[#F5B800] to-[#E5A800] rounded-xl flex items-center justify-center">
@@ -1376,168 +1166,153 @@ export function ModelDesignerScreenV3({ onNavigate }: ModelDesignerScreenV3Props
                     </div>
                     <div>
                       <h5 className="text-base text-gray-900">{selectedPackage.name}</h5>
-                      <p className="text-xs text-gray-600">
-                        {selectedPackage.tokens} AI Generation Credits
-                      </p>
+                      <p className="text-xs text-gray-600">{selectedPackage.tokens} AI Üretim Kredisi</p>
                     </div>
                   </div>
-
                   <div className="space-y-2 py-3 border-t border-amber-200">
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Subtotal</span>
+                      <span className="text-gray-600">Ara Toplam</span>
                       <span className="text-gray-900">${selectedPackage.price}</span>
                     </div>
-                    {selectedPackage.savings && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-green-600">Savings ({selectedPackage.savings}%)</span>
-                        <span className="text-green-600">
-                          -$
-                          {(
-                            (selectedPackage.price * selectedPackage.savings) /
-                            (100 - selectedPackage.savings)
-                          ).toFixed(2)}
-                        </span>
-                      </div>
-                    )}
                     <div className="flex justify-between pt-2 border-t border-amber-200">
-                      <span className="text-gray-900">Total</span>
+                      <span className="text-gray-900">Toplam</span>
                       <span className="text-xl text-gray-900">${selectedPackage.price}</span>
                     </div>
                   </div>
-
-                  <div className="mt-4 p-3 bg-white rounded-lg">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Check className="w-4 h-4 text-green-600" />
-                      <span className="text-xs text-gray-700">Instant credit delivery</span>
-                    </div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Check className="w-4 h-4 text-green-600" />
-                      <span className="text-xs text-gray-700">No expiration date</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Check className="w-4 h-4 text-green-600" />
-                      <span className="text-xs text-gray-700">Commercial usage rights</span>
-                    </div>
-                  </div>
                 </div>
               </div>
-
-              {/* Right: Payment Form */}
               <div>
-                <h4 className="text-sm text-gray-900 mb-4">Payment Information</h4>
+                <h4 className="text-sm text-gray-900 mb-4">Ödeme Bilgileri</h4>
                 <div className="space-y-4">
                   <div>
-                    <label className="text-xs text-gray-700 mb-1 block">Cardholder Name</label>
-                    <input
-                      type="text"
-                      placeholder="John Doe"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#F5B800] focus:border-transparent"
-                    />
+                    <label className="text-xs text-gray-700 mb-1 block">Kart Sahibi</label>
+                    <input type="text" placeholder="Ad Soyad" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#F5B800] focus:border-transparent" />
                   </div>
-
                   <div>
-                    <label className="text-xs text-gray-700 mb-1 block">Card Number</label>
-                    <input
-                      type="text"
-                      placeholder="1234 5678 9012 3456"
-                      maxLength={19}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#F5B800] focus:border-transparent"
-                    />
+                    <label className="text-xs text-gray-700 mb-1 block">Kart Numarası</label>
+                    <input type="text" placeholder="0000 0000 0000 0000" maxLength={19} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#F5B800] focus:border-transparent" />
                   </div>
-
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs text-gray-700 mb-1 block">Expiry Date</label>
-                      <input
-                        type="text"
-                        placeholder="MM/YY"
-                        maxLength={5}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#F5B800] focus:border-transparent"
-                      />
+                      <label className="text-xs text-gray-700 mb-1 block">Son Kullanma</label>
+                      <input type="text" placeholder="AA/YY" maxLength={5} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#F5B800] focus:border-transparent" />
                     </div>
                     <div>
                       <label className="text-xs text-gray-700 mb-1 block">CVV</label>
-                      <input
-                        type="text"
-                        placeholder="123"
-                        maxLength={4}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#F5B800] focus:border-transparent"
-                      />
+                      <input type="text" placeholder="123" maxLength={4} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#F5B800] focus:border-transparent" />
                     </div>
                   </div>
-
-                  <div className="pt-2">
-                    <label className="text-xs text-gray-700 mb-1 block">Email Address</label>
-                    <input
-                      type="email"
-                      placeholder="john@example.com"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#F5B800] focus:border-transparent"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Receipt will be sent to this email</p>
-                  </div>
-
-                  <div className="flex items-center gap-2 pt-2">
-                    <input
-                      type="checkbox"
-                      id="terms"
-                      className="w-4 h-4 text-[#F5B800] border-gray-300 rounded focus:ring-[#F5B800]"
-                    />
-                    <label htmlFor="terms" className="text-xs text-gray-600">
-                      I agree to the{' '}
-                      <span className="text-[#F5B800] hover:underline cursor-pointer">
-                        Terms of Service
-                      </span>{' '}
-                      and{' '}
-                      <span className="text-[#F5B800] hover:underline cursor-pointer">
-                        Privacy Policy
-                      </span>
-                    </label>
-                  </div>
                 </div>
               </div>
             </div>
-
-            {/* Security Badge */}
-            <div className="mt-6 flex items-center justify-center gap-4 px-4 py-3 bg-gray-50 rounded-xl border border-gray-200">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                  <Check className="w-4 h-4 text-white" />
-                </div>
-                <span className="text-xs text-gray-700">SSL Encrypted</span>
-              </div>
-              <div className="w-px h-4 bg-gray-300"></div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-700">🔒 PCI Compliant</span>
-              </div>
-              <div className="w-px h-4 bg-gray-300"></div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-500">💳 Visa • Mastercard • Amex</span>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
             <div className="mt-6 flex gap-3">
-              <button
-                onClick={() => setShowPaymentModal(false)}
-                className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  setTokenBalance(tokenBalance + selectedPackage.tokens);
-                  setShowPaymentModal(false);
-                  setToastMessage({
-                    title: 'Payment Successful! 🎉',
-                    message: `${selectedPackage.tokens} tokens added to your account.`,
-                  });
-                  setShowToast(true);
-                  setTimeout(() => setShowToast(false), 3000);
-                }}
-                className="flex-1 px-4 py-3 bg-gradient-to-r from-[#F5B800] to-[#E5A800] hover:from-[#E5A800] hover:to-[#D59700] text-gray-900 rounded-xl text-sm flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl"
-              >
+              <button onClick={() => setShowPaymentModal(false)} className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm transition-colors">İptal</button>
+              <button onClick={() => {
+                setTokenBalance(tokenBalance + selectedPackage.tokens);
+                setShowPaymentModal(false);
+                setToastMessage({ title: 'Ödeme Başarılı! 🎉', message: `${selectedPackage.tokens} kredi hesabınıza eklendi.` });
+                setShowToast(true);
+                setTimeout(() => setShowToast(false), 3000);
+              }} className="flex-1 px-4 py-3 bg-gradient-to-r from-[#F5B800] to-[#E5A800] hover:from-[#E5A800] hover:to-[#D59700] text-gray-900 rounded-xl text-sm flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl">
                 <Check className="w-5 h-5" />
-                Pay ${selectedPackage.price}
+                Öde ${selectedPackage.price}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Video Settings Modal */}
+      {showVideoSettings && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600">
+                  <Video className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Video Ayarları</h3>
+                  <p className="text-xs text-gray-500">Mankeninizi nasıl canlandıralım?</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowVideoSettings(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Mode Selection */}
+              <div className="flex p-1 bg-gray-100 rounded-xl">
+                <button
+                  onClick={() => setIsVideoManualMode(false)}
+                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${!isVideoManualMode
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                >
+                  Hazır Modlar
+                </button>
+                <button
+                  onClick={() => setIsVideoManualMode(true)}
+                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${isVideoManualMode
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                >
+                  Manuel İstek
+                </button>
+              </div>
+
+              {!isVideoManualMode ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { id: 'Energetic', label: 'Enerjik', icon: <Zap className="w-4 h-4" /> },
+                    { id: 'Professional', label: 'Profesyonel', icon: <Briefcase className="w-4 h-4" /> },
+                    { id: 'Emotional', label: 'Duygusal', icon: <Heart className="w-4 h-4" /> },
+                    { id: 'Funny', label: 'Eğlenceli', icon: <Smile className="w-4 h-4" /> },
+                    { id: 'Luxury', label: 'Lüks', icon: <Gem className="w-4 h-4" /> },
+                    { id: 'Sports', label: 'Spor', icon: <Dumbbell className="w-4 h-4" /> },
+                    { id: 'Minimalist', label: 'Minimalist', icon: <Minimize2 className="w-4 h-4" /> },
+                    { id: 'Retro', label: 'Retro', icon: <Camera className="w-4 h-4" /> },
+                  ].map((v) => (
+                    <button
+                      key={v.id}
+                      onClick={() => setVideoVibe(v.id)}
+                      className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${videoVibe === v.id
+                        ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                        : 'border-gray-100 hover:border-gray-200 text-gray-600'
+                        }`}
+                    >
+                      {v.icon}
+                      <span className="text-sm font-medium">{v.label}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Nasıl bir video istiyorsunuz?</label>
+                  <textarea
+                    value={videoCustomPrompt}
+                    onChange={(e) => setVideoCustomPrompt(e.target.value)}
+                    placeholder="Örn: Manken yavaşça dönsün, saçları rüzgarda uçuşsun, sinematik ışıklandırma olsun..."
+                    className="w-full h-32 p-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm resize-none"
+                  />
+                  <p className="text-xs text-gray-500">
+                    💡 İpucu: Kamera açıları, ışıklandırma ve hareket detayları vererek daha iyi sonuç alabilirsiniz.
+                  </p>
+                </div>
+              )}
+
+              <button
+                onClick={handleStartAnimation}
+                className="w-full py-4 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-indigo-500/30 transition-all active:scale-95 flex items-center justify-center gap-2"
+              >
+                <Video className="w-5 h-5" />
+                Canlandırmayı Başlat
               </button>
             </div>
           </div>

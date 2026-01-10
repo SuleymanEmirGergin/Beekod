@@ -25,7 +25,7 @@ import {
 } from '../services/integrations';
 import { SidebarV2 } from '../layouts/SidebarV2';
 import { toast } from 'sonner';
-import { ChatWidget } from '../components/ChatWidget';
+
 import { Card } from '../components/shared/';
 import { AppLogo } from '../components/shared/';
 import trendyolLogo from 'figma:asset/1230e43a58a5ec2cbca646dd9964cda0a5eb57b2.png';
@@ -668,7 +668,7 @@ export function IntegrationsScreenV2({ onNavigate, userName = 'BK' }: Integratio
       </div>
 
       {/* Floating Chat Button */}
-      <ChatWidget />
+      
 
       {/* Dynamic Connect Modal for SaaS Auth */}
       {showConnectModal && (

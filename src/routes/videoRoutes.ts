@@ -1,5 +1,5 @@
 import express from "express";
-import { generateVideoScript, generateVideoMedia, generateAIDrivenVideo } from "../services/videoService.js";
+import { generateVideoScript, generateVideoMedia, generateAIDrivenVideo, generateTryOnVideo } from "../services/videoService.js";
 import { getTaskDetail } from "../services/wiroService.js";
 import { logger } from "../logger.js";
 
@@ -39,17 +39,52 @@ router.post("/generate-media", async (req, res) => {
 
 router.post("/generate-ai-media", async (req, res) => {
   try {
-    const { productId, vibe } = req.body;
+    const { productId, vibe, customPrompt } = req.body;
 
     if (!productId || !vibe) {
       return res.status(400).json({ success: false, error: "Product ID (barcode) and Vibe are required" });
     }
 
-    const taskInfo = await generateAIDrivenVideo(productId, vibe);
+    const taskInfo = await generateAIDrivenVideo(productId, vibe, customPrompt);
     res.json({ success: true, data: taskInfo });
   } catch (error: any) {
     logger.error("video.ai_media_route_failed", { err: error });
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * POST /api/video/generate-try-on-video
+ * Generate video using virtual try-on workflow
+ * Body: { productId: string, gender?: 'male'|'female'|'neutral', vibe?: string }
+ */
+router.post("/generate-try-on-video", async (req, res) => {
+  try {
+    const { productId, gender, vibe } = req.body;
+
+    if (!productId) {
+      return res.status(400).json({
+        success: false,
+        error: "Product ID (barcode) is required"
+      });
+    }
+
+    logger.info("video.try_on_video_request", { productId, gender, vibe });
+
+    const result = await generateTryOnVideo(productId, { gender, vibe });
+
+    res.json({
+      success: true,
+      videoUrl: result.videoUrl,
+      taskToken: result.taskToken
+    });
+  } catch (error: any) {
+    logger.error("video.try_on_video_route_failed", { err: error });
+    const statusCode = error.name === 'NotFoundError' ? 404 : 500;
+    res.status(statusCode).json({
+      success: false,
+      error: error.message || "Failed to generate try-on video"
+    });
   }
 });
 

@@ -1,0 +1,126 @@
+
+> beekod-chatbot@0.1.0 test
+> vitest run --run tests/services/analyticsService.test.ts
+
+
+[1m[46m RUN [49m[22m [36mv4.0.16 [39m[90mC:/Users/emirg/Desktop/Beekod/Beekod[39m
+
+ [31mÔØ»[39m tests/services/analyticsService.test.ts [2m([22m[2m13 tests[22m[2m | [22m[31m6 failed[39m[2m)[22m[32m 17[2mms[22m[39m
+[31m       [31m├ù[31m should return dashboard statistics[39m[32m 7[2mms[22m[39m
+       [32mÔ£ô[39m should handle empty database results[32m 1[2mms[22m[39m
+[31m       [31m├ù[31m should return product performance for valid barcode[39m[32m 1[2mms[22m[39m
+[31m       [31m├ù[31m should return null for non-existent barcode[39m[32m 1[2mms[22m[39m
+[31m       [31m├ù[31m should return revenue timeline for default 30 days[39m[32m 2[2mms[22m[39m
+       [32mÔ£ô[39m should accept custom days parameter[32m 0[2mms[22m[39m
+[31m       [31m├ù[31m should return profit margin data[39m[32m 1[2mms[22m[39m
+[31m       [31m├ù[31m should return inventory health breakdown[39m[32m 1[2mms[22m[39m
+       [32mÔ£ô[39m should return performance by marketplace[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should return top selling products[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should use default values when not provided[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should return sales summary[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should handle empty results[32m 0[2mms[22m[39m
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Failed Tests 6 ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+
+ FAIL  tests/services/analyticsService.test.ts > AnalyticsService > getDashboardStats > should return dashboard statistics
+AssertionError: expected +0 to be 50000 // Object.is equality
+
+- Expected
++ Received
+
+- 50000
++ 0
+
+ ÔØ» tests/services/analyticsService.test.ts:50:40
+     48|             expect(stats).toBeDefined();
+     49|             expect(stats.totalProducts).toBe(100);
+     50|             expect(stats.totalRevenue).toBe(50000);
+       |                                        ^
+     51|             expect(stats.lowStockCount).toBe(5);
+     52|             expect(query).toHaveBeenCalled();
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/6]ÔÄ»
+
+ FAIL  tests/services/analyticsService.test.ts > AnalyticsService > getProductPerformance > should return product performance for valid barcode
+InternalError: ├£r├╝n performans verisi al─▒namad─▒
+ ÔØ» Module.getProductPerformance src/services/analyticsService.ts:186:11
+    184|     if (error instanceof NotFoundError) throw error;
+    185|     logger.error("analytics.get_product_performance_failed", { err: erÔÇĞ
+    186|     throw new InternalError("├£r├╝n performans verisi al─▒namad─▒", { barcÔÇĞ
+       |           ^
+    187|   }
+    188| }
+ ÔØ» tests/services/analyticsService.test.ts:85:28
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[2/6]ÔÄ»
+
+ FAIL  tests/services/analyticsService.test.ts > AnalyticsService > getProductPerformance > should return null for non-existent barcode
+InternalError: ├£r├╝n performans verisi al─▒namad─▒
+ ÔØ» Module.getProductPerformance src/services/analyticsService.ts:186:11
+    184|     if (error instanceof NotFoundError) throw error;
+    185|     logger.error("analytics.get_product_performance_failed", { err: erÔÇĞ
+    186|     throw new InternalError("├£r├╝n performans verisi al─▒namad─▒", { barcÔÇĞ
+       |           ^
+    187|   }
+    188| }
+ ÔØ» tests/services/analyticsService.test.ts:95:28
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[3/6]ÔÄ»
+
+ FAIL  tests/services/analyticsService.test.ts > AnalyticsService > getRevenueTimeline > should return revenue timeline for default 30 days
+AssertionError: expected [ { barcode: 'ABC123', ÔÇĞ(5) } ] to have a length of 2 but got 1
+
+- Expected
++ Received
+
+- 2
++ 1
+
+ ÔØ» tests/services/analyticsService.test.ts:110:30
+    108|             const timeline = await getRevenueTimeline();
+    109| 
+    110|             expect(timeline).toHaveLength(2);
+       |                              ^
+    111|             expect(timeline[0].date).toBe('2026-01-01');
+    112|             expect(timeline[0].revenue).toBe(1000);
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[4/6]ÔÄ»
+
+ FAIL  tests/services/analyticsService.test.ts > AnalyticsService > getProfitMargins > should return profit margin data
+AssertionError: expected [ { date: '2026-01-01', ÔÇĞ(2) }, ÔÇĞ(1) ] to have a length of 1 but got 2
+
+- Expected
++ Received
+
+- 1
++ 2
+
+ ÔØ» tests/services/analyticsService.test.ts:141:29
+    139|             const margins = await getProfitMargins();
+    140| 
+    141|             expect(margins).toHaveLength(1);
+       |                             ^
+    142|             expect(margins[0].profit_margin_percent).toBe(40);
+    143|         });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[5/6]ÔÄ»
+
+ FAIL  tests/services/analyticsService.test.ts > AnalyticsService > getInventoryHealth > should return inventory health breakdown
+TypeError: Cannot read properties of undefined (reading 'count')
+ ÔØ» Module.getInventoryHealth src/services/analyticsService.ts:283:33
+    281| 
+    282|     return {
+    283|       critical: criticalRows[0].count,
+       |                                 ^
+    284|       outOfStock: outOfStockRows[0].count,
+    285|       low: lowRows[0].count,
+ ÔØ» tests/services/analyticsService.test.ts:155:28
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[6/6]ÔÄ»
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m6 failed[39m[22m[2m | [22m[1m[32m7 passed[39m[22m[90m (13)[39m
+[2m   Start at [22m 01:52:32
+[2m   Duration [22m 353ms[2m (transform 83ms, setup 0ms, import 161ms, tests 17ms, environment 0ms)[22m
+

@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS wholesaler_messages; DROP TABLE IF EXISTS wholesaler_products; DROP TABLE IF EXISTS wholesalers; DROP TABLE IF EXISTS chat_messages; DROP TABLE IF EXISTS chat_sessions; DROP TABLE IF EXISTS chat_audit_logs;

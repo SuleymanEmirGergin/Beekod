@@ -49,26 +49,51 @@ export type MarketplaceUpdatePayload = {
 };
 
 export type MarketplaceOrderItem = {
-  sku: string;
+  sku?: string;
   barcode: string;
   name: string;
-  price: number;
+  price?: number;
+  unitPrice?: number;
+  totalPrice?: number;
   quantity: number;
   image?: string;
+  status?: string;
+  statusCode?: number;
 };
 
 export type MarketplaceOrder = {
   marketplace: MarketplaceName;
   orderNumber: string;
-  customerName: string;
+  orderId?: string;
+  customerName?: string;
   customerEmail?: string;
   customerPhone?: string;
   customerAddress?: string;
+  // Structured customer info (new)
+  customer?: {
+    name?: string;
+    email?: string;
+    phone?: string;
+  };
+  // Structured shipping address (new)
+  shippingAddress?: {
+    fullAddress?: string;
+    city?: string;
+    district?: string;
+    postalCode?: string;
+  };
+  // Cargo info (new)
+  cargoInfo?: {
+    cargoCompany?: string;
+    trackingNumber?: string;
+  };
   items: MarketplaceOrderItem[];
   totalAmount: number;
   currency: string;
   orderDate: string;
   status: string;
+  statusCode?: number;
+  deliveryType?: string;
 };
 
 export type MarketplaceOrderResult = {

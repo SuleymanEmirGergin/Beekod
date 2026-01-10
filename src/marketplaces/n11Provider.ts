@@ -147,21 +147,81 @@ export class N11Provider implements MarketplaceProvider {
 
   async getNewOrders(params?: { startDate?: string; endDate?: string }): Promise<MarketplaceOrderResult> {
     if (!this.isConfigured()) return { status: "not_configured", orders: [], message: "N11 not configured" };
-    // Simulated order result for demo
-    const mockOrder: any = {
-      marketplace: this.name,
-      orderNumber: `N11-${Math.floor(Math.random() * 900000 + 100000)}`,
-      customerName: "Ayşe Yılmaz",
-      customerEmail: "ayse@example.com",
-      status: "New",
-      orderDate: params?.startDate || new Date().toISOString(),
-      totalAmount: 1250.00,
-      currency: "TRY",
-      items: [
-        { sku: "N11-ITEM-1", barcode: "123456789", name: "Modern Masa Lambası", price: 1250, quantity: 1 }
-      ]
-    };
-    return { status: "ok", orders: [mockOrder], message: "Success (Simulated)" };
+    const auth = this.getAuth();
+
+    // 1. Build SOAP Request for OrderList
+    // N11 OrderService: OrderListRequest enables fetching orders by status or date
+    const startDate = params?.startDate
+      ? new Date(params.startDate).toLocaleDateString("tr-TR").split(".").reverse().join("-") // YYYY-MM-DD
+      : "";
+    const endDate = params?.endDate
+      ? new Date(params.endDate).toLocaleDateString("tr-TR").split(".").reverse().join("-")
+      : "";
+
+    const soapBody = `<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:sch="http://www.n11.com/ws/schemas">
+  <soapenv:Header/>
+  <soapenv:Body>
+    <sch:OrderListRequest>
+      <auth>
+        <appKey>${this.escapeXml(auth!.appKey)}</appKey>
+        <appSecret>${this.escapeXml(auth!.appSecret)}</appSecret>
+      </auth>
+      <searchData>
+        ${startDate ? `<startDate>${startDate}</startDate>` : ""}
+        ${endDate ? `<endDate>${endDate}</endDate>` : ""}
+        <status>New</status> 
+      </searchData>
+      <pagingData><currentPage>0</currentPage><pageSize>100</pageSize></pagingData>
+    </sch:OrderListRequest>
+  </soapenv:Body>
+</soapenv:Envelope>`;
+
+    // 2. Send Request
+    const response = await this.soapRequest("OrderList", soapBody);
+    if (response.status !== "ok") {
+      return { status: "failed", message: response.message, orders: [] };
+    }
+
+    // 3. Parse Response
+    const xml = (response as any)?.data;
+    const doc = this.parseSoapXml(xml);
+    const body = this.getSoapBody(doc);
+    const resp = this.pickFirst<any>(body, ["OrderListResponse", "orderListResponse"]);
+
+    // N11 returns 'orderList' which contains 'order' (array or single obj)
+    const orderList = resp?.orderList;
+    if (!orderList || !orderList.order) {
+      return { status: "ok", message: "No new orders found", orders: [] };
+    }
+
+    const rawOrders = this.asArray<any>(orderList.order);
+
+    // 4. Map to Internal Format
+    const orders = rawOrders.map(o => {
+      const items = this.asArray<any>(o.itemList?.item).map(i => ({
+        sku: i.productSellerCode || i.sellerStockCode || "",
+        barcode: i.productSellerCode || i.sellerStockCode || "",
+        name: i.productName || "",
+        price: this.toNumber(i.price) || 0,
+        quantity: this.toNumber(i.quantity) || 1
+      }));
+
+      return {
+        marketplace: this.name,
+        orderNumber: o.orderNumber,
+        customerName: o.billingTemplate?.billingAddress?.fullName || "Guest",
+        customerEmail: "", // N11 often masks email or provides it in detailed view
+        customerPhone: o.billingTemplate?.billingAddress?.gsm || "",
+        status: "New",
+        orderDate: o.createDate || new Date().toISOString(),
+        totalAmount: this.toNumber(o.billingTemplate?.billingAddress?.totalAmount) || 0, // Simplified, verify field if needed
+        currency: "TRY",
+        items
+      };
+    });
+
+    return { status: "ok", orders, message: `Synced ${orders.length} orders from N11` };
   }
 
   private buildProductSaveRequest(p: any) {

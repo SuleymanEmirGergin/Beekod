@@ -1,12 +1,17 @@
 import { pool } from "../db.js";
 import { logger } from "../logger.js";
-import { generateGeminiReply } from "./geminiService.js";
+import { generateGeminiReply } from "./geminiClient.js";
 import { getProductByBarcode } from "./productService.js";
-import { ISocialPost, mapSocialPostRow } from "../models/SocialPost.js";
+import { ISocialPost, mapSocialPostRow, ISocialPostDbRow } from "../models/SocialPost.js";
 import { ResultSetHeader } from "mysql2";
 
+export interface PostFilters {
+  platform?: string;
+  status?: ISocialPost["status"];
+}
+
 export const createPost = async (data: Partial<ISocialPost>): Promise<ISocialPost> => {
-  const result = (await pool.query(
+  const [result] = (await pool.query(
     `INSERT INTO social_posts (platform, content, media_url, scheduled_date, status, product_id, ai_generated)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
     [
@@ -18,15 +23,15 @@ export const createPost = async (data: Partial<ISocialPost>): Promise<ISocialPos
       data.productId,
       data.aiGenerated || false,
     ],
-  )) as [ResultSetHeader, any];
+  )) as [ResultSetHeader, unknown];
 
-  const [rows] = await pool.query("SELECT * FROM social_posts WHERE id = ?", [result[0].insertId]);
-  return mapSocialPostRow((rows as any[])[0]);
+  const [rows] = await pool.query("SELECT * FROM social_posts WHERE id = ?", [result.insertId]);
+  return mapSocialPostRow((rows as ISocialPostDbRow[])[0]);
 };
 
-export const getPosts = async (filters: any = {}): Promise<ISocialPost[]> => {
+export const getPosts = async (filters: PostFilters = {}): Promise<ISocialPost[]> => {
   let sql = "SELECT * FROM social_posts WHERE 1=1";
-  const params: any[] = [];
+  const params: (string | number)[] = [];
 
   if (filters.platform) {
     sql += " AND platform = ?";
@@ -40,18 +45,18 @@ export const getPosts = async (filters: any = {}): Promise<ISocialPost[]> => {
   sql += " ORDER BY scheduled_date ASC";
 
   const [rows] = await pool.query(sql, params);
-  return (rows as any[]).map(mapSocialPostRow);
+  return (rows as ISocialPostDbRow[]).map(mapSocialPostRow);
 };
 
 export const updatePostStatus = async (id: string, status: ISocialPost["status"]): Promise<ISocialPost | null> => {
   await pool.query("UPDATE social_posts SET status = ? WHERE id = ?", [status, id]);
   const [rows] = await pool.query("SELECT * FROM social_posts WHERE id = ?", [id]);
-  const row = (rows as any[])[0];
+  const row = (rows as ISocialPostDbRow[])[0];
   return row ? mapSocialPostRow(row) : null;
 };
 
 export const deletePost = async (id: string): Promise<boolean> => {
-  const [result] = (await pool.query("DELETE FROM social_posts WHERE id = ?", [id])) as [ResultSetHeader, any];
+  const [result] = (await pool.query("DELETE FROM social_posts WHERE id = ?", [id])) as [ResultSetHeader, unknown];
   return result.affectedRows > 0;
 };
 
@@ -67,11 +72,13 @@ const providers: Record<string, ISocialProvider> = {
 
 export const postNow = async (postId: string): Promise<boolean> => {
   const [rows] = await pool.query("SELECT * FROM social_posts WHERE id = ?", [postId]);
-  const post = (rows as any[])[0];
-  if (!post) {
+  const postRow = (rows as ISocialPostDbRow[])[0];
+  if (!postRow) {
     logger.error("social.post_now_failed", { postId, error: "Post not found" });
     return false;
   }
+
+  const post = mapSocialPostRow(postRow);
 
   const provider = providers[post.platform];
   if (!provider) {
@@ -84,7 +91,7 @@ export const postNow = async (postId: string): Promise<boolean> => {
 
     const result = await provider.postContent({
       content: post.content,
-      mediaUrl: post.media_url,
+      mediaUrl: post.mediaUrl,
       hashtags: [] // Hashtags usually inside content, but can vary
     });
 

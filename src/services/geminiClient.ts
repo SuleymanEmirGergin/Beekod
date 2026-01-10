@@ -3,6 +3,66 @@ import { logger } from '../logger.js';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
+export function getClient(apiKey?: string) {
+    return new GoogleGenerativeAI(apiKey || process.env.GEMINI_API_KEY || '');
+}
+
+export async function generateGeminiReply({ message, locale }: { message: string, locale?: string }): Promise<string> {
+    if (!process.env.GEMINI_API_KEY) {
+        return "";
+    }
+    try {
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const result = await model.generateContent(message);
+        return result.response.text();
+    } catch (error) {
+        logger.error('geminiClient.generateGeminiReply_failed', { error });
+        return "";
+    }
+}
+
+export async function analyzeImage({ buffer, mimeType, prompt, locale }: { buffer: Buffer, mimeType: string, prompt: string, locale?: string }): Promise<string> {
+    if (!process.env.GEMINI_API_KEY) {
+        return "";
+    }
+    try {
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const result = await model.generateContent([
+            prompt,
+            {
+                inlineData: {
+                    data: buffer.toString("base64"),
+                    mimeType
+                }
+            }
+        ]);
+        return result.response.text();
+    } catch (error) {
+        logger.error('geminiClient.analyzeImage_failed', { error });
+        return "";
+    }
+}
+
+export async function filterSearchResults(query: string, results: any[]): Promise<number[]> {
+    if (!process.env.GEMINI_API_KEY) {
+        return results.map((_, i) => i);
+    }
+    try {
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const context = results.map((r, i) => `${i}: ${r.title}`).join("\n");
+        const prompt = `Kullanıcı sorgusu: "${query}"\n\nAşağıdaki ürün listesinden sorguyla en alakalı olanların indekslerini [0, 1, 2] formatında bir JSON dizisi olarak döndür:\n${context}`;
+
+        const result = await model.generateContent(prompt);
+        const text = result.response.text();
+        const jsonMatch = text.match(/\[[\s\S]*\]/);
+        return jsonMatch ? JSON.parse(jsonMatch[0]) : results.map((_, i) => i);
+    } catch (error) {
+        logger.error('geminiClient.filterSearchResults_failed', { error });
+        return results.map((_, i) => i);
+    }
+}
+
+
 export interface OptimizedContent {
     optimizedTitle: string;
     optimizedDescription: string;
@@ -26,7 +86,7 @@ export async function optimizeProductContent(
     }
 
     try {
-        const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
         const prompt = `Sen bir e-ticaret ürün optimizasyon uzmanısın. Aşağıdaki ürün bilgilerini SEO ve satış odaklı olarak optimize et.
 
@@ -77,7 +137,7 @@ export async function generateRecommendations(
     }
 
     try {
-        const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
         const prompt = `Aşağıdaki ürün için satış artırıcı öneriler sun:
 Ürün: ${productData.name}

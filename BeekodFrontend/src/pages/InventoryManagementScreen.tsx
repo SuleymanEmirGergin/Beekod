@@ -521,20 +521,115 @@ export function InventoryManagementScreen({ onNavigate }: InventoryManagementScr
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 relative group">
-                          <img
-                            src={product.image}
-                            alt={product.name}
-                            className="w-full h-full object-cover transition-transform group-hover:scale-110"
-                          />
+                        <div className="w-10 h-10 flex-shrink-0 relative group">
+                          {/* Chatbot-Style Dynamic Vector Logic */}
+                          {(() => {
+                            // --- Dynamic SVG Generator (Ported from Chatbot) ---
+                            const getVectorImage = (name: string) => {
+                              const n = name.toLowerCase();
+                              let model = "15";
+                              if (n.includes("14")) model = "14";
+                              else if (n.includes("13")) model = "13";
+                              else if (n.includes("12")) model = "12";
+                              else if (n.includes("11")) model = "11";
+
+                              let color = "black";
+                              if (n.includes("beyaz") || n.includes("white")) color = "white";
+                              else if (n.includes("mavi") || n.includes("blue")) color = "blue";
+                              else if (n.includes("yeşil") || n.includes("green")) color = "green";
+                              else if (n.includes("pembe") || n.includes("pink")) color = "pink";
+                              else if (n.includes("sarı") || n.includes("yellow")) color = "yellow";
+                              else if (n.includes("mor") || n.includes("purple")) color = "purple";
+
+                              // Colors
+                              let frameHex = "#777";
+                              let backHex = "#333";
+                              if (color === "white") { frameHex = "#D1CDDA"; backHex = "#F9F9F9"; }
+                              else if (color === "blue") { frameHex = "#4A90E2"; backHex = "#A1C9F5"; }
+                              else if (color === "black") { frameHex = "#1c1c1e"; backHex = "#2B2B2B"; }
+                              else if (color === "green") { frameHex = "#415A4C"; backHex = "#DCE8D8"; }
+                              else if (color === "pink") { frameHex = "#B86E86"; backHex = "#FADADD"; }
+                              else if (color === "yellow") { frameHex = "#9E9138"; backHex = "#FBF6C7"; }
+                              else if (color === "purple") { frameHex = "#5e5ce6"; backHex = "#e8e0ff"; }
+
+                              const hasDiagonalCam = !(["11", "12"].some(m => model.includes(m)));
+
+                              const camSVG = hasDiagonalCam ? `
+                                  <rect x="115" y="65" width="80" height="80" rx="18" fill="${frameHex}" fill-opacity="0.3"/>
+                                  <circle cx="135" cy="85" r="16" fill="#111" stroke="#222" stroke-width="2"/>
+                                  <circle cx="175" cy="125" r="16" fill="#111" stroke="#222" stroke-width="2"/>
+                                  <circle cx="175" cy="80" r="4" fill="#FFFFEE" opacity="0.6"/> 
+                                ` : `
+                                  <rect x="115" y="65" width="50" height="90" rx="18" fill="${frameHex}" fill-opacity="0.3"/>
+                                  <circle cx="140" cy="85" r="16" fill="#111" stroke="#222" stroke-width="2"/>
+                                  <circle cx="140" cy="125" r="16" fill="#111" stroke="#222" stroke-width="2"/>
+                                `;
+
+                              const svg = `
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500">
+                                    <defs>
+                                        <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+                                            <feDropShadow dx="0" dy="10" stdDeviation="15" flood-opacity="0.15"/>
+                                        </filter>
+                                    </defs>
+                                    <rect x="100" y="50" width="200" height="400" rx="30" fill="${backHex}" filter="url(#shadow)" stroke="${frameHex}" stroke-width="4"/>
+                                    <circle cx="200" cy="220" r="18" fill="white" fill-opacity="0.9" />
+                                    ${camSVG}
+                                </svg>`;
+
+                              return `data:image/svg+xml;base64,${btoa(svg)}`;
+                            };
+
+                            // Only apply vector logic if it's likely a phone and has no user image
+                            // But user wants "2nd photo style" which IS this style.
+                            // So we prefer this generated image if the name matches iPhone.
+
+                            let displaySrc = product.image;
+                            const isPhone = product.name.toLowerCase().includes('iphone');
+
+                            if (isPhone) {
+                              displaySrc = getVectorImage(product.name);
+                            }
+
+                            return (
+                              <div className={`w-full h-full rounded-lg flex items-center justify-center relative overflow-hidden ${isPhone ? '' : 'bg-gray-50 border border-gray-100'}`}>
+                                {displaySrc ? (
+                                  <img
+                                    src={displaySrc}
+                                    alt={product.name}
+                                    onError={(e) => {
+                                      if (isPhone) return; // Vectors shouldn't fail
+                                      e.currentTarget.style.display = 'none';
+                                      e.currentTarget.parentElement?.classList.add('fallback-active');
+                                      // Add fallback content
+                                    }}
+                                    className="w-full h-full object-contain hover:scale-110 transition-transform duration-300"
+                                  />
+                                ) : (
+                                  <div className="flex flex-col items-center justify-center text-gray-400">
+                                    <Package className="w-4 h-4 mb-0.5 opacity-50" />
+                                  </div>
+                                )}
+
+                                {/* Fallback visible only if img is missing/hidden */}
+                                {!displaySrc && (
+                                  <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 -z-10">
+                                    <Package className="w-4 h-4 mb-0.5 opacity-50" />
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
+
                           {isRemovingBg === product.id && (
-                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-lg z-20">
                               <Loader2 className="w-4 h-4 text-white animate-spin" />
                             </div>
                           )}
                         </div>
                         <div className="max-w-[200px]">
-                          <p className="text-xs text-gray-900 truncate">{product.name}</p>
+                          <p className="text-xs text-gray-900 truncate font-medium">{product.name}</p>
+                          <p className="text-[10px] text-gray-500">{product.barcode}</p>
                         </div>
                       </div>
                     </td>
