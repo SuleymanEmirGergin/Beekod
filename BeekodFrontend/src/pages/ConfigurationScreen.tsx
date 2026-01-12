@@ -13,7 +13,7 @@ import {
 import { useState, useEffect } from 'react';
 import { getConfig, updateConfig, Configuration } from '../services/config';
 import { SidebarV2 } from '../layouts/SidebarV2';
-import { ChatWidget } from '../components/ChatWidget';
+
 import { Card } from '../components/shared/';
 import { AppLogo } from '../components/shared/';
 
@@ -752,7 +752,7 @@ export function ConfigurationScreen({
       </div>
 
       {/* Floating Chat Button */}
-      <ChatWidget />
+      
     </div>
   );
 }

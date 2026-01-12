@@ -1,7 +1,7 @@
-
+import { logger } from './logger.js';
 
 async function testSearch(query: string) {
-    console.log(`\n--- Testing Query: "${query}" ---`);
+    logger.info(`--- Testing Query: "${query}" ---`);
     try {
         const response = await fetch("http://127.0.0.1:3000/api/chat", {
             method: "POST",
@@ -22,17 +22,17 @@ async function testSearch(query: string) {
         });
 
         const data = await response.json();
-        console.log("Response Status:", response.status);
-        console.log("Reply:", data.reply);
+        logger.info(`Response Status: ${response.status}`);
+        logger.info(`Reply: ${data.reply}`);
 
         if (data.data?.results) {
-            console.log("Structured Results:");
+            logger.info("Structured Results:");
             data.data.results.forEach((r: any, i: number) => {
-                console.log(`${i + 1}. [${r.site}] ${r.title} - ${r.price} ${r.currency}`);
+                logger.info(`${i + 1}. [${r.site}] ${r.title} - ${r.price} ${r.currency}`);
             });
         }
     } catch (e) {
-        console.error("Test failed:", e);
+        logger.error("Test failed", { error: e });
     }
 }
 

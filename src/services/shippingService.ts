@@ -42,10 +42,11 @@ export const shippingService = {
 
         // 4. Return Result
         // In a real app, the labelUrl would come from the carrier or generated via PDF service
+        const baseUrl = process.env.API_URL || "http://localhost:3000";
         return {
             provider,
             trackingNumber: result.trackingNumber,
-            labelUrl: `https://api.beekod.com/v1/shipping/labels/${result.trackingNumber}.pdf`
+            labelUrl: `${baseUrl}/api/shipping/labels/${result.trackingNumber}?provider=${provider}`
         };
     },
 
@@ -56,5 +57,27 @@ export const shippingService = {
         const providerId = provider.toLowerCase() as CargoProviderType;
         const result = await cargoService.trackShipment(providerId, trackingNumber);
         return result.statusDescription;
+    },
+
+    /**
+     * Get aggregated shipping statistics
+     */
+    async getStats() {
+        // In a real scenario, we would query the 'orders' table for status distribution
+        // For now, we mock it or query basic order counts
+        // Assuming orders have a 'shipping_status' field or similar
+        return {
+             stats: [
+                { label: 'Bekleyen Gönderiler', value: '12', change: '+2', trend: 'up', color: 'text-blue-600', bg: 'bg-blue-50' },
+                { label: 'Yolda', value: '45', change: '-5', trend: 'down', color: 'text-amber-600', bg: 'bg-amber-50' },
+                { label: 'Bugün Teslim', value: '8', change: '+3', trend: 'up', color: 'text-green-600', bg: 'bg-green-50' },
+                { label: 'Sorunlu / İade', value: '2', change: '0', trend: 'neutral', color: 'text-red-600', bg: 'bg-red-50' },
+            ],
+            carriers: [
+                { name: 'Yurtiçi Kargo', status: 'Online', load: 'Düşük', successRate: '98%', logo: 'YK' },
+                { name: 'MNG Kargo', status: 'Online', load: 'Orta', successRate: '96%', logo: 'MNG' },
+                { name: 'UPS', status: 'Bakım', load: '-', successRate: '99%', logo: 'UPS' },
+            ]
+        };
     }
 };

@@ -71,7 +71,7 @@ export class GoogleSearchService {
         return mainPart;
     }
 
-    async findProduct(query: string): Promise<CandidateProduct[]> {
+    async findProduct(query: string, restrictSites: boolean = true): Promise<CandidateProduct[]> {
         if (!this.isConfigured()) {
             logger.warn("google_search.not_configured");
             return [];
@@ -80,7 +80,7 @@ export class GoogleSearchService {
         const config = this.getConfig();
 
         try {
-            const finalQuery = withSiteRestriction(query);
+            const finalQuery = restrictSites ? withSiteRestriction(query) : query;
             const url = new URL("https://www.googleapis.com/customsearch/v1");
             url.searchParams.append("key", config.apiKey);
             url.searchParams.append("cx", config.cx);
@@ -116,8 +116,11 @@ export class GoogleSearchService {
                     _rawPagemap: item.pagemap
                 };
             }).filter((p: CandidateProduct) => {
-                const isAllowed = ALLOWED_SITES.some(s => p.displayLink.includes(s));
-                if (!isAllowed) return false;
+                // Only enforce site restrictions if requested
+                if (restrictSites) {
+                    const isAllowed = ALLOWED_SITES.some(s => p.displayLink.includes(s));
+                    if (!isAllowed) return false;
+                }
 
                 // Filter out category/search/listing pages
                 const isProduct = this.isProductUrl(p.link, p.site || "");

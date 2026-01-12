@@ -155,3 +155,13 @@ export const generateShippingLabel = async (orderId: string, provider: string): 
     throw error;
   }
 };
+
+export const getShippingStats = async (): Promise<any> => {
+  try {
+    const { data } = await api.get('/orders/shipping/stats');
+    return data;
+  } catch (error) {
+    console.error('API getShippingStats failed', error);
+    throw error;
+  }
+};

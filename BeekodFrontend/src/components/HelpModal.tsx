@@ -17,6 +17,7 @@ interface HelpModalProps {
   page:
   | 'dashboard'
   | 'inventory'
+  | 'products'
   | 'integrations'
   | 'orders'
   | 'analytics'
@@ -126,6 +127,41 @@ const helpContentMap: Record<string, HelpContent> = {
       '🔍 Filtrelerle low stock, high demand veya kategori bazlı arama yapın',
       "📥 Export butonuyla envanterinizi Excel'e aktarabilirsiniz",
       '🔄 Senkronizasyon durumunu marketplace ikonlarından takip edin',
+    ],
+  },
+  // Alias for inventory
+  products: {
+    title: 'Ürün Yönetimi Kılavuzu',
+    description: 'Tüm ürünlerinizi görüntüleyin, düzenleyin ve stok seviyelerini yönetin.',
+    sections: [
+      {
+        icon: CheckCircle,
+        title: 'Ürün Listesi',
+        content: 'Tüm ürünlerinizi tek bir yerde görüntüleyin ve yönetin.',
+        steps: [
+          'Her ürünün SKU, fiyat ve stok bilgilerini görüntüleyin',
+          '"Güncelle" butonuyla ürün bilgilerini düzenleyin',
+          'Stok seviyesi düşük ürünler sarı arka planla gösterilir',
+          'Arama ve filtreleme ile istediğiniz ürünü bulun',
+        ],
+      },
+      {
+        icon: Book,
+        title: 'Yeni Ürün Ekleme',
+        content: 'Hızlıca yeni ürün ekleyin.',
+        steps: [
+          'Ürün Ekle butonuna tıklayın',
+          'Ürün adı, barkod ve fiyat bilgilerini girin',
+          'AI ile açıklama ve kategori önerileri alın',
+          'Kaydet ile ürünü ekleyin',
+        ],
+      },
+    ],
+    quickTips: [
+      '⚡ Toplu işlemler için birden fazla ürünü seçebilirsiniz',
+      '🔍 Filtrelerle low stock, high demand veya kategori bazlı arama yapın',
+      "📥 Export butonuyla envanterinizi Excel'e aktarabilirsiniz",
+      '🤖 AI ile otomatik açıklama ve kategori önerileri alın',
     ],
   },
   integrations: {

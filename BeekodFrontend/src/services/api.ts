@@ -24,11 +24,11 @@ import { devLogger } from '../utils/devLogger';
 
 // Create Axios instance with base URL from environment variables
 const api = axios.create({
-  baseURL: (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000') + '/api',
+  baseURL: '/api',
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 15000, // 15 second timeout to prevent silent hangs
+  timeout: 300000, // 5 minute timeout for AI/Analysis endpoints
 });
 
 // Request interceptor for adding auth token and validating paths

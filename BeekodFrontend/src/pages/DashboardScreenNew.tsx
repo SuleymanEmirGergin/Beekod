@@ -53,7 +53,7 @@ export function DashboardScreenNew({ onNavigate }: DashboardScreenNewProps) {
   }
 
   return (
-    <div className="flex h-screen bg-[#FDFDFD] font-sans overflow-hidden">
+    <div className="flex h-screen bg-[#FDFDFD] dark:bg-gray-950 font-sans overflow-hidden transition-colors duration-300">
       <SidebarV2 activeItem={activeItem} onNavigate={onNavigate} />
 
       <main className="flex-1 overflow-y-auto relative">
@@ -65,7 +65,7 @@ export function DashboardScreenNew({ onNavigate }: DashboardScreenNewProps) {
           {/* Header Section */}
           <div className="flex items-center justify-between animate-in fade-in slide-in-from-top-4 duration-700">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
                 Hoş geldin, <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#F5B800] to-orange-500">Girişimci</span> 👋
               </h1>
               <p className="text-gray-500 mt-1">
@@ -96,9 +96,9 @@ export function DashboardScreenNew({ onNavigate }: DashboardScreenNewProps) {
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
             {/* Top Products (Takes 2 cols) */}
             <div className="xl:col-span-2 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden h-full">
+              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden h-full">
                 <div className="px-6 py-4 border-b border-gray-50 flex justify-between items-center bg-gray-50/30">
-                  <h3 className="font-bold text-gray-800">Çok Satan Ürünler</h3>
+                  <h3 className="font-bold text-gray-800 dark:text-gray-100">Trend Ürünler</h3>
                   <button className="text-xs text-[#F5B800] font-bold hover:underline">Tümünü Gör →</button>
                 </div>
                 <div className="p-4">
@@ -109,9 +109,9 @@ export function DashboardScreenNew({ onNavigate }: DashboardScreenNewProps) {
 
             {/* Marketplace Orders (Takes 1 col) */}
             <div className="xl:col-span-1 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-500">
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden h-full">
+              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden h-full">
                 <div className="px-6 py-4 border-b border-gray-50 bg-gray-50/30">
-                  <h3 className="font-bold text-gray-800">Son Siparişler</h3>
+                  <h3 className="font-bold text-gray-800 dark:text-gray-100">Son Siparişler</h3>
                 </div>
                 <div className="p-0">
                   <MarketplaceOrdersTable orders={dashboardData.marketplaceOrders} simpleView />

@@ -1,6 +1,6 @@
 import { pool } from "../db.js";
 import { logger } from "../logger.js";
-import { generateGeminiReply } from "./geminiService.js";
+import { generateGeminiReply } from "./geminiClient.js";
 import { IVideoAnalytics, IVideoAnalyticsDbRow, mapVideoAnalyticsRow } from "../models/VideoAnalytics.js";
 
 function calculateEngagementRate(views: number, likes: number, comments: number, shares: number): number {

@@ -1,4 +1,4 @@
-import { generateGeminiReply } from "./geminiService.js";
+import { generateGeminiReply } from "./geminiClient.js";
 import { logger } from "../logger.js";
 
 export interface ReviewAnalysis {

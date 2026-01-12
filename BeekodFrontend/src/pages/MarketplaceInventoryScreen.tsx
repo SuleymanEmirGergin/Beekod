@@ -120,7 +120,7 @@ export function MarketplaceInventoryScreen({ onNavigate }: { onNavigate: (screen
     );
 
     return (
-        <div className="flex h-screen bg-[#F8FAFC]">
+        <div className="flex h-screen bg-[#F8FAFC] dark:bg-slate-900 transition-colors duration-300">
             <SidebarV2 activeItem="marketplace-inventory" onNavigate={onNavigate} />
 
             <div className="flex-1 flex flex-col overflow-hidden relative">

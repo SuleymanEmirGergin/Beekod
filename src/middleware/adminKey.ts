@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import { config } from "../config.js";
+import { logger } from "../logger.js";
 
 export const ADMIN_HEADER = "x-admin-key";
 export const ADMIN_COOKIE = "admin_key";
@@ -31,7 +32,7 @@ export function requireAdminKey(req: Request, res: Response, next: NextFunction)
   const provided = resolveAdminKey(req);
 
   if (req.path === '/' || req.path === '/api/products') {
-    // console.log(`DEBUG: AdminKey Check [${req.method} ${req.originalUrl}] Expected='${expected}' Provided='${provided}'`);
+    logger.debug(`AdminKey Check [${req.method} ${req.originalUrl}]`, { expected: '***', provided: provided ? '***' : 'none' });
   }
 
   if (!expected) {

@@ -4,18 +4,27 @@ import * as Sentry from "@sentry/node";
 import path from "path";
 import express from "express";
 import cors from "cors";
-import { config } from "./config.js";
+
+// Core infrastructure - use new modular imports
+import { config, logConfigStatus } from "./core/config/index.js";
+import { logger } from "./core/logging/index.js";
 import { imageRouter, productImageRouter } from "./images/imageRoutes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { requestContext } from "./middleware/requestContext.js";
 import { rateLimit } from "./middleware/rateLimit.js";
 import { securityHeaders } from "./middleware/securityHeaders.js";
+
+// ===========================================
+// Route Imports
+// Alternative: Import from modules for cleaner architecture:
+// import { productRouter, orderRouter, analyticsRouter, ... } from "./modules/index.js";
+// ===========================================
 import { adminRouter } from "./routes/adminRoutes.js";
 import { authRouter } from './routes/authRoutes.js';
 import { auditRouter } from './routes/auditRoutes.js';
 import { adminSettingsRouter } from "./routes/adminSettingsRoutes.js";
 import { cacheRouter } from "./routes/cacheRoutes.js";
-import { chatRouter } from "./routes/chat/index.js";
+
 import { competitorRouter } from "./routes/competitorRoutes.js";
 import { contentConfigRouter } from "./routes/contentConfigRoutes.js";
 import { contentPreviewRouter } from "./routes/contentPreviewRoutes.js";
@@ -37,6 +46,7 @@ import { integrationRouter } from "./routes/integrationRoutes.js";
 import { teamRouter } from "./routes/teamRoutes.js";
 import { uploadRouter } from "./routes/uploadRoutes.js";
 import { dashboardRouter } from "./routes/dashboardRoutes.js";
+import { shippingRouter } from "./routes/shippingRoutes.js";
 import { analyticsRouter } from "./routes/analyticsRoutes.js";
 import { configRouter } from "./routes/configRoutes.js";
 import { profileRouter } from "./routes/profileRoutes.js";
@@ -59,15 +69,21 @@ import { hepsiburadaRouter } from "./routes/hepsiburadaRoutes.js";
 import { ciceksepetiRouter } from "./routes/ciceksepetiRoutes.js";
 import { inventoryRouter } from "./routes/inventoryRoutes.js";
 import aiModelRouter from "./routes/aiModelRoutes.js";
-import { logger } from "./logger.js";
+import chatbotRouter from "./routes/chatbotRoutes.js";
+import wholesalerRouter from "./routes/wholesalerRoutes.js";
+import aiRoutes from "./routes/aiRoutes.js";
 import { registerProcessHandlers } from "./monitoring/processHandlers.js";
 
-process.on("unhandledRejection", (reason: any) => {
-  logger.error("process.unhandled_rejection", { reason: reason?.stack || reason });
+// Log configuration status on startup
+logConfigStatus(logger);
+
+process.on("unhandledRejection", (reason: unknown) => {
+  const stack = reason instanceof Error ? reason.stack : String(reason);
+  logger.error("process.unhandled_rejection", { reason: stack });
 });
 
-process.on("uncaughtException", (err: any) => {
-  logger.error("process.uncaught_exception", { err: err?.stack || err });
+process.on("uncaughtException", (err: Error) => {
+  logger.error("process.uncaught_exception", { err: err.stack || err.message });
 });
 
 const app = express();
@@ -121,7 +137,16 @@ app.use("/api/questions", questionRouter);
 app.use("/api/video", videoRouter);
 app.use("/api/social", socialRouter);
 app.use("/api/intelligence", intelligenceRouter);
+import { campaignRouter } from "./routes/campaignRoutes.js";
+
+// ... existing imports
+
+// Routes
+// ... existing routes
 app.use("/api/notifications", notificationRouter);
+app.use("/api/campaigns", campaignRouter);
+app.use("/api/social", socialRouter);
+// ...
 app.use("/api/video-analytics", videoAnalyticsRouter);
 app.use("/api/revenue", revenueRouter);
 app.use("/api/feedback", feedbackRouter);
@@ -132,12 +157,12 @@ app.use("/api/hepsiburada", hepsiburadaRouter); // ✅ Hepsiburada API
 app.use("/api/ciceksepeti", ciceksepetiRouter); // ✅ Çiçeksepeti API
 
 app.use("/api/orders", orderRouter);
+app.use("/api/shipping", shippingRouter); // ✅ Shipping API
 app.use("/api/integrations", integrationRouter);
 app.use("/api/team", teamRouter);
 app.use("/api/competitors", competitorRouter);
 app.use("/api/jobs", jobRouter);
 // Chat router'ı daha spesifik route'lardan sonra ama genel /api route'larından önce
-app.use("/api", chatRouter);
 app.use("/api/ops", opsRouter);
 app.use("/api", dashboardRouter);
 app.use("/api/config", configRouter);
@@ -146,6 +171,11 @@ app.use("/api/profiles", profileRouter);
 app.use("/api/invoices", invoiceRouter);
 app.use("/api/inventory", inventoryRouter);
 app.use("/api/ai-model", aiModelRouter);
+
+// Chatbot & Wholesaler Network
+app.use("/api/chat", chatbotRouter);
+app.use("/api/wholesaler", wholesalerRouter);
+app.use("/api/ai", aiRoutes);
 
 // SPA Fallback - Serve index.html for unknown routes
 app.get("*", (req, res, next) => {
@@ -171,6 +201,8 @@ if (process.env.NODE_ENV !== 'test') {
     logger.info("server.listen", { port: config.port });
     // Initialize socket service with the http server instance
     socketService.initialize(server);
+    // Set server timeout to 5 minutes to handle long polling AI tasks
+    server.setTimeout(300000);
   });
 }
 

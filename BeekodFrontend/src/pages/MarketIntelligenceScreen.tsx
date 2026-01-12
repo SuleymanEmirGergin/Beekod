@@ -49,7 +49,7 @@ export function MarketIntelligenceScreen({ onNavigate }: MarketIntelligenceScree
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
       <SidebarV2
         activeItem="intelligence"
         onNavigate={onNavigate}
@@ -57,9 +57,12 @@ export function MarketIntelligenceScreen({ onNavigate }: MarketIntelligenceScree
         userEmail="emir@beekod.com"
       />
 
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden relative">
+        {/* Background Gradients */}
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-600/5 blur-[120px] -z-10 rounded-full mix-blend-multiply opacity-70 animate-blob" />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-violet-600/5 blur-[100px] -z-10 rounded-full mix-blend-multiply opacity-70 animate-blob animation-delay-2000" />
         {/* Header */}
-        <header className="bg-white border-b border-gray-100 px-8 py-8">
+        <header className="bg-white/60 backdrop-blur-xl border-b border-white/20 px-8 py-6 z-20">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <div>
               <div className="flex items-center gap-2 mb-2 bg-blue-50 w-fit px-3 py-1 rounded-full border border-blue-100">
@@ -179,20 +182,20 @@ export function MarketIntelligenceScreen({ onNavigate }: MarketIntelligenceScree
                       <div className="flex items-start justify-between mb-4">
                         <div
                           className={`p-2 rounded-xl ${trend.impact === 'high'
-                              ? 'bg-red-50 text-red-600'
-                              : trend.impact === 'medium'
-                                ? 'bg-orange-50 text-orange-600'
-                                : 'bg-green-50 text-green-600'
+                            ? 'bg-red-50 text-red-600'
+                            : trend.impact === 'medium'
+                              ? 'bg-orange-50 text-orange-600'
+                              : 'bg-green-50 text-green-600'
                             }`}
                         >
                           <ArrowUpRight className="w-5 h-5" />
                         </div>
                         <span
                           className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md ${trend.impact === 'high'
-                              ? 'bg-red-100 text-red-700'
-                              : trend.impact === 'medium'
-                                ? 'bg-orange-100 text-orange-700'
-                                : 'bg-green-100 text-green-700'
+                            ? 'bg-red-100 text-red-700'
+                            : trend.impact === 'medium'
+                              ? 'bg-orange-100 text-orange-700'
+                              : 'bg-green-100 text-green-700'
                             }`}
                         >
                           Etki: {trend.impact === 'high' ? 'Yüksek' : trend.impact === 'medium' ? 'Orta' : 'Düşük'}
@@ -208,49 +211,52 @@ export function MarketIntelligenceScreen({ onNavigate }: MarketIntelligenceScree
               </div>
 
               {/* Seasonal Forecast Mockup */}
-              <Card className="overflow-hidden border-none shadow-2xl shadow-blue-100/50 bg-white">
+              <div className="bg-white/60 backdrop-blur-md rounded-[32px] border border-white/20 shadow-xl overflow-hidden">
                 <div className="flex flex-col md:flex-row h-full">
-                  <div className="p-8 md:w-1/3 bg-gray-900 text-white flex flex-col justify-between">
-                    <div>
-                      <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center mb-6">
-                        <BadgeAlert className="w-6 h-6" />
+                  <div className="p-10 md:w-1/3 bg-slate-900 text-white flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-full bg-blue-600/10 blur-3xl"></div>
+                    <div className="relative z-10">
+                      <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-blue-900/50">
+                        <BadgeAlert className="w-7 h-7" />
                       </div>
-                      <h3 className="text-2xl font-bold mb-4">Mevsimsel Öngörü</h3>
-                      <p className="text-gray-400 text-sm leading-relaxed">
+                      <h3 className="text-2xl font-black font-display mb-4">Mevsimsel Öngörü</h3>
+                      <p className="text-blue-200/80 text-sm leading-relaxed font-medium">
                         AI, geçmiş 3 yılı analiz ederek gelecek 45 gün içindeki talep patlamalarını
                         tahmin ediyor.
                       </p>
                     </div>
-                    <div className="mt-8">
-                      <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+                    <div className="mt-8 relative z-10">
+                      <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">
                         Tahmini Doğruluk
                       </span>
                       <div className="flex items-end gap-2 mt-1">
-                        <span className="text-4xl font-black text-blue-400">%94</span>
-                        <span className="text-blue-900 text-xs font-bold mb-2">
+                        <span className="text-5xl font-black text-white tracking-tight">%94</span>
+                        <span className="text-blue-300 text-xs font-bold mb-2">
                           Güven Seviyesi
                         </span>
                       </div>
                     </div>
                   </div>
-                  <div className="p-8 flex-1 grid grid-cols-2 md:grid-cols-4 gap-6">
+                  <div className="p-10 flex-1 grid grid-cols-2 md:grid-cols-4 gap-8 items-end">
                     {[
-                      { label: 'Oca', val: 45, color: 'bg-blue-100' },
-                      { label: 'Şub', val: 65, color: 'bg-blue-200' },
-                      { label: 'Mar', val: 85, color: 'bg-blue-600' },
-                      { label: 'Nis', val: 40, color: 'bg-blue-100' },
+                      { label: 'Oca', val: 45, color: 'bg-blue-100', text: 'text-blue-300' },
+                      { label: 'Şub', val: 65, color: 'bg-blue-200', text: 'text-blue-400' },
+                      { label: 'Mar', val: 85, color: 'bg-blue-600', text: 'text-blue-600' },
+                      { label: 'Nis', val: 40, color: 'bg-blue-100', text: 'text-blue-300' },
                     ].map((m, i) => (
-                      <div key={i} className="flex flex-col items-center justify-end gap-3 h-48">
-                        <div
-                          className={`w-full rounded-2xl ${m.color}`}
-                          style={{ height: `${m.val}%` }}
-                        />
-                        <span className="text-xs font-bold text-gray-500">{m.label}</span>
+                      <div key={i} className="flex flex-col items-center gap-4 group cursor-pointer">
+                        <div className="relative w-full h-48 bg-slate-50 rounded-2xl overflow-hidden flex items-end justify-center">
+                          <div
+                            className={`w-full mx-4 rounded-t-xl transition-all duration-500 group-hover:scale-110 ${m.color}`}
+                            style={{ height: `${m.val}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-black text-slate-400 uppercase tracking-widest group-hover:text-blue-600 transition-colors">{m.label}</span>
                       </div>
                     ))}
                   </div>
                 </div>
-              </Card>
+              </div>
             </div>
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-gray-400">

@@ -40,6 +40,17 @@ const updateStatusSchema = z.object({
   status: z.string().min(1),
 });
 
+// GET /api/orders/shipping/stats
+router.get("/shipping/stats", async (req, res) => {
+  try {
+      const stats = await shippingService.getStats();
+      res.json(stats);
+  } catch (error) {
+      logger.error("orders.shipping_stats_failed", { err: error });
+      res.status(500).json({ error: "Failed to get shipping stats" });
+  }
+});
+
 // GET /api/orders
 router.get("/", async (req, res) => {
   try {

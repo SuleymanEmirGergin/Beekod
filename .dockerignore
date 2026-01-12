@@ -39,3 +39,39 @@ coverage
 tmp
 temp
 *.tmp
+
+# Runtime directories (not needed in image)
+storage
+backups
+data
+secrets
+
+# Debug & test files
+debug_*
+scraper_*
+*_output.txt
+*_test_results.txt
+test_*.ts
+verify_*.js
+*.test.ts
+*.spec.ts
+__tests__
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Documentation
+README.md
+*.md
+docs/
+
+# CI/CD
+.github
+.husky

@@ -1,9 +1,9 @@
-
 import fs from 'fs';
+import { logger } from './logger.js';
 
 async function run() {
     const url = "https://www.n11.com/urun/apple-iphone-15-128-gb-apple-turkiye-garantili-43821353";
-    console.log(`Fetching ${url}...`);
+    logger.info(`Fetching ${url}...`);
 
     try {
         const response = await fetch(url, {
@@ -16,21 +16,21 @@ async function run() {
         });
 
         if (!response.ok) {
-            console.error("Failed to fetch:", response.status, response.statusText);
+            logger.error("Failed to fetch", { status: response.status, statusText: response.statusText });
             return;
         }
 
         const html = await response.text();
         fs.writeFileSync("debug_n11_raw.html", html);
-        console.log("Saved debug_n11_raw.html");
+        logger.info("Saved debug_n11_raw.html");
 
         // Quick look for JSON-LD
         const jsonLdCount = (html.match(/<script type="application\/ld\+json">/gi) || []).length;
-        console.log(`Found ${jsonLdCount} JSON-LD blocks.`);
+        logger.info(`Found ${jsonLdCount} JSON-LD blocks.`);
 
     } catch (e) {
-        console.error(e);
+        logger.error("Error in debug_n11", { error: e });
     }
 }
 
-run();
+run().catch((e) => logger.error("Fatal error", { error: e }));

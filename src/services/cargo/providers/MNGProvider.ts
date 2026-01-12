@@ -8,8 +8,9 @@ export class MNGProvider implements ICargoProvider {
         logger.info("MNG.createShipment", { payload });
         if (this.simulate) {
             await new Promise(r => setTimeout(r, 1500));
-            // MNG format check needed, usually random string for demo
-            return `MNG${Math.floor(Math.random() * 1000000)}`;
+            // MNG format check 
+            const tracking = `MC${Math.floor(100000 + Math.random() * 900000)}`;
+            return tracking;
         }
         throw new Error("Real MNG implementation not configured");
     }

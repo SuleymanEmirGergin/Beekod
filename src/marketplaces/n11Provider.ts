@@ -147,21 +147,79 @@ export class N11Provider implements MarketplaceProvider {
 
   async getNewOrders(params?: { startDate?: string; endDate?: string }): Promise<MarketplaceOrderResult> {
     if (!this.isConfigured()) return { status: "not_configured", orders: [], message: "N11 not configured" };
-    // Simulated order result for demo
-    const mockOrder: any = {
-      marketplace: this.name,
-      orderNumber: `N11-${Math.floor(Math.random() * 900000 + 100000)}`,
-      customerName: "Ayşe Yılmaz",
-      customerEmail: "ayse@example.com",
-      status: "New",
-      orderDate: params?.startDate || new Date().toISOString(),
-      totalAmount: 1250.00,
-      currency: "TRY",
-      items: [
-        { sku: "N11-ITEM-1", barcode: "123456789", name: "Modern Masa Lambası", price: 1250, quantity: 1 }
-      ]
-    };
-    return { status: "ok", orders: [mockOrder], message: "Success (Simulated)" };
+
+    const auth = this.getAuth();
+    if (!auth) return { status: "not_configured", orders: [], message: "Missing N11 credentials" };
+
+    // Standard SOAP Request for N11 DetailedOrderList
+    // We typically ask for "New" (Paid) or "Approved" orders.
+    // Status strings: "New", "Approved", "Rejected", "Shipped", "Delivered", "Completed"
+    // We'll ask for 'Approved' (Paid orders waiting for shipment)
+    
+    // Date Filtering? usually standard N11 allows search by status primarily for fulfillment.
+    
+    const soapBody = `<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:sch="http://www.n11.com/ws/schemas">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <sch:DetailedOrderListRequest>
+         <auth>
+            <appKey>${this.escapeXml(auth.appKey)}</appKey>
+            <appSecret>${this.escapeXml(auth.appSecret)}</appSecret>
+         </auth>
+         <searchData>
+            <status>Approved</status> 
+         </searchData>
+         <pagingData>
+            <currentPage>0</currentPage>
+            <pageSize>100</pageSize>
+         </pagingData>
+      </sch:DetailedOrderListRequest>
+   </soapenv:Body>
+</soapenv:Envelope>`;
+
+    const response = await this.soapRequest("DetailedOrderList", soapBody);
+    if (response.status !== "ok" || !response.data) {
+         return { status: "failed", message: response.message || "Failed to fetch N11 orders", orders: [] };
+    }
+
+    try {
+        const xml = response.data as string;
+        const doc = this.parseSoapXml(xml);
+        const body = this.getSoapBody(doc);
+        const resp = this.pickFirst<any>(body, ["DetailedOrderListResponse", "detailedOrderListResponse"]);
+        
+        let orderList = this.asArray<any>(resp?.orderList?.order);
+        
+        const orders = orderList.map((o: any) => {
+             const items = this.asArray<any>(o.itemList?.item).map((item: any) => ({
+                 sku: item.sellerStockCode || item.productId,
+                 barcode: item.productSellerCode || item.sellerStockCode,
+                 name: item.productName,
+                 price: Number(item.price || 0),
+                 quantity: Number(item.quantity || 1)
+             }));
+
+             return {
+                 marketplace: this.name,
+                 orderNumber: o.orderNumber,
+                 customerName: o.buyer?.fullName,
+                 customerEmail: o.buyer?.email,
+                 customerPhone: o.buyer?.gsmNumber, // N11 specific
+                 customerAddress: o.billingAddress?.address || o.shippingAddress?.address,
+                 items,
+                 totalAmount: Number(o.billingTemplate?.originalPrice || 0), // Typically total
+                 currency: "TRY",
+                 orderDate: o.createDate, // e.g. "20/12/2023 10:00"
+                 status: o.status // "Approved"
+             };
+        });
+
+        return { status: "ok", message: "ok", orders };
+
+    } catch (e: any) {
+        return { status: "failed", message: "Parse error: " + e.message, orders: [] };
+    }
   }
 
   private buildProductSaveRequest(p: any) {

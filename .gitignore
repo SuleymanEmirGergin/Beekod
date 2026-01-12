@@ -1,39 +1,84 @@
+# ============================================
+# Beekod Project .gitignore - Clean Code Edition
+# ============================================
+
+# Dependencies
 node_modules/
+
+# Build Output
 dist/
 build/
 coverage/
+*.tsbuildinfo
 
-# Storage & Temp
+# ============================================
+# Storage & Temporary Files
+# ============================================
 storage/
 temp/
 tmp/
 backups/
+data/
 
+# ============================================
 # Logs
+# ============================================
 logs/
 *.log
 *.pid
 dev-server.*.log
 build_log.txt
+npm-debug.log*
 
+# ============================================
 # Environment & Secrets
+# ============================================
 .env
 .env.*
 !.env.example
 secrets/
-secrets/google-service-account.json
+*.pem
+*.key
 
-# Debug & Scraper Artifacts
-debug_*.json
+# ============================================
+# Debug & Test Artifacts
+# ============================================
+# Debug HTML dumps
 debug_*.html
 *_debug.html
-*_debug.png
+*-debug.html
+hepsiburada-*.html
+n11-*.html
+ptt-*.html
+trendyol-*.html
 scraper_*.html
-*_output.txt
-ports.txt
 
+# Debug data files
+debug_*.json
+*_debug.json
+*_debug.png
+llm_result.bin
+wiro_response.json
+products_dump.json
+search_diagnostic_output.json
+
+# Test output files
+*_test_*.txt
+*_output.txt
+smoke_*.txt
+integration_*.txt
+check_output*.txt
+verify_*.txt
+ports.txt
+api_test_results.txt
+
+# ============================================
 # OS & IDE
+# ============================================
 .DS_Store
 .vscode/
 .idea/
 Thumbs.db
+*.swp
+*.swo
+*~

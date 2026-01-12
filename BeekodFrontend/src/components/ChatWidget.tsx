@@ -1,639 +1,663 @@
-import { useState, useRef, useEffect, Component, ErrorInfo, ReactNode } from 'react';
-import { MessageCircle, X, Send, Loader2, Sparkles, User, Bot, Trash2, Mic, ThumbsUp, ThumbsDown, Settings, Volume2, VolumeX, Paperclip, Plus, Image as ImageIcon, RotateCcw } from 'lucide-react';
-import chatbotIcon from 'figma:asset/9d96f3bbf44d3ec04b17cf47ee8392a065d2b41b.png';
-import { sendMessage, saveToChatHistory, sendFeedback, ChatMessage, ChatData } from '../services/chatService';
-import { useNavigate } from 'react-router-dom';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { Typewriter } from './shared/Typewriter';
-import { ProductCard, StatsCard, AnalyticsChart, ProductList, ContentCard } from './chat/ChatCards';
-import { ProductSearchCard, ProductImportModal } from './chat/ProductImportComponents';
-import { importProduct } from '../services/productImportService';
-import { safeReplace } from '../utils/safetyHelpers';
+import { useState, useRef, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+    MessageSquare,
+    Send,
+    X,
+    Loader2,
+    Package,
+    Store,
+    TrendingUp,
+    AlertCircle,
+    CheckCircle,
+    Phone,
+    ChevronDown,
+    Sparkles,
+    Bot,
+    User,
+    Trash2
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+import { chatApi, ChatMessage, ChatResponse, ProductCard, WholesalerStockHolder, MarketplaceComparisonCard } from "@/services/chatApi";
 
-// --- Error Boundary ---
-class ChatErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
-  constructor(props: { children: ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
-  }
+// ============================================================
+// TYPES
+// ============================================================
 
-  static getDerivedStateFromError(_: Error) {
-    return { hasError: true };
-  }
-
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("ChatWidget Error:", error, errorInfo);
-    // Show alert in development for immediate visibility
-    if (import.meta.env.DEV) {
-      alert(`ChatWidget Error: ${error.message}`);
-    }
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="flex flex-col items-center justify-center h-full p-4 text-center">
-          <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-3">
-            <X className="w-6 h-6 text-red-500" />
-          </div>
-          <h3 className="text-sm font-bold text-gray-900">Bir şeyler ters gitti</h3>
-          <p className="text-xs text-gray-500 mb-4 mt-1">Sohbet arayüzünde bir hata oluştu.</p>
-          <button
-            onClick={() => {
-              this.setState({ hasError: false });
-              localStorage.removeItem('beekod_ai_history');
-              window.location.reload();
-            }}
-            className="text-xs bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors"
-          >
-            Sohbeti Sıfırla
-          </button>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
+interface Message {
+    id: string;
+    role: "user" | "assistant" | "system";
+    content: string;
+    timestamp: Date;
+    productCards?: ProductCard[];
+    wholesalerList?: WholesalerStockHolder[];
+    marketplaceComparison?: MarketplaceComparisonCard[];
+    confirmationCode?: string;
+    confirmationType?: "destructive" | "privacy";
 }
 
-// --- Skeleton Loader ---
-const MessageSkeleton = () => (
-  <div className="flex justify-start animate-pulse">
-    <div className="flex gap-2 max-w-[85%]">
-      <div className="w-6 h-6 rounded-md bg-gray-200 flex-shrink-0 mt-1" />
-      <div className="bg-white border border-gray-100 rounded-xl px-3 py-2 shadow-sm w-48">
-        <div className="h-2 bg-gray-200 rounded w-3/4 mb-2" />
-        <div className="h-2 bg-gray-200 rounded w-1/2" />
-      </div>
-    </div>
-  </div>
-);
+// ============================================================
+// MAIN COMPONENT
+// ============================================================
 
-// Extended type for Widget state
-type WidgetMessage = ChatMessage & {
-  isError?: boolean;
-  retryContext?: {
-    action?: string;
-    opts?: any;
-    image?: File;
-  };
-};
+export default function ChatWidget() {
+    const [isOpen, setIsOpen] = useState(false);
+    const [messages, setMessages] = useState<Message[]>([]);
+    const [inputValue, setInputValue] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
+    const [importingUrls, setImportingUrls] = useState<Set<string>>(new Set());
+    const [sessionId, setSessionId] = useState<string | null>(null);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
 
-export function ChatWidget() {
-  const navigate = useNavigate();
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [chatMessage, setChatMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isListening, setIsListening] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [showAttachments, setShowAttachments] = useState(false); // Attachment menu toggle
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [selectedImportItem, setSelectedImportItem] = useState<any>(null);
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const speechSynthesisRef = useRef<SpeechSynthesisUtterance | null>(null);
-  const [chatHistory, setChatHistory] = useState<WidgetMessage[]>([]);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+    // Auto-scroll to bottom
+    const scrollToBottom = useCallback(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, []);
 
-  const suggestedPrompts: Array<
-    | { text: string; action: "TOP_SELLERS" | "CRITICAL_STOCK" | "SALES_SUMMARY"; opts: any; prompt?: never }
-    | { text: string; prompt: string; action?: never; opts?: never }
-  > = [
-      { text: "🔥 En Çok Satanlar", action: "TOP_SELLERS" as const, opts: { limit: 5, days: 30 } },
-      { text: "🚨 Kritik Stoklar", action: "CRITICAL_STOCK" as const, opts: { threshold: 10 } },
-      { text: "📈 Haftalık Özet", action: "SALES_SUMMARY" as const, opts: { days: 7 } },
-      { text: "🤖 Fiyat Tavsiyesi", prompt: "Fiyatlarımı nasıl optimize edebilirim?" },
-    ];
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages, scrollToBottom]);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  // Sync with AIAssistantScreen history - only load when opening chat
-  useEffect(() => {
-    if (!isChatOpen) return; // Only load when chat is opened
-
-    // Only load from localStorage if current history is empty or just has welcome message
-    if (chatHistory.length <= 1) {
-      const saved = localStorage.getItem('beekod_ai_history');
-      if (saved) {
-        try {
-          setChatHistory(JSON.parse(saved));
-        } catch (e) {
-          setChatHistory([{ role: 'ai', message: 'Merhaba! Ben Beekod AI. Size nasıl yardımcı olabilirim?' }]);
+    // Focus input when chat opens
+    useEffect(() => {
+        if (isOpen && inputRef.current) {
+            setTimeout(() => inputRef.current?.focus(), 100);
         }
-      } else {
-        setChatHistory([{ role: 'ai', message: 'Merhaba! Ben Beekod AI. Size nasıl yardımcı olabilirim?' }]);
-      }
-    }
-  }, [isChatOpen]);
+    }, [isOpen]);
 
-  useEffect(() => {
-    scrollToBottom();
-    // Save to shared history storage
-    if (chatHistory.length > 0) {
-      localStorage.setItem('beekod_ai_history', JSON.stringify(chatHistory));
-    }
-  }, [chatHistory]);
+    // Initial greeting
+    useEffect(() => {
+        if (isOpen && messages.length === 0) {
+            setMessages([{
+                id: "welcome",
+                role: "assistant",
+                content: "Merhaba! 👋 Ben BEEKOD AI asistanınız. Size nasıl yardımcı olabilirim?\n\n🔍 Ürün ara\n💰 Fiyat sorgula\n📦 Stok kontrol\n🏪 Toptancı ağında ara",
+                timestamp: new Date(),
+            }]);
+        }
+    }, [isOpen, messages.length]);
 
-  const speak = (text: string) => {
-    // Disable in development to avoid thread blocking
-    if (import.meta.env.DEV) return;
+    // Send message
+    const sendMessage = async () => {
+        if (!inputValue.trim() || isLoading) return;
 
-    if (isMuted || !('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'tr-TR';
-    // Simple locale detection could be added here if needed
-    speechSynthesisRef.current = utterance;
-    window.speechSynthesis.speak(utterance);
-  };
+        const userMessage: Message = {
+            id: `user-${Date.now()}`,
+            role: "user",
+            content: inputValue.trim(),
+            timestamp: new Date(),
+        };
 
-  useEffect(() => {
-    const lastMsg = chatHistory[chatHistory.length - 1];
-    if (lastMsg && (lastMsg.role === 'ai' || lastMsg.role === 'assistant') && !isMuted && !isLoading) {
-      const rawText = lastMsg.message || '';
-      if (!rawText) return;
-      const cleanText = rawText.replace(/[*_#`]/g, '');
-      // Don't speak if it's an error message unless critical
-      speak(cleanText);
-    }
-  }, [chatHistory, isMuted, isLoading]);
+        setMessages(prev => [...prev, userMessage]);
+        setInputValue("");
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setSelectedImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-      setShowAttachments(false); // Close menu after select
-    }
-  };
-
-  const removeImage = () => {
-    setSelectedImage(null);
-    setImagePreview(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
-  const handleSendMessage = async (customMsg?: string, action?: string, opts?: any) => {
-    const textToSend = customMsg || chatMessage;
-
-    // Action varsa mesaj optional
-    if (!action && !textToSend.trim() && !selectedImage) return;
-    if (isLoading) return;
-
-    const userMsg = textToSend || (selectedImage ? "[Resim Gönderildi]" : `[${action}]`);
-    const updatedHistory = [...chatHistory, { role: 'user' as const, message: userMsg }];
-
-    setChatMessage('');
-    setChatHistory(updatedHistory);
-    setIsLoading(true);
-
-    try {
-      // Normalize history: convert 'assistant' to 'ai' for backend compatibility
-      const normalizedHistory = updatedHistory.map(h => ({
-        role: h.role === 'assistant' ? 'ai' : h.role,
-        message: h.message
-      }));
-
-      const response = await sendMessage(
-        textToSend,
-        selectedImage || undefined,
-        undefined,
-        action as any,
-        opts,
-        normalizedHistory as any
-      );
-      console.log('ChatWidget: API response received:', response);
-
-      // sendMessage now returns response.data directly: { success, reply, data }
-      const { success, reply, data } = response || {};
-
-      // Handle failure - still show the message but mark as error
-      if (!success) {
-        const errorMsg = reply || "Bir şeyler ters gitti. Tekrar dener misin? 🤔";
-        saveToChatHistory(userMsg, errorMsg, false);
-        setChatHistory((prev) => [
-          ...prev,
-          { role: "ai", message: errorMsg, data: data || { success: false }, isError: true },
-        ]);
-        setIsLoading(false);
-        return;
-      }
-
-      // Success: add AI reply with data
-      const finalReply = reply?.trim() || "⚠️ Boş cevap geldi";
-      setChatHistory(prev => [...prev, { role: 'ai', message: finalReply, data }]);
-      setIsLoading(false);
-    } catch (error) {
-      console.error('ChatWidget: Catch block error:', error);
-      const errorMsg = "Maalesef şu an cevap veremiyorum. İnternet bağlantını kontrol eder misin? 📶";
-      setChatHistory(prev => [...prev, { role: 'ai', message: errorMsg, isError: true }]);
-      setIsLoading(false);
-    } finally {
-      // Clear image after sending (moved from finally to ensure it happens)
-      setSelectedImage(null);
-      setImagePreview(null);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  };
-
-  const handleImportConfirm = async (formData: any) => {
-    try {
-      const result = await importProduct(formData);
-      if (result) {
-        setChatHistory(prev => [...prev, {
-          role: 'ai',
-          message: `✅ **${formData.title}** başarıyla mağazana eklendi!`,
-          data: result
+        // Add placeholder assistant message
+        const assistantId = `assistant-${Date.now()}`;
+        setMessages(prev => [...prev, {
+            id: assistantId,
+            role: "assistant",
+            content: "",
+            timestamp: new Date(),
         }]);
-      }
-    } catch (error) {
-      console.error('Import confirmation failed:', error);
-      alert('Ürün eklenirken bir hata oluştu.');
-    }
-  };
 
-  const clearChat = () => {
-    const initialMsg = { role: 'ai' as const, message: 'Merhaba! Sohbet geçmişi temizlendi.' };
-    setChatHistory([initialMsg]);
-    localStorage.setItem('beekod_ai_history', JSON.stringify([initialMsg]));
-  };
+        setIsLoading(true);
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
+        try {
+            const response = await chatApi.sendMessage({
+                sessionId: sessionId || undefined,
+                message: userMessage.content,
+            });
 
-  const startListening = () => {
-    // Browser compatibility check
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+            if (response.sessionId && !sessionId) {
+                setSessionId(response.sessionId);
+            }
 
-    if (!SpeechRecognition) {
-      alert("Tarayıcınız sesli komutu desteklemiyor. Lütfen Chrome veya Edge kullanın.");
-      return;
-    }
+            setMessages(prev => prev.map(m => m.id === assistantId ? {
+                ...m,
+                content: response.message || "Anladım.",
+                productCards: response.productCards,
+                wholesalerList: response.wholesalerList,
+                marketplaceComparison: response.marketplaceComparison,
+                confirmationCode: response.confirmationCode,
+                confirmationType: response.confirmationType,
+            } : m));
 
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'tr-TR';
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-
-    recognition.onstart = () => {
-      setIsListening(true);
+        } catch (error) {
+            setMessages(prev => prev.map(m => m.id === assistantId ? {
+                ...m,
+                content: "Bir hata oluştu. Lütfen tekrar deneyin.",
+            } : m));
+        } finally {
+            setIsLoading(false);
+        }
     };
 
-    recognition.onend = () => {
-      setIsListening(false);
+    const handleImportProduct = async (url: string) => {
+        if (!url || importingUrls.has(url)) return;
+
+        setImportingUrls(prev => new Set(prev).add(url));
+        try {
+            const res = await chatApi.importProduct(url);
+
+            // Add a confirmation message
+            const confirmMessage: Message = {
+                id: `import-success-${Date.now()}`,
+                role: "assistant",
+                content: `✅ **${res.productName || 'Ürün'}** başarıyla içe aktarıldı!\n\n${res.error ? `⚠️ ${res.error}` : 'Mağaza bağlantınıza taslak olarak eklendi.'}`,
+                timestamp: new Date(),
+            };
+            setMessages(prev => [...prev, confirmMessage]);
+        } catch (error: any) {
+            const errorMessage: Message = {
+                id: `import-error-${Date.now()}`,
+                role: "assistant",
+                content: `❌ Ürün içe aktarılamadı: ${error.message || 'Hata'}`,
+                timestamp: new Date(),
+            };
+            setMessages(prev => [...prev, errorMessage]);
+        } finally {
+            setImportingUrls(prev => {
+                const next = new Set(prev);
+                next.delete(url);
+                return next;
+            });
+        }
     };
 
-    recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      if (transcript) {
-        setChatMessage(transcript);
-      }
+    const clearChat = () => {
+        setMessages([{
+            id: `welcome-${Date.now()}`,
+            role: "assistant",
+            content: "Merhaba! 👋 Sohbet temizlendi. Size nasıl yardımcı olabilirim?\n\n🔍 Ürün ara\n💰 Fiyat sorgula\n📦 Stok kontrol\n🏪 Toptancı ağında ara",
+            timestamp: new Date(),
+        }]);
+        setSessionId(null);
+        setInputValue("");
     };
 
-    recognition.onerror = (event: any) => {
-      console.error("Speech recognition error", event.error);
-      setIsListening(false);
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
     };
 
-    recognition.start();
-  };
-
-  return (
-    <>
-      <button
-        onClick={() => setIsChatOpen(!isChatOpen)}
-        className="fixed bottom-8 right-8 w-14 h-14 bg-[#F5B800] hover:bg-[#E5A800] rounded-2xl shadow-lg flex items-center justify-center transition-all hover:scale-110 z-50 overflow-hidden"
-      >
-        {isChatOpen ? (
-          <X className="w-6 h-6 text-gray-900" />
-        ) : (
-          <>
-            <img src={chatbotIcon} alt="AI Chatbot" className="w-full h-full object-cover" />
-            <div className="absolute top-1 right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
-          </>
-        )}
-      </button>
-
-      {isChatOpen && (
-        <div className="fixed bottom-28 right-8 w-96 h-[600px] max-h-[80vh] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col z-50 overflow-hidden font-sans">
-          <div className="bg-gradient-to-r from-[#F5B800] to-[#E5A800] p-4 flex justify-between items-center flex-shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center overflow-hidden border-2 border-white/20">
-                <img src={chatbotIcon} alt="AI Assistant" className="w-full h-full object-cover" />
-              </div>
-              <div className="flex-1">
-                <div className="text-sm font-bold text-gray-900 leading-none mb-1">Beekod Kanka AI</div>
-                <div className="text-[10px] text-gray-800 font-medium uppercase tracking-wider bg-white/30 px-1.5 py-0.5 rounded w-fit flex items-center gap-1">
-                  <Sparkles className="w-2 h-2" /> Canlı Akıl Aktif
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => navigate('/configuration')}
-                className="p-2 hover:bg-black/5 text-gray-900 rounded-lg transition-colors"
-                title="Ayarlar"
-              >
-                <Settings className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => {
-                  window.speechSynthesis.cancel();
-                  setIsMuted(!isMuted);
-                }}
-                className="p-2 hover:bg-black/5 text-gray-900 rounded-lg transition-colors"
-                title={isMuted ? "Sesi Aç" : "Sessize Al"}
-              >
-                {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-              </button>
-              <button
-                onClick={clearChat}
-                className="p-2 hover:bg-black/5 text-gray-900 rounded-lg transition-colors"
-                title="Temizle"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/50 scrollbar-thin scrollbar-thumb-gray-200">
-            <ChatErrorBoundary>
-              {chatHistory.length <= 1 && (
-                <div className="text-center py-4 bg-white/50 rounded-xl border border-dashed border-gray-200 mb-4 px-2">
-                  <p className="text-[11px] text-gray-500 mb-3 font-medium">Hızlı Öneriler</p>
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    {suggestedPrompts.map((s, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => s.action
-                          ? handleSendMessage(undefined, s.action, s.opts)
-                          : handleSendMessage(s.prompt)
-                        }
-                        className="text-[10px] bg-white border border-gray-100 px-3 py-1.5 rounded-full hover:border-[#F5B800] hover:text-[#F5B800] transition-colors shadow-sm"
-                      >
-                        {s.text}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {chatHistory.map((msg, idx) => (
-                <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`flex gap-2 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                    <div className={`w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 mt-1 ${msg.role === 'user' ? 'bg-[#F5B800]' : 'bg-gray-100'}`}>
-                      {msg.role === 'user' ? <User className="w-3.5 h-3.5 text-gray-900" /> : <Bot className="w-3.5 h-3.5 text-gray-900" />}
-                    </div>
-                    <div className={`group rounded-xl px-3 py-2 ${msg.role === 'user' ? 'bg-[#F5B800] text-gray-900 shadow-sm' : msg.isError ? 'bg-red-50 border border-red-100 text-red-800' : 'bg-white border border-gray-100 text-gray-900 shadow-sm'}`}>
-                      <div className="text-xs leading-relaxed">
-                        {msg.role === 'ai' && idx === chatHistory.length - 1 ? (
-                          <Typewriter text={msg.message} speed={10} />
-                        ) : (
-                          <div className="prose prose-xs max-w-none">
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                              {msg.message?.trim() || "⚠️ Boş mesaj"}
-                            </ReactMarkdown>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Retry Button for Errors */}
-                      {msg.isError && (
-                        <button
-                          onClick={() => handleSendMessage(chatHistory[idx - 1]?.message)}
-                          className="text-[10px] text-red-600 hover:text-red-700 font-medium flex items-center gap-1 mt-1"
-                        >
-                          <RotateCcw className="w-3 h-3" /> Tekrar Dene
-                        </button>
-                      )}
-
-                      {/* Feedback Buttons */}
-                      {(msg.role === 'ai' || msg.role === 'assistant') && !msg.isError && (
-                        <div className="flex justify-end gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            className="p-1 text-gray-400 hover:text-green-500 hover:bg-green-50 rounded"
-                            title="İyi cevap"
-                            onClick={(e) => {
-                              e.currentTarget.classList.add('text-green-500', 'bg-green-50');
-                              sendFeedback(String(idx), 'positive');
-                            }}
-                          >
-                            <ThumbsUp className="w-3 h-3" />
-                          </button>
-                          <button
-                            className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded"
-                            title="Kötü cevap"
-                            onClick={(e) => {
-                              e.currentTarget.classList.add('text-red-500', 'bg-red-50');
-                              sendFeedback(String(idx), 'negative');
-                            }}
-                          >
-                            <ThumbsDown className="w-3 h-3" />
-                          </button>
-                        </div>
-                      )}
-
-                      {msg.data && (
-                        <div className="mt-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                          {/* Content Card (New) */}
-                          {msg.data.contentType === 'content_card' && (
-                            <div className="mt-2 w-full max-w-sm">
-                              <ContentCard data={msg.data} />
-                            </div>
-                          )}
-
-                          {/* Product Card */}
-                          {msg.data.barcode && !Array.isArray(msg.data.items) && (
-                            <ProductCard
-                              product={msg.data}
-                              onAction={(action, barcode) => {
-                                if (action === 'VIEW_PRODUCT') handleSendMessage(`Ürüne git: ${barcode}`);
-                                else if (action === 'UPDATE_PRODUCT') handleSendMessage(`Stok güncelle: ${barcode}`);
-                              }}
-                            />
-                          )}
-
-                          {/* Stats Cards Grid */}
-                          {msg.data.stats && (
-                            <div className="grid grid-cols-1 gap-2 my-2">
-                              <StatsCard label="Toplam Ürün" value={msg.data.stats.totalProducts} icon="products" />
-                              {msg.data.stats.lowStockCount > 0 && (
-                                <StatsCard label="Kritik Stok" value={msg.data.stats.lowStockCount} icon="alert" />
-                              )}
-                            </div>
-                          )}
-
-                          {/* Sales Summary Stats */}
-                          {msg.data.orders !== undefined && msg.data.revenue !== undefined && (
-                            <div className="grid grid-cols-1 gap-2 my-2">
-                              <StatsCard label="Toplam Ciro" value={`${(msg.data.revenue ?? 0).toLocaleString()} ${msg.data.currency || 'TL'}`} icon="profit" />
-                              <div className="grid grid-cols-2 gap-2">
-                                <StatsCard label="Sipariş" value={msg.data.orders ?? 0} icon="sales" />
-                                <StatsCard label="Ürün" value={typeof msg.data.items === 'number' ? msg.data.items : Array.isArray(msg.data.items) ? msg.data.items.length : 0} icon="products" />
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Analytics Chart */}
-                          {Array.isArray(msg.data.timeline) && (
-                            <AnalyticsChart
-                              data={msg.data.timeline.map((d: any) => ({ name: d.date || d.day, value: d.revenue || d.amount }))}
-                              type="line"
-                              title="Gelir Analizi"
-                            />
-                          )}
-
-                          {/* Product List */}
-                          {(Array.isArray(msg.data.items) || Array.isArray(msg.data.lowStockProducts) || Array.isArray(msg.data.topProducts) || Array.isArray(msg.data.profitData)) && (
-                            <ProductList
-                              items={(Array.isArray(msg.data.items) ? msg.data.items : (msg.data.lowStockProducts || msg.data.topProducts || msg.data.profitData || [])).slice(0, 5)}
-                              title={msg.data.lowStockProducts ? "Kritik Stok Listesi" : (msg.data.profitData ? "En Kârlı Ürünler" : "Öne Çıkan Ürünler")}
-                              onItemClick={(barcode) => handleSendMessage(`${barcode} bilgisi getir`)}
-                            />
-                          )}
-                          {/* Marketplace List */}
-                          {Array.isArray(msg.data.marketplaces) && (
-                            <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden my-2">
-                              <div className="px-4 py-2 bg-gray-50 border-b border-gray-100 italic text-xs font-medium text-gray-600">
-                                Bağlı Pazaryerleri
-                              </div>
-                              <div className="divide-y divide-gray-50">
-                                {msg.data.marketplaces.map((m: any, idx: number) => (
-                                  <div key={idx} className="p-3 flex items-center gap-3">
-                                    <div className="w-8 h-8 bg-green-50 text-green-600 rounded-lg flex items-center justify-center font-bold text-xs">
-                                      ✓
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <h5 className="text-xs font-bold text-gray-900">{m.name}</h5>
-                                      <p className="text-[10px] text-gray-500">Durum: Aktif</p>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Web Search Results (Cards) */}
-                          {msg.data.type === 'product_search_results' && Array.isArray(msg.data.results) && (
-                            <ProductSearchCard
-                              results={msg.data.results}
-                              onImport={(item) => {
-                                setSelectedImportItem(item);
-                                setIsImportModalOpen(true);
-                              }}
-                            />
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              {isLoading && <MessageSkeleton />}
-
-              <div ref={messagesEndRef} />
-            </ChatErrorBoundary>
-
-            {/* Import Modal */}
-            <ProductImportModal
-              isOpen={isImportModalOpen}
-              item={selectedImportItem}
-              onClose={() => {
-                setIsImportModalOpen(false);
-                setSelectedImportItem(null);
-              }}
-              onConfirm={handleImportConfirm}
-            />
-          </div>
-
-          <div className="p-4 border-t border-gray-100 bg-white">
-            {imagePreview && (
-              <div className="mb-2 relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200 group">
-                <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+    return (
+        <>
+            {/* Floating Button */}
+            {!isOpen && (
                 <button
-                  onClick={removeImage}
-                  className="absolute top-0.5 right-0.5 bg-black/50 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => setIsOpen(true)}
+                    style={{ zIndex: 9999 }}
+                    className={cn(
+                        "fixed bottom-6 right-6 p-4 rounded-full shadow-2xl",
+                        "bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-600",
+                        "hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500",
+                        "transition-all duration-300"
+                    )}
                 >
-                  <X className="w-3 h-3" />
+                    <MessageSquare className="w-6 h-6 text-white" />
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white animate-pulse" />
                 </button>
-              </div>
             )}
-            <div className="flex gap-2 items-center">
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileSelect}
-                accept="image/*"
-                className="hidden"
-              />
 
-              {/* Expandable Attachment Menu */}
-              <div className="relative">
-                {showAttachments && (
-                  <div className="absolute bottom-12 left-0 bg-white shadow-xl border border-gray-100 rounded-xl p-2 flex flex-col gap-2 animate-in slide-in-from-bottom-2 fade-in duration-200 z-10 w-10">
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="w-8 h-8 hover:bg-blue-50 text-blue-500 rounded-lg transition-colors flex items-center justify-center"
-                      title="Resim Yükle"
-                    >
-                      <ImageIcon className="w-4 h-4" />
-                    </button>
-                    {/* Future attachments can go here */}
-                  </div>
-                )}
-                <button
-                  onClick={() => setShowAttachments(!showAttachments)}
-                  className={`p-2 rounded-xl transition-colors ${showAttachments ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:bg-gray-50'}`}
-                  title="Ekle"
+            {/* Chat Panel */}
+            {isOpen && (
+                <div
+                    style={{ zIndex: 9999 }}
+                    className={cn(
+                        "fixed bottom-6 right-6",
+                        "w-[420px] h-[600px] max-h-[80vh]",
+                        "flex flex-col",
+                        "bg-slate-900 border-2 border-purple-500/50 rounded-2xl",
+                        "shadow-2xl shadow-purple-500/20",
+                        "overflow-hidden"
+                    )}
                 >
-                  <Plus className={`w-5 h-5 transition-transform duration-200 ${showAttachments ? 'rotate-45' : ''}`} />
-                </button>
-              </div>
+                    <div className="flex flex-col h-full bg-slate-900/95 backdrop-blur-xl">
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-4 border-b border-white/10 shrink-0">
+                            <div className="flex items-center gap-3">
+                                <div className="relative">
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
+                                        <Bot className="w-5 h-5 text-white" />
+                                    </div>
+                                    <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-slate-900" />
+                                </div>
+                                <div>
+                                    <h3 className="text-white font-semibold text-sm">BEEKOD AI</h3>
+                                    <p className="text-green-400 text-xs flex items-center gap-1">
+                                        <Sparkles className="w-3 h-3" /> Gemini 2.0 Flash
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={clearChat}
+                                    disabled={messages.length <= 1 || isLoading}
+                                    className="text-slate-400 hover:text-red-400 hover:bg-white/10"
+                                    title="Sohbeti Temizle"
+                                >
+                                    <Trash2 className="w-5 h-5" />
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setIsOpen(false)}
+                                    className="text-slate-400 hover:text-white hover:bg-white/10"
+                                >
+                                    <X className="w-5 h-5" />
+                                </Button>
+                            </div>
+                        </div>
 
-              <input
-                type="text"
-                value={chatMessage}
-                onChange={(e) => setChatMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Bir mesaj gönder..."
-                disabled={isLoading}
-                className="flex-1 px-4 py-2 border border-gray-100 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-[#F5B800] focus:border-transparent disabled:opacity-50 bg-gray-50/50"
-              />
+                        {/* Messages */}
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-white/10">
+                            {messages.length > 0 ? (
+                                messages.map((message) => (
+                                    <MessageBubble
+                                        key={message.id}
+                                        message={message}
+                                        onImportProduct={handleImportProduct}
+                                        importingUrls={importingUrls}
+                                    />
+                                ))
+                            ) : (
+                                <div className="flex items-center justify-center h-full text-slate-500 text-sm">
+                                    Mesajlar yükleniyor...
+                                </div>
+                            )}
 
-              <button
-                onClick={startListening}
-                className={`p-2 rounded-xl transition-all ${isListening
-                  ? 'bg-red-50 text-red-500 animate-pulse ring-2 ring-red-200'
-                  : 'text-gray-400 hover:bg-gray-50'
-                  }`}
-                title="Sesli Konuş"
-              >
-                <Mic className="w-4 h-4" />
-              </button>
+                            {isLoading && (
+                                <div className="flex items-center gap-2 text-slate-400">
+                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white">
+                                        <Loader2 className="w-4 h-4 text-white animate-spin" />
+                                    </div>
+                                    <span className="text-sm">Düşünüyor...</span>
+                                </div>
+                            )}
 
-              <button
-                onClick={() => handleSendMessage()}
-                disabled={isLoading || (!chatMessage.trim() && !selectedImage)}
-                className="w-10 h-10 bg-[#F5B800] hover:bg-[#E5A800] rounded-xl transition-colors flex items-center justify-center disabled:opacity-50 disabled:bg-gray-200 disabled:text-gray-400"
-              >
-                <Send className="w-4 h-4 text-gray-900" />
-              </button>
+                            <div ref={messagesEndRef} />
+                        </div>
+
+                        {/* Input */}
+                        <div className="p-4 border-t border-white/10 shrink-0">
+                            <div className="flex gap-2">
+                                <Input
+                                    ref={inputRef}
+                                    value={inputValue}
+                                    onChange={(e) => setInputValue(e.target.value)}
+                                    onKeyDown={handleKeyDown}
+                                    placeholder="Mesajınızı yazın..."
+                                    disabled={isLoading}
+                                    className={cn(
+                                        "flex-1 bg-slate-800/50 border-white/10",
+                                        "text-white placeholder:text-slate-400",
+                                        "focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500"
+                                    )}
+                                />
+                                <Button
+                                    onClick={sendMessage}
+                                    disabled={!inputValue.trim() || isLoading}
+                                    className={cn(
+                                        "bg-gradient-to-r from-violet-600 to-purple-600",
+                                        "hover:from-violet-500 hover:to-purple-500",
+                                        "disabled:opacity-50"
+                                    )}
+                                >
+                                    <Send className="w-4 h-4" />
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
+    );
+}
+
+// ============================================================
+// MESSAGE BUBBLE
+// ============================================================
+
+function MessageBubble({
+    message,
+    onImportProduct,
+    importingUrls
+}: {
+    message: Message;
+    onImportProduct?: (url: string) => void;
+    importingUrls?: Set<string>;
+}) {
+    const isUser = message.role === "user";
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={cn("flex gap-2", isUser && "flex-row-reverse")}
+        >
+            {/* Avatar */}
+            <div className={cn(
+                "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
+                isUser
+                    ? "bg-gradient-to-br from-blue-500 to-cyan-500"
+                    : "bg-gradient-to-br from-violet-500 to-purple-600"
+            )}>
+                {isUser ? (
+                    <User className="w-4 h-4 text-white" />
+                ) : (
+                    <Bot className="w-4 h-4 text-white" />
+                )}
             </div>
-          </div>
+
+            {/* Content */}
+            <div className={cn(
+                "max-w-[80%] space-y-2",
+                isUser && "items-end"
+            )}>
+                {/* Text Bubble */}
+                <div className={cn(
+                    "px-4 py-2.5 rounded-2xl text-sm leading-relaxed",
+                    isUser
+                        ? "bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-br-sm"
+                        : "bg-slate-700/50 text-slate-100 rounded-bl-sm"
+                )}>
+                    <p className="whitespace-pre-wrap">{message.content}</p>
+                </div>
+
+                {/* Product Cards */}
+                {message.productCards && message.productCards.length > 0 && (
+                    <ProductCardList
+                        products={message.productCards}
+                        onImportProduct={onImportProduct}
+                        importingUrls={importingUrls}
+                    />
+                )}
+
+                {/* Wholesaler List */}
+                {message.wholesalerList && message.wholesalerList.length > 0 && (
+                    <WholesalerList wholesalers={message.wholesalerList} />
+                )}
+
+                {/* Marketplace Comparison */}
+                {message.marketplaceComparison && message.marketplaceComparison.length > 0 && (
+                    <MarketplaceComparison items={message.marketplaceComparison} />
+                )}
+
+                {/* Confirmation Badge */}
+                {message.confirmationCode && (
+                    <ConfirmationBadge
+                        code={message.confirmationCode}
+                        type={message.confirmationType}
+                    />
+                )}
+
+                {/* Timestamp */}
+                <p className={cn(
+                    "text-[10px] text-slate-500",
+                    isUser && "text-right"
+                )}>
+                    {message.timestamp.toLocaleTimeString("tr-TR", {
+                        hour: "2-digit",
+                        minute: "2-digit"
+                    })}
+                </p>
+            </div>
+        </motion.div>
+    );
+}
+
+// ============================================================
+// PRODUCT CARD LIST
+// ============================================================
+
+function ProductCardList({
+    products,
+    onImportProduct,
+    importingUrls
+}: {
+    products: ProductCard[];
+    onImportProduct?: (url: string) => void;
+    importingUrls?: Set<string>;
+}) {
+    const [expanded, setExpanded] = useState(false);
+    const displayProducts = expanded ? products : products.slice(0, 3);
+
+    return (
+        <div className="space-y-2">
+            {displayProducts.map((product, index) => (
+                <motion.div
+                    key={product.barcode || index}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className={cn(
+                        "p-3 rounded-xl",
+                        "bg-gradient-to-r from-slate-700/50 to-slate-800/50",
+                        "border border-white/5 hover:border-purple-500/30",
+                        "transition-all duration-200"
+                    )}
+                >
+                    <div className="flex gap-3">
+                        {product.image && (
+                            <img
+                                src={product.image}
+                                alt={product.name}
+                                className="w-12 h-12 rounded-lg object-cover"
+                            />
+                        )}
+                        <div className="flex-1 min-w-0">
+                            <h4 className="text-sm font-medium text-white truncate">
+                                {product.name}
+                            </h4>
+                            <p className="text-xs text-slate-400">{product.barcode}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                                <span className="text-green-400 font-semibold text-sm">
+                                    ₺{product.price?.toLocaleString("tr-TR")}
+                                </span>
+                                {product.stock !== undefined && (
+                                    <span className={cn(
+                                        "text-xs px-1.5 py-0.5 rounded",
+                                        product.stock > 10
+                                            ? "bg-green-500/20 text-green-400"
+                                            : product.stock > 0
+                                                ? "bg-yellow-500/20 text-yellow-400"
+                                                : "bg-red-500/20 text-red-400"
+                                    )}>
+                                        {product.stock} adet
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => product.url && onImportProduct?.(product.url)}
+                            disabled={!product.url || importingUrls?.has(product.url || "")}
+                            className="text-purple-400 hover:text-purple-300 hover:bg-purple-500/10"
+                            title="Mağazama Ekle"
+                        >
+                            {importingUrls?.has(product.url || "") ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                                <Store className="w-4 h-4" />
+                            )}
+                        </Button>
+                    </div>
+                </motion.div>
+            ))}
+
+            {products.length > 3 && (
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setExpanded(!expanded)}
+                    className="w-full text-slate-400 hover:text-white"
+                >
+                    <ChevronDown className={cn(
+                        "w-4 h-4 mr-1 transition-transform",
+                        expanded && "rotate-180"
+                    )} />
+                    {expanded ? "Daha az göster" : `+${products.length - 3} ürün daha`}
+                </Button>
+            )}
         </div>
-      )}
-    </>
-  );
+    );
+}
+
+// ============================================================
+// WHOLESALER LIST
+// ============================================================
+
+function WholesalerList({ wholesalers }: { wholesalers: WholesalerStockHolder[] }) {
+    return (
+        <div className="space-y-2">
+            <div className="flex items-center gap-2 text-xs text-slate-400 mb-2">
+                <Package className="w-3.5 h-3.5" />
+                <span>Toptancı Ağı Sonuçları</span>
+            </div>
+
+            {wholesalers.map((w, index) => (
+                <motion.div
+                    key={w.wholesalerId || index}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className={cn(
+                        "p-3 rounded-xl",
+                        "bg-gradient-to-r from-emerald-900/30 to-teal-900/30",
+                        "border border-emerald-500/20"
+                    )}
+                >
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h4 className="text-sm font-medium text-white">
+                                {w.displayName || `Toptancı #${w.wholesalerId}`}
+                            </h4>
+                            <p className="text-xs text-slate-400">{w.city}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className={cn(
+                                "px-2 py-1 rounded-full text-xs font-medium",
+                                w.availability === "VAR"
+                                    ? "bg-green-500/20 text-green-400"
+                                    : "bg-red-500/20 text-red-400"
+                            )}>
+                                {w.availability}
+                            </span>
+                            {w.canMessage && (
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
+                                >
+                                    <MessageSquare className="w-4 h-4" />
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                </motion.div>
+            ))}
+        </div>
+    );
+}
+
+// ============================================================
+// MARKETPLACE COMPARISON
+// ============================================================
+
+function MarketplaceComparison({ items }: { items: MarketplaceComparisonCard[] }) {
+    return (
+        <div className="space-y-2">
+            <div className="flex items-center gap-2 text-xs text-slate-400 mb-2">
+                <TrendingUp className="w-3.5 h-3.5" />
+                <span>Pazaryeri Karşılaştırma</span>
+            </div>
+
+            {items.map((item, index) => (
+                <motion.div
+                    key={item.marketplace || index}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className={cn(
+                        "p-3 rounded-xl flex items-center justify-between",
+                        "bg-gradient-to-r from-blue-900/30 to-indigo-900/30",
+                        "border border-blue-500/20"
+                    )}
+                >
+                    <div className="flex items-center gap-2">
+                        {item.available ? (
+                            <CheckCircle className="w-4 h-4 text-green-400" />
+                        ) : (
+                            <AlertCircle className="w-4 h-4 text-red-400" />
+                        )}
+                        <span className="text-sm text-white font-medium">{item.marketplace}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <span className="text-green-400 font-semibold">
+                            ₺{item.price?.toLocaleString("tr-TR")}
+                        </span>
+                        {item.stock !== undefined && (
+                            <span className="text-xs text-slate-400">
+                                {item.stock} adet
+                            </span>
+                        )}
+                    </div>
+                </motion.div>
+            ))}
+        </div>
+    );
+}
+
+// ============================================================
+// CONFIRMATION BADGE
+// ============================================================
+
+function ConfirmationBadge({
+    code,
+    type
+}: {
+    code: string;
+    type?: "destructive" | "privacy"
+}) {
+    const isPrivacy = type === "privacy";
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className={cn(
+                "p-3 rounded-xl text-center",
+                isPrivacy
+                    ? "bg-gradient-to-r from-blue-900/50 to-cyan-900/50 border border-blue-500/30"
+                    : "bg-gradient-to-r from-orange-900/50 to-red-900/50 border border-orange-500/30"
+            )}
+        >
+            <div className="flex items-center justify-center gap-2 mb-2">
+                {isPrivacy ? (
+                    <Phone className="w-4 h-4 text-blue-400" />
+                ) : (
+                    <AlertCircle className="w-4 h-4 text-orange-400" />
+                )}
+                <span className="text-xs text-slate-400">
+                    {isPrivacy ? "Telefon Paylaşımı Onayı" : "İşlem Onayı Gerekli"}
+                </span>
+            </div>
+            <div className={cn(
+                "font-mono text-lg font-bold px-4 py-2 rounded-lg",
+                isPrivacy
+                    ? "bg-blue-500/20 text-blue-300"
+                    : "bg-orange-500/20 text-orange-300"
+            )}>
+                {isPrivacy ? "PAYLAŞ" : "ONAY"} {code}
+            </div>
+        </motion.div>
+    );
 }

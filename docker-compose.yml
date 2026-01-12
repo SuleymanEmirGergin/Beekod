@@ -25,23 +25,34 @@ services:
       timeout: 5s
       retries: 5
 
-  # Redis Cache (Optional)
+  # Redis Cache
   redis:
     image: redis:7-alpine
     container_name: beekod-redis
     restart: unless-stopped
-    command: redis-server --requirepass ${REDIS_PASSWORD:-}
-    ports:
-      - "6379:6379"
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD:?Redis password is required!}
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+    # ⚠️ PRODUCTION: Port'u dış dünyaya AÇMA!
+    # Sadece container network'ü içinde erişilebilir
+    expose:
+      - "6379"
+    # Development için gerekirse uncomment et:
+    # ports:
+    #   - "6379:6379"
     volumes:
       - redis_data:/data
     networks:
       - beekod-network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 10s
       timeout: 3s
       retries: 5
+      start_period: 5s
 
   # Backend API
   backend:
@@ -59,6 +70,7 @@ services:
       - DB_NAME=${DB_NAME}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
       - PORT=3000
       - ADMIN_KEY=${ADMIN_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
@@ -76,7 +88,9 @@ services:
     networks:
       - beekod-network
     volumes:
-      - ./logs:/app/logs
+      - backend_logs:/app/logs
+      - backend_storage:/app/storage
+      - backend_temp:/app/temp
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
       interval: 30s
@@ -111,4 +125,10 @@ volumes:
   db_data:
     driver: local
   redis_data:
+    driver: local
+  backend_logs:
+    driver: local
+  backend_storage:
+    driver: local
+  backend_temp:
     driver: local

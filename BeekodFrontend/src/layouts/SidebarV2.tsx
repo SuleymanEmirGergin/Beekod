@@ -1,4 +1,5 @@
 import { AppLogo } from '../components/shared/';
+import { ThemeToggle } from '../components/shared/ThemeToggle';
 import {
   Activity,
   LayoutDashboard,
@@ -17,6 +18,9 @@ import {
   MessageSquare,
   Zap,
   Calendar,
+  PieChart,
+  Truck,
+  Megaphone,
 } from 'lucide-react';
 import { NotificationCenter } from '../components/NotificationCenter';
 
@@ -43,6 +47,7 @@ export function SidebarV2({
     { id: 'dashboard', label: 'Panel', icon: LayoutDashboard },
     { id: 'inventory', label: 'Envanter', icon: Package },
     { id: 'orders', label: 'Siparişler', icon: ShoppingCart, badge: ordersBadge },
+    { id: 'shipping', label: 'Kargo Yönetimi', icon: Truck },
     { id: 'discovery', label: 'Ürün Keşfi', icon: Zap, color: 'text-amber-500' },
     { id: 'marketplace-inventory', label: 'Pazaryeri Envanteri', icon: Package, color: 'text-blue-500' },
     { id: 'jobs', label: 'İşlem İzleme', icon: Activity, color: 'text-indigo-500' },
@@ -56,6 +61,7 @@ export function SidebarV2({
     { id: 'revenue-optimization', label: 'Gelir Optimizasyonu', icon: TrendingUp },
     { id: 'video-designer', label: 'Video Tasarımcısı', icon: Video },
     { id: 'social-scheduler', label: 'Sosyal Planlayıcı', icon: Calendar },
+    { id: 'campaigns', label: 'Kampanya Yönetimi', icon: Megaphone },
   ];
 
   const settingsItems = [
@@ -64,14 +70,17 @@ export function SidebarV2({
   ];
 
   return (
-    <div className="w-52 bg-white border-r border-gray-200 h-screen flex flex-col">
+    <div className="w-52 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 h-screen flex flex-col transition-colors duration-300">
       {/* Logo section */}
       <div className="px-5 py-5 border-b border-gray-100 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <AppLogo size={32} />
-          <span className="text-lg text-gray-900 font-bold">Beekod</span>
+          <span className="text-lg text-gray-900 font-bold dark:text-white">Beekod</span>
         </div>
-        <NotificationCenter />
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <NotificationCenter />
+        </div>
       </div>
 
       {/* Main Navigation */}

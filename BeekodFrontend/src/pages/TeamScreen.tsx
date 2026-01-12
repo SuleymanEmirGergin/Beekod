@@ -8,7 +8,7 @@ import {
   TeamMember,
 } from '../services/team';
 import { SidebarV2 } from '../layouts/SidebarV2';
-import { ChatWidget } from '../components/ChatWidget';
+
 import { Card } from '../components/shared/';
 
 interface TeamScreenProps {
@@ -128,10 +128,10 @@ export function TeamScreen({ onNavigate, userName = 'BK' }: TeamScreenProps) {
                 onClick={() => onNavigate('dashboard')}
                 className="text-[#B8934D] hover:text-[#A07D3D] hover:underline"
               >
-                Home
+                Ana Sayfa
               </button>
               <span>/</span>
-              <span className="text-gray-900">Team Management</span>
+              <span className="text-gray-900">Ekip Yönetimi</span>
             </div>
             <div className="flex items-center gap-4">
               <button
@@ -139,7 +139,7 @@ export function TeamScreen({ onNavigate, userName = 'BK' }: TeamScreenProps) {
                 className="flex items-center gap-2 px-4 py-2 bg-[#F5B800] hover:bg-[#E5A800] text-gray-900 rounded-lg text-sm transition-colors"
               >
                 <UserPlus className="w-4 h-4" />
-                Invite Member
+                Üye Davet Et
               </button>
               <div className="w-9 h-9 rounded-full bg-[#F5B800] flex items-center justify-center text-sm">
                 BK
@@ -152,10 +152,9 @@ export function TeamScreen({ onNavigate, userName = 'BK' }: TeamScreenProps) {
         <main className="flex-1 overflow-y-auto px-8 py-8">
           {/* Page header */}
           <div className="mb-8">
-            <h1 className="text-3xl text-gray-900 mb-2">Team Management</h1>
+            <h1 className="text-3xl text-gray-900 mb-2">Ekip Yönetimi</h1>
             <p className="text-[#B8934D]">
-              Manage your team members, roles, and permissions. Invite new members to collaborate on
-              your wholesale business.
+              Ekip üyelerinizi, rollerini ve izinlerini yönetin. İşbirliği yapmak için yeni üyeler davet edin.
             </p>
           </div>
 
@@ -173,7 +172,7 @@ export function TeamScreen({ onNavigate, userName = 'BK' }: TeamScreenProps) {
                 className="hover:shadow-lg hover:border-[#F5B800] transition-all cursor-pointer"
               >
                 <div className="text-2xl text-gray-900 mb-1">{teamMembers.length}</div>
-                <div className="text-sm text-gray-500">Total Members</div>
+                <div className="text-sm text-gray-500">Toplam Üye</div>
               </Card>
             </button>
             <button
@@ -190,7 +189,7 @@ export function TeamScreen({ onNavigate, userName = 'BK' }: TeamScreenProps) {
                 <div className="text-2xl text-gray-900 mb-1">
                   {teamMembers.filter((m) => m.status === 'Active').length}
                 </div>
-                <div className="text-sm text-gray-500">Active</div>
+                <div className="text-sm text-gray-500">Aktif</div>
               </Card>
             </button>
             <button
@@ -207,7 +206,7 @@ export function TeamScreen({ onNavigate, userName = 'BK' }: TeamScreenProps) {
                 <div className="text-2xl text-gray-900 mb-1">
                   {teamMembers.filter((m) => m.status === 'Pending').length}
                 </div>
-                <div className="text-sm text-gray-500">Pending Invites</div>
+                <div className="text-sm text-gray-500">Davet Bekleyen</div>
               </Card>
             </button>
             <button
@@ -224,7 +223,7 @@ export function TeamScreen({ onNavigate, userName = 'BK' }: TeamScreenProps) {
                 <div className="text-2xl text-gray-900 mb-1">
                   {teamMembers.filter((m) => m.role === 'Admin' || m.role === 'Owner').length}
                 </div>
-                <div className="text-sm text-gray-500">Admins</div>
+                <div className="text-sm text-gray-500">Yöneticiler</div>
               </Card>
             </button>
           </div>
@@ -232,7 +231,7 @@ export function TeamScreen({ onNavigate, userName = 'BK' }: TeamScreenProps) {
           {/* Team Members List */}
           <Card padding="sm">
             <div className="px-6 py-4 border-b border-gray-100">
-              <h2 className="text-base text-gray-900">Team Members</h2>
+              <h2 className="text-base text-gray-900">Ekip Üyeleri</h2>
             </div>
             <div className="divide-y divide-gray-100">
               {teamMembers.map((member) => (
@@ -260,15 +259,15 @@ export function TeamScreen({ onNavigate, userName = 'BK' }: TeamScreenProps) {
                       <span
                         className={`px-3 py-1 rounded-lg text-xs border ${getRoleBadgeColor(member.role)}`}
                       >
-                        {member.role}
+                        {member.role === 'Owner' ? 'Sahip' : member.role === 'Admin' ? 'Yönetici' : member.role === 'Viewer' ? 'İzleyici' : 'Üye'}
                       </span>
                       {member.status === 'Pending' ? (
                         <span className="px-3 py-1 bg-orange-50 text-orange-700 rounded-lg text-xs border border-orange-200">
-                          Pending
+                          Beklemede
                         </span>
                       ) : (
                         <span className="px-3 py-1 bg-green-50 text-green-700 rounded-lg text-xs border border-green-200">
-                          Active
+                          Aktif
                         </span>
                       )}
 
@@ -290,14 +289,14 @@ export function TeamScreen({ onNavigate, userName = 'BK' }: TeamScreenProps) {
                                 className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                               >
                                 <Edit className="w-4 h-4" />
-                                Edit Role
+                                Rolü Düzenle
                               </button>
                               <button
                                 onClick={() => handleRemoveMember(member._id)}
                                 className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                               >
                                 <Trash2 className="w-4 h-4" />
-                                Remove Member
+                                Üyeyi Sil
                               </button>
                             </div>
                           )}
@@ -314,39 +313,39 @@ export function TeamScreen({ onNavigate, userName = 'BK' }: TeamScreenProps) {
           <Card padding="lg" className="mt-8">
             <h2 className="text-base text-gray-900 mb-4 flex items-center gap-2">
               <Shield className="w-5 h-5 text-[#F5B800]" />
-              Role Permissions
+              Rol İzinleri
             </h2>
             <div className="grid grid-cols-2 gap-6">
               <div>
-                <h3 className="text-sm text-gray-900 mb-2">Owner</h3>
+                <h3 className="text-sm text-gray-900 mb-2">Sahip (Owner)</h3>
                 <ul className="text-xs text-gray-600 space-y-1">
-                  <li>• Full access to all features</li>
-                  <li>• Billing and subscription management</li>
-                  <li>• Can add/remove team members</li>
+                  <li>• Tüm özelliklere tam erişim</li>
+                  <li>• Faturalandırma ve abonelik yönetimi</li>
+                  <li>• Üye ekleme/çıkarma yetkisi</li>
                 </ul>
               </div>
               <div>
-                <h3 className="text-sm text-gray-900 mb-2">Admin</h3>
+                <h3 className="text-sm text-gray-900 mb-2">Yönetici (Admin)</h3>
                 <ul className="text-xs text-gray-600 space-y-1">
-                  <li>• Manage inventory and orders</li>
-                  <li>• Configure integrations</li>
-                  <li>• View analytics and reports</li>
+                  <li>• Envanter ve sipariş yönetimi</li>
+                  <li>• Entegrasyonları yapılandırma</li>
+                  <li>• Analiz ve raporları görüntüleme</li>
                 </ul>
               </div>
               <div>
-                <h3 className="text-sm text-gray-900 mb-2">Member</h3>
+                <h3 className="text-sm text-gray-900 mb-2">Üye (Member)</h3>
                 <ul className="text-xs text-gray-600 space-y-1">
-                  <li>• View and edit inventory</li>
-                  <li>• Process orders</li>
-                  <li>• Limited settings access</li>
+                  <li>• Envanteri görüntüleme ve düzenleme</li>
+                  <li>• Siparişleri işleme</li>
+                  <li>• Kısıtlı ayar erişimi</li>
                 </ul>
               </div>
               <div>
-                <h3 className="text-sm text-gray-900 mb-2">Viewer</h3>
+                <h3 className="text-sm text-gray-900 mb-2">İzleyici (Viewer)</h3>
                 <ul className="text-xs text-gray-600 space-y-1">
-                  <li>• Read-only access</li>
-                  <li>• View inventory and orders</li>
-                  <li>• No editing permissions</li>
+                  <li>• Sadece okuma yetkisi</li>
+                  <li>• Envanter ve siparişleri görüntüleme</li>
+                  <li>• Düzenleme yetkisi yok</li>
                 </ul>
               </div>
             </div>
@@ -355,7 +354,7 @@ export function TeamScreen({ onNavigate, userName = 'BK' }: TeamScreenProps) {
       </div>
 
       {/* Floating Chat Button */}
-      <ChatWidget />
+      
 
       {/* Members Detail Modal */}
       {showMembersModal &&
@@ -363,15 +362,15 @@ export function TeamScreen({ onNavigate, userName = 'BK' }: TeamScreenProps) {
           const getModalTitle = () => {
             switch (modalFilter) {
               case 'all':
-                return 'All Team Members';
+                return 'Tüm Ekip Üyeleri';
               case 'active':
-                return 'Active Members';
+                return 'Aktif Üyeler';
               case 'pending':
-                return 'Pending Invites';
+                return 'Bekleyen Davetler';
               case 'admins':
-                return 'Admins & Owners';
+                return 'Yöneticiler';
               default:
-                return 'Team Members';
+                return 'Ekip Üyeleri';
             }
           };
 
@@ -398,7 +397,7 @@ export function TeamScreen({ onNavigate, userName = 'BK' }: TeamScreenProps) {
                   <div>
                     <h2 className="text-lg text-gray-900">{getModalTitle()}</h2>
                     <p className="text-xs text-gray-500">
-                      {filteredMembers.length} member{filteredMembers.length !== 1 ? 's' : ''}
+                      {filteredMembers.length} üye
                     </p>
                   </div>
                   <button
@@ -440,15 +439,15 @@ export function TeamScreen({ onNavigate, userName = 'BK' }: TeamScreenProps) {
                           <span
                             className={`px-2.5 py-1 rounded-lg text-xs border ${getRoleBadgeColor(member.role)}`}
                           >
-                            {member.role}
+                            {member.role === 'Owner' ? 'Sahip' : member.role === 'Admin' ? 'Yönetici' : member.role === 'Viewer' ? 'İzleyici' : 'Üye'}
                           </span>
                           {member.status === 'Pending' ? (
                             <span className="px-2.5 py-1 bg-orange-50 text-orange-700 rounded-lg text-xs border border-orange-200">
-                              Pending
+                              Beklemede
                             </span>
                           ) : (
                             <span className="px-2.5 py-1 bg-green-50 text-green-700 rounded-lg text-xs border border-green-200">
-                              Active
+                              Aktif
                             </span>
                           )}
                         </div>
@@ -467,8 +466,8 @@ export function TeamScreen({ onNavigate, userName = 'BK' }: TeamScreenProps) {
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
               <div>
-                <h2 className="text-lg text-gray-900">Invite Team Member</h2>
-                <p className="text-xs text-gray-500">Send an invitation to join your team</p>
+                <h2 className="text-lg text-gray-900">Ekip Üyesi Davet Et</h2>
+                <p className="text-xs text-gray-500">Ekibinize katılmaları için bir davet gönderin</p>
               </div>
               <button
                 onClick={() => {
@@ -487,13 +486,13 @@ export function TeamScreen({ onNavigate, userName = 'BK' }: TeamScreenProps) {
                   <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Check className="w-8 h-8 text-green-600" />
                   </div>
-                  <h3 className="text-base text-gray-900 mb-2">Invitation Sent!</h3>
-                  <p className="text-sm text-gray-600">We've sent an invitation to {inviteEmail}</p>
+                  <h3 className="text-base text-gray-900 mb-2">Davet Gönderildi!</h3>
+                  <p className="text-sm text-gray-600">{inviteEmail} adresine davet gönderdik.</p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm text-gray-700 mb-2">Email Address</label>
+                    <label className="block text-sm text-gray-700 mb-2">E-posta Adresi</label>
                     <input
                       type="email"
                       value={inviteEmail}
@@ -504,7 +503,7 @@ export function TeamScreen({ onNavigate, userName = 'BK' }: TeamScreenProps) {
                   </div>
 
                   <div>
-                    <label className="block text-sm text-gray-700 mb-2">Role</label>
+                    <label className="block text-sm text-gray-700 mb-2">Rol</label>
                     <select
                       value={inviteRole}
                       onChange={(e) =>
@@ -512,9 +511,9 @@ export function TeamScreen({ onNavigate, userName = 'BK' }: TeamScreenProps) {
                       }
                       className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:border-[#F5B800]"
                     >
-                      <option value="Admin">Admin</option>
-                      <option value="Member">Member</option>
-                      <option value="Viewer">Viewer</option>
+                      <option value="Admin">Yönetici (Admin)</option>
+                      <option value="Member">Üye (Member)</option>
+                      <option value="Viewer">İzleyici (Viewer)</option>
                     </select>
                   </div>
 
@@ -523,7 +522,7 @@ export function TeamScreen({ onNavigate, userName = 'BK' }: TeamScreenProps) {
                       onClick={() => setShowInviteModal(false)}
                       className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition-colors"
                     >
-                      Cancel
+                      İptal
                     </button>
                     <button
                       onClick={handleInvite}
@@ -531,7 +530,7 @@ export function TeamScreen({ onNavigate, userName = 'BK' }: TeamScreenProps) {
                       className="flex-1 px-4 py-2.5 bg-[#F5B800] hover:bg-[#E5A800] text-gray-900 rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
                       <Mail className="w-4 h-4" />
-                      Send Invite
+                      Davet Gönder
                     </button>
                   </div>
                 </div>
@@ -547,8 +546,8 @@ export function TeamScreen({ onNavigate, userName = 'BK' }: TeamScreenProps) {
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
               <div>
-                <h2 className="text-lg text-gray-900">Edit Role</h2>
-                <p className="text-xs text-gray-500">Change the role of {editingMember.name}</p>
+                <h2 className="text-lg text-gray-900">Rolü Düzenle</h2>
+                <p className="text-xs text-gray-500">{editingMember.name} için rolü değiştir</p>
               </div>
               <button
                 onClick={() => setShowEditRoleModal(false)}
@@ -561,7 +560,7 @@ export function TeamScreen({ onNavigate, userName = 'BK' }: TeamScreenProps) {
             <div className="p-6">
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm text-gray-700 mb-2">Role</label>
+                  <label className="block text-sm text-gray-700 mb-2">Rol</label>
                   <select
                     value={selectedNewRole}
                     onChange={(e) =>
@@ -569,9 +568,9 @@ export function TeamScreen({ onNavigate, userName = 'BK' }: TeamScreenProps) {
                     }
                     className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:border-[#F5B800]"
                   >
-                    <option value="Admin">Admin</option>
-                    <option value="Member">Member</option>
-                    <option value="Viewer">Viewer</option>
+                    <option value="Admin">Yönetici (Admin)</option>
+                    <option value="Member">Üye (Member)</option>
+                    <option value="Viewer">İzleyici (Viewer)</option>
                   </select>
                 </div>
 
@@ -580,13 +579,13 @@ export function TeamScreen({ onNavigate, userName = 'BK' }: TeamScreenProps) {
                     onClick={() => setShowEditRoleModal(false)}
                     className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition-colors"
                   >
-                    Cancel
+                    İptal
                   </button>
                   <button
                     onClick={handleSaveRole}
                     className="flex-1 px-4 py-2.5 bg-[#F5B800] hover:bg-[#E5A800] text-gray-900 rounded-lg text-sm transition-colors"
                   >
-                    Save
+                    Kaydet
                   </button>
                 </div>
               </div>

@@ -1,5 +1,5 @@
 import { Locale } from "../types.js";
-import { generateGeminiReply } from "./geminiService.js";
+import { generateGeminiReply } from "./geminiClient.js";
 import { logger } from "../logger.js";
 
 export interface SocialMediaPost {

@@ -23,6 +23,21 @@ export const getAllOrders = async (): Promise<IOrder[]> => {
   return result;
 };
 
+export const getRecentOrders = async (days: number, limit = 50): Promise<IOrder[]> => {
+  const orders = await query<IOrderDbRow[]>(
+    "SELECT * FROM orders WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY) ORDER BY created_at DESC LIMIT ?",
+    [days, limit],
+  );
+  const result: IOrder[] = [];
+
+  for (const order of orders) {
+    const items = await query<IOrderItem[]>("SELECT * FROM order_items WHERE order_id = ?", [order.id]);
+    result.push(mapOrderRow(order, items));
+  }
+
+  return result;
+};
+
 export const getOrderById = async (requestId: string): Promise<IOrder | null> => {
   const rows = await query<IOrderDbRow[]>("SELECT * FROM orders WHERE request_id = ?", [requestId]);
   const order = rows[0];

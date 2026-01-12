@@ -8,8 +8,9 @@ export class ArasProvider implements ICargoProvider {
         logger.info("Aras.createShipment", { payload });
         if (this.simulate) {
             await new Promise(r => setTimeout(r, 1200));
-            // Aras usually 13 digits
-            return `3${Math.floor(Math.random() * 1000000000000)}`;
+            // Aras usually 13 digits, starting with 3 or 4
+            const tracking = `3${Math.floor(100000000000 + Math.random() * 900000000000)}`;
+            return tracking;
         }
         throw new Error("Real Aras implementation not configured");
     }

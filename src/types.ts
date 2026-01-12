@@ -43,7 +43,7 @@ export type Product = {
   imageUrl?: string;
   /* Advanced Edit Fields */
   preparation_days?: number;
-  translations?: Record<string, any>;
+  translations?: Record<string, string>;
   product_type?: 'standard' | 'packet' | 'digital';
 };
 
@@ -105,5 +105,5 @@ export interface IDbRow {
   id: number;
   created_at?: Date;
   updated_at?: Date;
-  [key: string]: any;
+  [key: string]: string | number | boolean | Date | null | undefined | any; // Keep any as fallout for now but add common types
 }

@@ -18,7 +18,7 @@ interface TopProductsTableProps {
 
 export function TopProductsTable({ products, type }: TopProductsTableProps) {
     const isSellers = type === 'sellers';
-    const title = isSellers ? 'En Çok Satanlar' : 'En Karlı Ürünler';
+    const title = isSellers ? 'Trend Ürünler' : 'En Karlı Ürünler';
     const icon = isSellers ? <Trophy className="w-6 h-6 text-yellow-600" /> : <TrendingUp className="w-6 h-6 text-green-600" />;
     const bgColor = isSellers ? 'bg-yellow-100' : 'bg-green-100';
 
@@ -48,9 +48,9 @@ export function TopProductsTable({ products, type }: TopProductsTableProps) {
                         >
                             <div className="flex items-center gap-4 flex-1">
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-black ${index === 0 ? 'bg-yellow-500 text-white' :
-                                        index === 1 ? 'bg-slate-300 text-slate-700' :
-                                            index === 2 ? 'bg-orange-400 text-white' :
-                                                'bg-slate-200 text-slate-600'
+                                    index === 1 ? 'bg-slate-300 text-slate-700' :
+                                        index === 2 ? 'bg-orange-400 text-white' :
+                                            'bg-slate-200 text-slate-600'
                                     }`}>
                                     {index + 1}
                                 </div>

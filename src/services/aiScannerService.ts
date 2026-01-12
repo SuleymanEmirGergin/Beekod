@@ -1,4 +1,4 @@
-import { analyzeImage } from "./geminiService.js";
+import { analyzeImage } from "./geminiClient.js";
 import { logger } from "../logger.js";
 
 export interface ScannedInvoiceData {

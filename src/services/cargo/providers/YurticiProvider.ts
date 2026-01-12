@@ -18,7 +18,9 @@ export class YurticiProvider implements ICargoProvider {
             // Simulate API delay
             await new Promise(r => setTimeout(r, 1000));
             // Generate fake tracking number starting with YK
-            return `YK${Math.floor(Math.random() * 1000000000)}`;
+            const tracking = `YK${Math.floor(100000000 + Math.random() * 900000000)}`;
+            logger.info("Yurtici.simulate.success", { tracking });
+            return tracking;
         }
 
         // TODO: Real SOAP implementation would go here

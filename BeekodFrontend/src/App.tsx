@@ -3,11 +3,13 @@ import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { AuthProvider } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import { LoadingSpinner } from './components/LoadingSpinner';
 
 // Eager load critical screens
 import LoginScreen from './pages/LoginScreen';
-import { DashboardScreenV2 } from './pages/DashboardScreenV2';
+
 
 // Lazy load heavy screens for better performance
 const AnalyticsScreen = lazy(() => import('./pages/AnalyticsScreen').then(m => ({ default: m.AnalyticsScreen })));
@@ -18,7 +20,7 @@ const DashboardScreenNew = lazy(() => import('./pages/DashboardScreenNew').then(
 const OrdersListScreen = lazy(() => import('./pages/OrdersListScreen').then(m => ({ default: m.OrdersListScreen })));
 const ProductManagementScreen = lazy(() => import('./pages/ProductManagementScreen').then(m => ({ default: m.ProductManagementScreen })));
 const ProductEditScreen = lazy(() => import('./components/products/ProductEditScreen').then(m => ({ default: m.ProductEditScreen })));
-const AIAssistantScreen = lazy(() => import('./pages/AIAssistantScreen').then(m => ({ default: m.AIAssistantScreen })));
+
 const TeamScreen = lazy(() => import('./pages/TeamScreen').then(m => ({ default: m.TeamScreen })));
 const ConfigurationScreen = lazy(() => import('./pages/ConfigurationScreen').then(m => ({ default: m.ConfigurationScreen })));
 const ModelDesignerScreenV3 = lazy(() => import('./pages/ModelDesignerScreenV3').then(m => ({ default: m.ModelDesignerScreenV3 })));
@@ -31,12 +33,20 @@ const MarketplaceSyncScreen = lazy(() => import('./pages/MarketplaceSyncScreen')
 const SocialSchedulerScreen = lazy(() => import('./pages/SocialSchedulerScreen').then(m => ({ default: m.SocialSchedulerScreen })));
 const FinancialAnalyticsScreen = lazy(() => import('./pages/FinancialAnalyticsScreen').then(m => ({ default: m.FinancialAnalyticsScreen })));
 const RevenueOptimizationScreen = lazy(() => import('./pages/RevenueOptimizationScreen').then(m => ({ default: m.RevenueOptimizationScreen })));
+const AIChatScreen = lazy(() => import('./pages/AIChatScreen').then(m => ({ default: m.AIChatScreen })));
 const DiscoveryLandingScreen = lazy(() => import('./pages/DiscoveryLandingScreen').then(m => ({ default: m.DiscoveryLandingScreen })));
 const MarketplaceInventoryScreen = lazy(() => import('./pages/MarketplaceInventoryScreen').then(m => ({ default: m.MarketplaceInventoryScreen })));
 const JobMonitoringScreen = lazy(() => import('./pages/JobMonitoringScreen').then(m => ({ default: m.JobMonitoringScreen })));
 const AuditLogScreen = lazy(() => import('./pages/AuditLogScreen').then(m => ({ default: m.AuditLogScreen })));
-import { AssistantWidget } from './components/AI/AssistantWidget';
+const ShippingManagementScreen = lazy(() => import('./pages/ShippingManagementScreen').then(m => ({ default: m.ShippingManagementScreen })));
+const CampaignManagerScreen = lazy(() => import('./pages/CampaignManagerScreen').then(m => ({ default: m.CampaignManagerScreen })));
+const NotificationsScreen = lazy(() => import('./pages/NotificationsScreen').then(m => ({ default: m.NotificationsScreen })));
+const TermsScreen = lazy(() => import('./pages/TermsScreen').then(m => ({ default: m.TermsScreen })));
+const PrivacyScreen = lazy(() => import('./pages/PrivacyScreen').then(m => ({ default: m.PrivacyScreen })));
+const NotFoundScreen = lazy(() => import('./pages/NotFoundScreen').then(m => ({ default: m.NotFoundScreen })));
+
 import { CommandK } from './components/shared/CommandK';
+import ChatWidget from './components/ChatWidget';
 
 import { toast, Toaster } from 'sonner';
 
@@ -69,9 +79,7 @@ const screenToPath: Record<string, string> = {
   dashboardV2: '/dashboard',
   orders: '/orders',
   products: '/products',
-  'ai-chatbot': '/ai-assistant',
-  'ai-assistant': '/ai-assistant',
-  'ai-assistant-2': '/ai-assistant',
+
   stock: '/stock',
   team: '/team',
   configuration: '/configuration',
@@ -87,7 +95,12 @@ const screenToPath: Record<string, string> = {
   'revenue-optimization': '/revenue-optimization',
   'audit-logs': '/audit-logs',
   'marketplace-inventory': '/marketplace-inventory',
+  'ai-chatbot': '/ai-chatbot',
+
   jobs: '/jobs',
+  shipping: '/shipping',
+  campaigns: '/campaigns',
+  notifications: '/notifications',
 };
 
 function useOnNavigate() {
@@ -149,21 +162,7 @@ function ProductsRoute() {
   return <ProductManagementScreen onNavigate={onNavigate} />;
 }
 
-function AIAssistantRoute() {
-  const onNavigate = useOnNavigate();
-  const navigate = useNavigate();
-  const { setSelectedProductForModel } = useSelectedProduct();
 
-  return (
-    <AIAssistantScreen
-      onNavigate={onNavigate}
-      onSelectProductForModel={(product) => {
-        setSelectedProductForModel(product);
-        navigate('/model-designer');
-      }}
-    />
-  );
-}
 
 function StockRoute() {
   const onNavigate = useOnNavigate();
@@ -241,6 +240,36 @@ function AuditLogRoute() {
   return <AuditLogScreen onNavigate={onNavigate} />;
 }
 
+function AIChatRoute() {
+  const onNavigate = useOnNavigate();
+  return <AIChatScreen onNavigate={onNavigate} />;
+}
+
+function ShippingRoute() {
+  const onNavigate = useOnNavigate();
+  return <ShippingManagementScreen onNavigate={onNavigate} />;
+}
+
+function CampaignsRoute() {
+  const onNavigate = useOnNavigate();
+  return <CampaignManagerScreen onNavigate={onNavigate} />;
+}
+
+function NotificationsRoute() {
+  const onNavigate = useOnNavigate();
+  return <NotificationsScreen onNavigate={onNavigate} />;
+}
+
+function TermsRoute() {
+  const onNavigate = useOnNavigate();
+  return <TermsScreen onNavigate={onNavigate} />;
+}
+
+function PrivacyRoute() {
+  const onNavigate = useOnNavigate();
+  return <PrivacyScreen onNavigate={onNavigate} />;
+}
+
 export default function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('beekod-theme') || 'Light');
   const isDark = theme === 'Dark';
@@ -264,70 +293,79 @@ export default function App() {
     [selectedProductForModel],
   );
 
-  // This is needed because the instruction's route addition uses `handleNavigate`
-  // which is not defined. Assuming it should use `useOnNavigate` or a direct `navigate`.
-  // For consistency with other routes, we'll define a simple wrapper.
   const handleNavigate = useOnNavigate();
 
   return (
-    <SelectedProductContext.Provider value={selectedProductCtxValue}>
-      <AuthProvider>
-        <SocketProvider>
-          <ErrorBoundary>
-            <Routes>
-              {/* Default: dashboard */}
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+    <ThemeProvider>
+      <SelectedProductContext.Provider value={selectedProductCtxValue}>
+        <AuthProvider>
+          <SocketProvider>
+            <ErrorBoundary>
+              <Suspense fallback={<LoadingSpinner />}>
+                <Routes>
+                {/* Default: dashboard */}
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
-              <Route path="/login" element={<LoginScreen />} />
+                <Route path="/login" element={<LoginScreen />} />
 
-              {/* Application Routes - All Protected */}
-              <Route path="/dashboard" element={<ProtectedRoute><DashboardRoute /></ProtectedRoute>} />
-              <Route path="/analytics" element={<ProtectedRoute><AnalyticsRoute /></ProtectedRoute>} />
-              <Route path="/integrations" element={<ProtectedRoute><IntegrationsRoute /></ProtectedRoute>} />
-              <Route path="/pending" element={<ProtectedRoute><PendingRoute /></ProtectedRoute>} />
-              <Route path="/inventory" element={<ProtectedRoute><InventoryRoute /></ProtectedRoute>} />
-              <Route path="/discovery" element={<ProtectedRoute><DiscoveryRoute /></ProtectedRoute>} />
-              <Route path="/marketplace-inventory" element={<ProtectedRoute><MarketplaceInventoryRoute /></ProtectedRoute>} />
-              <Route path="/jobs" element={<ProtectedRoute><JobMonitoringRoute /></ProtectedRoute>} />
-              <Route path="/orders" element={<ProtectedRoute><OrdersRoute /></ProtectedRoute>} />
-              <Route path="/orders" element={<ProtectedRoute><OrdersRoute /></ProtectedRoute>} />
-              <Route path="/products" element={<ProtectedRoute><ProductsRoute /></ProtectedRoute>} />
-              <Route path="/products/create" element={<ProtectedRoute><ProductEditScreen /></ProtectedRoute>} />
-              <Route path="/products/:barcode/edit" element={<ProtectedRoute><ProductEditScreen /></ProtectedRoute>} />
-              <Route path="/ai-assistant" element={<ProtectedRoute><AIAssistantRoute /></ProtectedRoute>} />
-              <Route path="/stock" element={<ProtectedRoute><StockRoute /></ProtectedRoute>} />
-              <Route path="/team" element={<ProtectedRoute><TeamRoute /></ProtectedRoute>} />
-              <Route
-                path="/configuration"
-                element={<ProtectedRoute><ConfigurationRoute onThemeChange={handleThemeChange} /></ProtectedRoute>}
-              />
-              <Route path="/model-designer" element={<ProtectedRoute><ModelDesignerRoute /></ProtectedRoute>} />
-              <Route path="/profile" element={<ProtectedRoute><ProfileRoute /></ProtectedRoute>} />
-              <Route path="/intelligence" element={<ProtectedRoute><IntelligenceRoute /></ProtectedRoute>} />
-              <Route path="/video-designer" element={<ProtectedRoute><VideoDesignerRoute /></ProtectedRoute>} />
-              <Route
-                path="/marketplace-sync"
-                element={<ProtectedRoute><MarketplaceSyncRoute onNavigate={handleNavigate} /></ProtectedRoute>}
-              />
-              <Route
-                path="/social-scheduler"
-                element={<ProtectedRoute><SocialSchedulerRoute onNavigate={handleNavigate} /></ProtectedRoute>}
-              />
-              <Route path="/questions" element={<ProtectedRoute><QuestionsRoute /></ProtectedRoute>} />
-              <Route path="/invoices" element={<ProtectedRoute><InvoiceRoute /></ProtectedRoute>} />
-              <Route path="/ai-finance" element={<ProtectedRoute><FinancialFinanceRoute /></ProtectedRoute>} />
-              <Route path="/ai-finance" element={<ProtectedRoute><FinancialFinanceRoute /></ProtectedRoute>} />
-              <Route path="/revenue-optimization" element={<ProtectedRoute><RevenueOptimizationRoute /></ProtectedRoute>} />
-              <Route path="/audit-logs" element={<ProtectedRoute><AuditLogRoute /></ProtectedRoute>} />
+                {/* Application Routes - All Protected */}
+                <Route path="/dashboard" element={<ProtectedRoute><DashboardRoute /></ProtectedRoute>} />
+                <Route path="/analytics" element={<ProtectedRoute><AnalyticsRoute /></ProtectedRoute>} />
+                <Route path="/integrations" element={<ProtectedRoute><IntegrationsRoute /></ProtectedRoute>} />
+                <Route path="/pending" element={<ProtectedRoute><PendingRoute /></ProtectedRoute>} />
+                <Route path="/inventory" element={<ProtectedRoute><InventoryRoute /></ProtectedRoute>} />
+                <Route path="/discovery" element={<ProtectedRoute><DiscoveryRoute /></ProtectedRoute>} />
+                <Route path="/marketplace-inventory" element={<ProtectedRoute><MarketplaceInventoryRoute /></ProtectedRoute>} />
+                <Route path="/jobs" element={<ProtectedRoute><JobMonitoringRoute /></ProtectedRoute>} />
+                <Route path="/orders" element={<ProtectedRoute><OrdersRoute /></ProtectedRoute>} />
 
-              {/* 404 -> dashboard */}
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
-            </Routes>
-            <AssistantWidget />
-            <CommandK />
-          </ErrorBoundary>
-        </SocketProvider>
-      </AuthProvider>
-    </SelectedProductContext.Provider>
+                <Route path="/products" element={<ProtectedRoute><ProductsRoute /></ProtectedRoute>} />
+                <Route path="/products/create" element={<ProtectedRoute><ProductEditScreen /></ProtectedRoute>} />
+                <Route path="/products/:barcode/edit" element={<ProtectedRoute><ProductEditScreen /></ProtectedRoute>} />
+
+                <Route path="/stock" element={<ProtectedRoute><StockRoute /></ProtectedRoute>} />
+                <Route path="/team" element={<ProtectedRoute><TeamRoute /></ProtectedRoute>} />
+                <Route
+                  path="/configuration"
+                  element={<ProtectedRoute><ConfigurationRoute onThemeChange={handleThemeChange} /></ProtectedRoute>}
+                />
+                <Route path="/model-designer" element={<ProtectedRoute><ModelDesignerRoute /></ProtectedRoute>} />
+                <Route path="/profile" element={<ProtectedRoute><ProfileRoute /></ProtectedRoute>} />
+                <Route path="/intelligence" element={<ProtectedRoute><IntelligenceRoute /></ProtectedRoute>} />
+                <Route path="/video-designer" element={<ProtectedRoute><VideoDesignerRoute /></ProtectedRoute>} />
+                <Route
+                  path="/marketplace-sync"
+                  element={<ProtectedRoute><MarketplaceSyncRoute onNavigate={handleNavigate} /></ProtectedRoute>}
+                />
+                <Route
+                  path="/social-scheduler"
+                  element={<ProtectedRoute><SocialSchedulerRoute onNavigate={handleNavigate} /></ProtectedRoute>}
+                />
+                <Route path="/questions" element={<ProtectedRoute><QuestionsRoute /></ProtectedRoute>} />
+                <Route path="/invoices" element={<ProtectedRoute><InvoiceRoute /></ProtectedRoute>} />
+                <Route path="/ai-finance" element={<ProtectedRoute><FinancialFinanceRoute /></ProtectedRoute>} />
+
+                <Route path="/revenue-optimization" element={<ProtectedRoute><RevenueOptimizationRoute /></ProtectedRoute>} />
+                <Route path="/ai-chatbot" element={<ProtectedRoute><AIChatRoute /></ProtectedRoute>} />
+                <Route path="/audit-logs" element={<ProtectedRoute><AuditLogRoute /></ProtectedRoute>} />
+
+                <Route path="/shipping" element={<ProtectedRoute><ShippingRoute /></ProtectedRoute>} />
+                <Route path="/campaigns" element={<ProtectedRoute><CampaignsRoute /></ProtectedRoute>} />
+                <Route path="/notifications" element={<ProtectedRoute><NotificationsRoute /></ProtectedRoute>} />
+                <Route path="/terms" element={<ProtectedRoute><TermsRoute /></ProtectedRoute>} />
+                <Route path="/privacy" element={<ProtectedRoute><PrivacyRoute /></ProtectedRoute>} />
+
+                {/* 404 */}
+                <Route path="*" element={<Suspense fallback={<div>Loading...</div>}><NotFoundScreen /></Suspense>} />
+                </Routes>
+              </Suspense>
+
+              <CommandK />
+              <ChatWidget />
+            </ErrorBoundary>
+          </SocketProvider>
+        </AuthProvider>
+      </SelectedProductContext.Provider>
+    </ThemeProvider>
   );
 }

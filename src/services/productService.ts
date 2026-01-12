@@ -1,4 +1,4 @@
-﻿import QRCode from "qrcode";
+import QRCode from "qrcode";
 import { ResultSetHeader } from "mysql2";
 import { query } from "../db.js";
 import { Product, ProductPrice } from "../types.js";
@@ -466,7 +466,7 @@ export async function updateProduct(
 ): Promise<boolean> {
   try {
     const fields: string[] = [];
-    const values: any[] = [];
+    const values: (string | number)[] = [];
 
     // Build dynamic UPDATE query
     if (updates.price !== undefined) {

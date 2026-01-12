@@ -33,14 +33,14 @@ export function Sidebar({ activeItem, onNavigate, userName, userRole, ordersBadg
     { id: 'orders', label: 'Orders', icon: ShoppingCart, badge: ordersBadge },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
     { id: 'marketplace', label: 'Marketplace', icon: Globe },
-    { id: 'ai-assistant', label: 'AI Assistant', icon: Bot, badge: 'NEW' },
+
   ];
 
   const integrationItems: MenuItem[] = [
     { id: 'products', label: 'Products', icon: Package },
     { id: 'stock', label: 'Stock', icon: Package },
     { id: 'integrations', label: 'Integrations', icon: Globe },
-    { id: 'ai-assistant-2', label: 'AI Assistant', icon: Bot },
+
   ];
 
   return (
@@ -89,9 +89,8 @@ export function Sidebar({ activeItem, onNavigate, userName, userRole, ordersBadg
                     transition: { duration: 0.2 },
                   }}
                   whileTap={{ scale: 0.98 }}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors relative ${
-                    isActive ? 'bg-[#FFFBF0] text-gray-900' : 'text-gray-600 hover:bg-gray-50'
-                  }`}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors relative ${isActive ? 'bg-[#FFFBF0] text-gray-900' : 'text-gray-600 hover:bg-gray-50'
+                    }`}
                 >
                   {isActive && (
                     <motion.div

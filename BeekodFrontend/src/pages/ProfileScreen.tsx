@@ -14,7 +14,7 @@ import {
 import { useState, useEffect } from 'react';
 import { getMyProfile, updateMyProfile, UserProfile } from '../services/profile';
 import { SidebarV2 } from '../layouts/SidebarV2';
-import { ChatWidget } from '../components/ChatWidget';
+
 import { Card } from '../components/shared/';
 
 interface ProfileScreenProps {
@@ -423,7 +423,7 @@ export function ProfileScreen({ onNavigate }: ProfileScreenProps) {
       </div>
 
       {/* Floating Chat Button */}
-      <ChatWidget />
+      
     </div>
   );
 }

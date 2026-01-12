@@ -15,7 +15,7 @@ import {
 import { useState, useEffect } from 'react';
 import { SidebarV2 } from '../layouts/SidebarV2';
 import { SearchBar } from '../components/shared/';
-import { ChatWidget } from '../components/ChatWidget';
+
 import { ToastV2 } from '../components/shared/';
 import { HelpModal } from '../components/HelpModal';
 import { NotificationPanel } from '../components/NotificationPanel';
@@ -1099,7 +1099,7 @@ export function ModelDesignerScreen({ onNavigate }: ModelDesignerScreenProps) {
       </div>
 
       {/* Floating Chat Button */}
-      <ChatWidget />
+      
 
       {/* Toast Notification */}
       <ToastV2

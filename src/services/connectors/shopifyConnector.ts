@@ -26,16 +26,27 @@ export class ShopifyConnector {
                 body_html: product.description,
                 vendor: "Imported via Beekod",
                 product_type: product.category || "Uncategorized",
-                status: "draft", // IMPORTANT: Unpublished draft
+                status: "draft",
                 images: product.images?.map((src) => ({ src })) || [],
-                variants: [
-                    {
-                        price: product.price?.toString(),
-                        sku: product.barcode,
+                options: product.variants && product.variants.length > 0
+                    ? [{ name: Object.keys(product.variants[0].attributes)[0] || "Option" }]
+                    : [],
+                variants: product.variants && product.variants.length > 0
+                    ? product.variants.map((v) => ({
+                        option1: Object.values(v.attributes)[0],
+                        price: (v.price || product.price)?.toString(),
+                        sku: v.sku,
                         inventory_management: "shopify",
-                        inventory_quantity: product.stock || 0,
-                    },
-                ],
+                        inventory_quantity: v.stock || 0,
+                    }))
+                    : [
+                        {
+                            price: product.price?.toString(),
+                            sku: product.barcode,
+                            inventory_management: "shopify",
+                            inventory_quantity: product.stock || 0,
+                        },
+                    ],
             },
         };
 

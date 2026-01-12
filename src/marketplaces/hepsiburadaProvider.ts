@@ -157,41 +157,65 @@ export class HepsiburadaProvider implements MarketplaceProvider {
     };
   }
 
-  async getNewOrders(params?: { startDate?: string; endDate?: string }): Promise<any> {
+  async getNewOrders(params?: { startDate?: string; endDate?: string }): Promise<MarketplaceOrderResult> {
     if (!this.isConfigured()) {
       return { status: "not_configured", message: "Hepsiburada not configured", orders: [] };
     }
 
-    // Mock orders for demo/testing
-    const mockOrders = [
-      {
-        marketplace: this.name,
-        orderNumber: `HB-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-        customerName: "Mehmet Çetin",
-        customerEmail: "mehmet@example.com",
-        customerPhone: "5559876543",
-        customerAddress: "Bahçelievler Mah. 7. Cadde No:12, Çankaya, Ankara",
-        items: [
-          {
-            sku: "SK-GT-100",
-            barcode: "8681234567890", // Example barcode
-            name: "Siyah Gömlek - L",
-            price: 599.0,
-            quantity: 1,
-          },
-        ],
-        totalAmount: 599.0,
-        currency: "TRY",
-        orderDate: new Date().toISOString(),
-        status: "New",
-      },
-    ];
+    // Hepsiburada API: Get Orders (Packages)
+    // Endpoint: https://mpop-gateway.hepsiburada.com/packages/merchantid/{merchantId}
+    const merchantId = process.env.HEPSIBURADA_MERCHANT_ID;
+    const path = `/packages/merchantid/${merchantId}`;
+
+    // Note: Hepsiburada often requires status filtering or uses scrolling. 
+    // We will fetch "Unpacked" (Open) orders by default if no date is tight, 
+    // but here we allow standard flow.
+    
+    // Attempting to fetch "Open" orders (Status: 0 or similar is typical, but HB uses "status" query param)
+    // status=Open usually works for non-delivered items.
+    
+    // We will try fetching standard list. 
+    // Does HB support date filtering on this endpoint? Usually yes using 'timespan'.
+    
+    const response = await this.requestRaw("GET", path + "?status=Open"); // Fetching open orders
+    
+    if (!response.ok) {
+        // Fallback or error reporting
+        return { status: "failed", message: response.message, orders: [] }; 
+    }
+
+    const rawList = (response.data as any) || [];
+    // HB response structure is usually array of packages directly or { packages: [...] }
+    const packages = Array.isArray(rawList) ? rawList : (rawList.packages || []);
+
+    const orders: any[] = packages.map((pkg: any) => {
+        // Map Hepsiburada Package to MarketplaceOrder
+        return {
+            marketplace: this.name,
+            orderNumber: pkg.orderNumber,
+            customerName: pkg.customerName,
+            customerEmail: "", // HB often hides email or provides scrambled
+            customerPhone: "", // HB often hides phone on initial list
+            customerAddress: [pkg.deliveryAddress?.address, pkg.deliveryAddress?.city].filter(Boolean).join(", "),
+            items: (pkg.lines || []).map((line: any) => ({
+                sku: line.merchantSku,
+                barcode: line.barcode, // Often same as sku
+                name: line.productName,
+                price: Number(line.price?.amount || 0),
+                quantity: line.quantity,
+            })),
+            totalAmount: Number(pkg.totalPrice?.amount || 0),
+            currency: pkg.totalPrice?.currency || "TRY",
+            orderDate: new Date(pkg.orderDate).toISOString(),
+            status: pkg.status // "Open", "Packed", etc.
+        };
+    });
 
     return {
-      status: "ok",
-      message: "Synced 1 order (mock)",
-      orders: mockOrders,
-    };
+        status: "ok",
+        message: `Synced ${orders.length} orders`,
+        orders
+    }; 
   }
 
   private notConfigured(action: string): MarketplaceActionResult {
