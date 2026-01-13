@@ -1,4 +1,4 @@
-import { getClient } from "../geminiClient.js";
+import { getClient } from "./geminiClient.js";
 import { logger } from "../../logger.js";
 import { ScrapedProduct } from "../productScraper.js";
 

@@ -1,7 +1,7 @@
 import { ChatHandler } from "./baseHandler.js";
 import { ChatEntity, HandlerResult, ProductCard } from "../types.js";
 import { logger } from "../../logger.js";
-import { unifiedMarketplaceSearch } from "../../services/unifiedMarketplaceSearch.js";
+import { unifiedMarketplaceSearch } from "../../services/search/unifiedMarketplaceSearch.js";
 
 /**
  * Search Handler
@@ -28,7 +28,8 @@ export class SearchHandler implements ChatHandler {
             }
 
             // Unified marketplace search (6 pazaryeri)
-            const results = await unifiedMarketplaceSearch(query, entities);
+            const resultsResult = await unifiedMarketplaceSearch(query, entities);
+            const results = resultsResult.ok ? resultsResult.value : [];
 
             if (results.length === 0) {
                 return {

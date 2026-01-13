@@ -244,3 +244,41 @@ if (errors.length) {
   }
   logger.error("config.env_error", { errors, message });
 }
+
+// Marketplace Provider Helper Functions
+export function getProviderConfigStatus(provider: string): MarketplaceConfigStatus {
+  const isMock = config.marketplace.mode === "mock";
+  const missing: string[] = [];
+
+  if (!isMock) {
+    const p = provider.toUpperCase();
+    if (p === "TRENDYOL") {
+      if (!process.env.TRENDYOL_API_KEY) missing.push("TRENDYOL_API_KEY");
+      if (!process.env.TRENDYOL_API_SECRET) missing.push("TRENDYOL_API_SECRET");
+      if (!process.env.TRENDYOL_MERCHANT_ID && !process.env.TRENDYOL_SELLER_ID && !process.env.TRENDYOL_SUPPLIER_ID) {
+        missing.push("TRENDYOL_MERCHANT_ID");
+      }
+    } else if (p === "HEPSIBURADA") {
+      if (!process.env.HEPSIBURADA_API_KEY) missing.push("HEPSIBURADA_API_KEY");
+      if (!process.env.HEPSIBURADA_MERCHANT_ID) missing.push("HEPSIBURADA_MERCHANT_ID");
+    } else if (p === "N11") {
+      if (!process.env.N11_API_KEY) missing.push("N11_API_KEY");
+    }
+  }
+
+  return {
+    mode: config.marketplace.mode,
+    missing,
+    configured: isMock || missing.length === 0
+  };
+}
+
+export function isMarketplaceDryRun(): boolean {
+  return config.marketplace.mode === "mock";
+}
+
+export function logMarketplaceEvent(provider: string, event: string, data: any) {
+  logger.info(`marketplace.${provider}.${event}`, data);
+}
+
+import { MarketplaceConfigStatus } from "./services/marketplace/types.js";

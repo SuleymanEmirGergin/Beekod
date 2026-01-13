@@ -1,59 +1,75 @@
-import * as cheerio from "cheerio";
 import { SearchAdapter, SearchResultItem } from "../types.js";
-import { getBrowser, createPage } from "../../scraper/browser.js";
+import { ciceksepetiService } from "../../marketplace/ciceksepetiService.js";
 import { logger } from "../../../logger.js";
+
+interface CiceksepetiAttribute {
+  attributeName?: string;
+  attributeValue?: string;
+}
+
+interface CiceksepetiProduct {
+  productName?: string;
+  productCode?: string;
+  salePrice?: number;
+  link?: string;
+  mainImage?: string;
+  images?: string[];
+  description?: string;
+  barcode?: string;
+  stockQuantity?: number;
+  quantity?: number;
+  categoryName?: string;
+  attributes?: CiceksepetiAttribute[];
+}
+
+interface CiceksepetiProductsResponse {
+  products?: CiceksepetiProduct[];
+  response?: { products?: CiceksepetiProduct[] };
+}
 
 export class CiceksepetiAdapter implements SearchAdapter {
   name = "Ciceksepeti" as const;
 
   async search(query: string): Promise<SearchResultItem[]> {
-    let page;
     try {
-      const browser = await getBrowser();
-      page = await createPage(browser);
+      if (!ciceksepetiService.isConfigured()) {
+        logger.warn("ciceksepeti_adapter.api_not_configured");
+        return [];
+      }
 
-      const url = `https://www.ciceksepeti.com/arama?query=${encodeURIComponent(query)}`;
-      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 15000 });
+      // Fetch products (limit to 100)
+      const result = await ciceksepetiService.getProducts({ pageSize: 100 }) as CiceksepetiProductsResponse;
+      const products: CiceksepetiProduct[] = result?.products || result?.response?.products || [];
 
-      const content = await page.content();
-      const $ = cheerio.load(content);
-      const items: SearchResultItem[] = [];
+      if (!products || products.length === 0) {
+        return [];
+      }
 
-      $(".products__item").each((_, element) => {
-        const el = $(element);
-        const linkTag = el.find("a.products__item-link");
-        const relativeUrl = linkTag.attr("href") || "";
-        const productUrl = relativeUrl.startsWith("http") ? relativeUrl : `https://www.ciceksepeti.com${relativeUrl}`;
+      const queryLower = query.toLowerCase();
 
-        const title = el.find(".products__item-title").text().trim();
+      // Client-side filtering
+      return products
+        .filter((p) => (p.productName || "").toLowerCase().includes(queryLower))
+        .map((p) => ({
+           marketplace: this.name,
+           title: p.productName || "",
+           price: p.salePrice || 0,
+           currency: "TRY",
+           url: p.link || `https://www.ciceksepeti.com/${p.productCode || ""}`, 
+           imageUrl: p.mainImage || (p.images && p.images.length > 0 ? p.images[0] : ""),
+           image: p.mainImage || (p.images && p.images.length > 0 ? p.images[0] : ""),
+           description: p.description || "",
+           brand: p.attributes?.find((a) => a.attributeName === "Marka" || a.attributeName === "Brand")?.attributeValue || "",
+           stockCount: p.stockQuantity || p.quantity || 0,
+           inStock: (p.stockQuantity || p.quantity || 0) > 0,
+           barcode: p.barcode,
+           category: p.categoryName || ""
+        }))
+        .slice(0, 10);
 
-        const priceText = el.find(".price--new").text().trim().replace(/[.]/g, "").replace(",", ".").replace("TL", "");
-        const price = parseFloat(priceText);
-
-        const imageUrl =
-          el.find(".products__item-img-container img").attr("data-src") ||
-          el.find(".products__item-img-container img").attr("src") ||
-          "";
-
-        if (title && price && productUrl) {
-          items.push({
-            marketplace: this.name,
-            title,
-            price,
-            currency: "TRY",
-            url: productUrl,
-            imageUrl,
-            image: imageUrl,
-          });
-        }
-      });
-
-      return items.slice(0, 10);
     } catch (error) {
-      logger.error(`search.ciceksepeti_failed`, { error });
-      return [];
-    } finally {
-      if (page) await page.close();
+       logger.error("ciceksepeti_adapter.search_failed", { error });
+       return [];
     }
   }
 }

@@ -1,5 +1,5 @@
-import "../env.js";
-import { getAllProducts } from "../src/services/productService.js";
+import "../../env.js";
+import { getAllProducts } from "../../src/services/productService.js";
 
 async function debug() {
     try {

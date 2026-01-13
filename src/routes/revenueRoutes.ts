@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { generateDynamicPricingAI } from "../services/pricingService.js";
-import { predictCustomerLTV, getBundleSuggestions, getRevenueInsights } from "../services/revenueService.js";
+import { predictCustomerLTV, getBundleSuggestions, getRevenueInsights } from "../services/order/revenueService.js";
 import { logger } from "../logger.js";
-import { getAllProducts } from "../services/productService.js";
+import { getAllProducts } from '../services/product/productService.js';
 import { Locale } from "../types.js";
 
 const router = Router();
@@ -13,8 +13,9 @@ const router = Router();
  */
 router.get("/dynamic-pricing", async (req, res) => {
   try {
-    const products = await getAllProducts(50); // Reduced limit for stability
-    const recommendations: any[] = [];
+    const productsResult = await getAllProducts(50); // Reduced limit for stability
+    const products = productsResult.ok ? productsResult.value : [];
+    const recommendations: { barcode: string; name: string; stock: number; suggestedPrice?: number; currentPrice?: number }[] = [];
 
     // Process in small batches of 5 to prevent rate limits and DB pool exhaustion
     const BATCH_SIZE = 5;

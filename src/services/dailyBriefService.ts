@@ -1,20 +1,22 @@
 import { getRevenueTimeline } from "./analyticsService.js";
-import { getLowStockProducts } from "./productService.js";
-import { generateGeminiReply } from "./geminiClient.js";
+import { getLowStockProducts } from "./product/productService.js";
+import { generateGeminiReply } from "./ai/geminiClient.js";
 import { logger } from "../logger.js";
 import { Locale } from "../types.js";
 import { getUserPreferences } from "./userPreferenceService.js";
+import { getCache, setCache } from "./product/cacheService.js";
 
 const BRIEF_CACHE_TTL = 3600; // 1 hour
 
 export async function generateDailyBrief(userId: string, locale: Locale): Promise<string | null> {
     const cacheKey = `daily_brief:${userId}:${new Date().toDateString()}`;
-    // Cache disabled - TODO: Re-enable after fixing cache service
-    // const cached = await getCache<string>(cacheKey);
-    // if (cached) {
-    //     logger.debug("daily_brief.cached_hit", { userId });
-    //     return cached;
-    // }
+    
+    // Try to get from cache first
+    const cached = await getCache<string>(cacheKey);
+    if (cached) {
+        logger.debug("daily_brief.cached_hit", { userId });
+        return cached;
+    }
 
     try {
         // 1. Fetch Data
@@ -30,7 +32,8 @@ export async function generateDailyBrief(userId: string, locale: Locale): Promis
             : 0;
 
         // Low stock (critical < 5)
-        const lowStock = await getLowStockProducts(5, 5);
+        const lowStockResult = await getLowStockProducts(5, 5);
+        const lowStock = lowStockResult.ok ? lowStockResult.value : [];
 
         // Top seller of yesterday
         const { getTopSellers } = await import("./analyticsService.js");
@@ -85,7 +88,8 @@ export async function generateDailyBrief(userId: string, locale: Locale): Promis
         });
 
         if (brief) {
-            // Cache disabled
+            // Cache the generated brief
+            await setCache(cacheKey, brief, BRIEF_CACHE_TTL);
             return brief;
         }
 

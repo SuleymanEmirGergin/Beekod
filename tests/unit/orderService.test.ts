@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createOrder } from "../../src/services/orderService";
-import { socketService } from "../../src/services/socketService";
-import { query } from "../../src/db";
+import { createOrder } from "../../src/services/order/orderService.js";
+import { socketService } from "../../src/services/socketService.js";
+import { query } from "../../src/db.js";
 
 // Mocks
 vi.mock("../../src/services/socketService", () => ({
@@ -9,7 +9,7 @@ vi.mock("../../src/services/socketService", () => ({
         emit: vi.fn(),
     }
 }));
-vi.mock("../../src/db");
+vi.mock("../../src/db.js");
 
 describe("OrderService", () => {
     beforeEach(() => {
@@ -21,11 +21,11 @@ describe("OrderService", () => {
             // Define mock data
             const mockOrder = {
                 id: 100,
-                request_id: "#BK-2105",
-                total_amount: "₺1500.00",
-                customer_name: "Test User",
-                order_date: new Date(),
-                status_label: "New"
+                requestId: "#BK-2105",
+                totalAmount: "₺1500.00",
+                customerName: "Test User",
+                orderDate: new Date().toISOString(),
+                status: "New"
             };
 
             const queryMock = query as any;
@@ -41,7 +41,7 @@ describe("OrderService", () => {
                 if (sql.includes("INSERT INTO order_items")) return Promise.resolve({});
 
                 // 4. Get Order (fetch created order)
-                if (sql.includes("SELECT * FROM orders WHERE request_id")) {
+                if (sql.includes("SELECT * FROM orders WHERE request_id") || sql.includes("id = ?")) {
                     return Promise.resolve([mockOrder]);
                 }
 
@@ -52,20 +52,22 @@ describe("OrderService", () => {
             });
 
             const input = {
-                source: { name: "Trendyol", marketplaceId: "123" },
+                source: { name: "Trendyol", icon: "ty", color: "orange" },
                 customer: { name: "Test User" },
-                items: [{ product_name: "Ayakkabı", quantity: 1, price: "₺1500.00" }],
+                items: [{ name: "Ayakkabı", sku: "SKU123", price: "₺1500.00", quantity: 1 }],
                 total: "₺1500.00"
             };
 
             const result = await createOrder(input);
 
-            expect(result).toBeDefined();
-            expect(result?.requestId).toBe("#BK-2105");
-            expect(socketService.emit).toHaveBeenCalledWith('notification:new_order', expect.objectContaining({
-                message: expect.stringContaining("Yeni Sipariş"),
-                total: "₺1500.00"
-            }));
+            expect(result.ok).toBe(true);
+            if (result.ok) {
+                expect(result.value.requestId).toBe("#BK-2105");
+                expect(socketService.emit).toHaveBeenCalledWith('notification:new_order', expect.objectContaining({
+                    message: expect.stringContaining("Yeni Sipariş"),
+                    total: "₺1500.00"
+                }));
+            }
         });
     });
 });

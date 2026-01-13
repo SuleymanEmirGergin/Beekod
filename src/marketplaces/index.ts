@@ -1,14 +1,14 @@
-import { MarketplaceName, MarketplaceProvider } from "./types.js";
-import { StubMarketplaceProvider } from "./stubProvider.js";
-import { AmazonProvider } from "./amazonProvider.js";
-import { TrendyolProvider } from "./trendyolProvider.js";
-import { HepsiburadaProvider } from "./hepsiburadaProvider.js";
-import { N11Provider } from "./n11Provider.js";
-import { CiceksepetiProvider } from "./ciceksepetiProvider.js";
-import { PttavmProvider } from "./pttavmProvider.js";
-import { PazaramaProvider } from "./pazaramaProvider.js";
-import { ShopifyProvider } from "./shopifyProvider.js";
-import { WoocommerceProvider } from "./woocommerceProvider.js";
+import { MarketplaceName, MarketplaceProvider } from "../services/marketplace/types.js";
+import { StubMarketplaceProvider } from "../services/marketplace/providers/stubProvider.js";
+import { AmazonProvider } from "../services/marketplace/providers/amazonProvider.js";
+import { TrendyolProvider } from "../services/marketplace/providers/trendyolProvider.js";
+import { HepsiburadaProvider } from "../services/marketplace/providers/hepsiburadaProvider.js";
+import { N11Provider } from "../services/marketplace/providers/n11Provider.js";
+import { CiceksepetiProvider } from "../services/marketplace/providers/ciceksepetiProvider.js";
+import { PttavmProvider } from "../services/marketplace/providers/pttavmProvider.js";
+import { PazaramaProvider } from "../services/marketplace/providers/pazaramaProvider.js";
+import { ShopifyProvider } from "../services/marketplace/providers/shopifyProvider.js";
+import { WoocommerceProvider } from "../services/marketplace/providers/woocommerceProvider.js";
 // import { googleSearch } from "./api/googleSearch.js";
 
 const providers: Record<MarketplaceName, MarketplaceProvider> = {

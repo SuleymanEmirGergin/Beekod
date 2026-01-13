@@ -1,6 +1,6 @@
 import express from "express";
-import { labelService } from "../services/labelService.js";
-import { shippingService } from "../services/shippingService.js";
+import { labelService } from "../services/product/labelService.js";
+import { shippingService } from '../services/order/shippingService.js';
 import { logger } from "../core/logging/index.js";
 
 const router = express.Router();

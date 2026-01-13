@@ -1,4 +1,4 @@
-import { generateGeminiReply } from "./geminiClient.js";
+import { generateGeminiReply } from "./ai/geminiClient.js";
 import { query } from "../db.js";
 import { logger } from "../logger.js";
 import { getInvoices } from "./invoiceStore.js";

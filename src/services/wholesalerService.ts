@@ -1,6 +1,54 @@
 import { pool } from "../db.js";
 import { logger } from "../logger.js";
 import { WholesalerStockHolder } from "../chatbot/types.js";
+import { RowDataPacket } from "mysql2";
+
+interface WholesalerProductRow extends RowDataPacket {
+  id: number;
+  wholesaler_id: number;
+  barcode: string;
+  product_name: string;
+  stock_quantity: number;
+  price: number;
+  currency: string;
+  is_available: number; // 0 or 1
+  company_name: string;
+  city: string;
+}
+
+interface WholesalerStockRow extends RowDataPacket {
+  wholesaler_id: number;
+  company_name: string;
+  city: string;
+  stock_quantity: number;
+  is_available: number;
+}
+
+interface WholesalerMessageRow extends RowDataPacket {
+  id: number;
+  from_wholesaler_id: number;
+  to_wholesaler_id: number;
+  barcode: string | null;
+  product_name: string | null;
+  requested_qty: number | null;
+  message_text: string | null;
+  include_phone: number;
+  sender_phone: string | null;
+  is_read: number;
+  read_at: Date | null;
+  created_at: Date;
+  sender_name: string;
+  receiver_name: string;
+}
+
+interface WholesalerRow extends RowDataPacket {
+  id: number;
+  user_id: number;
+  company_name: string;
+  city: string;
+  is_active: number;
+  // Add other fields as per table definition if needed
+}
 
 /**
  * Wholesaler Service
@@ -12,7 +60,7 @@ export class WholesalerService {
     /**
      * Barkod ile ürün sorgula (tüm toptancılarda)
      */
-    async getProduct(barcode: string): Promise<any[]> {
+    async getProduct(barcode: string): Promise<WholesalerProductRow[]> {
         try {
             const query = `
         SELECT 
@@ -32,8 +80,8 @@ export class WholesalerService {
         ORDER BY wp.stock_quantity DESC
       `;
 
-            const [rows] = await pool.execute(query, [barcode]);
-            return rows as any[];
+            const [rows] = await pool.execute<WholesalerProductRow[]>(query, [barcode]);
+            return rows;
         } catch (error) {
             logger.error("wholesalerService.getProduct_failed", { error, barcode });
             return [];
@@ -43,7 +91,7 @@ export class WholesalerService {
     /**
      * Ürün ara (semantic search ile desteklenebilir)
      */
-    async searchProducts(query: string): Promise<any[]> {
+    async searchProducts(query: string): Promise<WholesalerProductRow[]> {
         try {
             const searchQuery = `
         SELECT 
@@ -67,8 +115,8 @@ export class WholesalerService {
       `;
 
             const searchPattern = `%${query}%`;
-            const [rows] = await pool.execute(searchQuery, [searchPattern, searchPattern]);
-            return rows as any[];
+            const [rows] = await pool.execute<WholesalerProductRow[]>(searchQuery, [searchPattern, searchPattern]);
+            return rows;
         } catch (error) {
             logger.error("wholesalerService.searchProducts_failed", { error, query });
             return [];
@@ -99,10 +147,9 @@ export class WholesalerService {
         ORDER BY wp.is_available DESC, wp.stock_quantity DESC
       `;
 
-            const [rows] = await pool.execute(query, [barcode]);
-            const data = rows as any[];
+            const [rows] = await pool.execute<WholesalerStockRow[]>(query, [barcode]);
 
-            return data.map((row, index) => {
+            return rows.map((row, index) => {
                 const isOwnStock = viewerWholesalerId && row.wholesaler_id === viewerWholesalerId;
 
                 return {
@@ -175,7 +222,7 @@ export class WholesalerService {
     /**
      * Mesajları getir (gelen veya giden)
      */
-    async getMessages(wholesalerId: number, type: "inbox" | "sent" = "inbox", limit = 50): Promise<any[]> {
+    async getMessages(wholesalerId: number, type: "inbox" | "sent" = "inbox", limit = 50): Promise<WholesalerMessageRow[]> {
         try {
             const query = type === "inbox"
                 ? `
@@ -203,8 +250,8 @@ export class WholesalerService {
           LIMIT ?
         `;
 
-            const [rows] = await pool.execute(query, [wholesalerId, limit]);
-            return rows as any[];
+            const [rows] = await pool.execute<WholesalerMessageRow[]>(query, [wholesalerId, limit]);
+            return rows;
         } catch (error) {
             logger.error("wholesalerService.getMessages_failed", { error, wholesalerId, type });
             return [];
@@ -233,15 +280,14 @@ export class WholesalerService {
     /**
      * Toptancı bilgisi getir
      */
-    async getWholesaler(id: number): Promise<any | null> {
+    async getWholesaler(id: number): Promise<WholesalerRow | null> {
         try {
             const query = `
         SELECT * FROM wholesalers WHERE id = ? AND is_active = TRUE
       `;
 
-            const [rows] = await pool.execute(query, [id]);
-            const data = rows as any[];
-            return data[0] || null;
+            const [rows] = await pool.execute<WholesalerRow[]>(query, [id]);
+            return rows[0] || null;
         } catch (error) {
             logger.error("wholesalerService.getWholesaler_failed", { error, id });
             return null;
@@ -251,15 +297,14 @@ export class WholesalerService {
     /**
      * User ID'den toptancı ID'si al (eğer user bir toptancı ise)
      */
-    async getWholesalerByUserId(userId: number): Promise<any | null> {
+    async getWholesalerByUserId(userId: number): Promise<WholesalerRow | null> {
         try {
             const query = `
         SELECT * FROM wholesalers WHERE user_id = ? AND is_active = TRUE
       `;
 
-            const [rows] = await pool.execute(query, [userId]);
-            const data = rows as any[];
-            return data[0] || null;
+            const [rows] = await pool.execute<WholesalerRow[]>(query, [userId]);
+            return rows[0] || null;
         } catch (error) {
             logger.error("wholesalerService.getWholesalerByUserId_failed", { error, userId });
             return null;

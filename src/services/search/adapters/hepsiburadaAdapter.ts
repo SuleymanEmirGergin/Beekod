@@ -83,6 +83,8 @@ export class HepsiburadaAdapter implements SearchAdapter {
             url: productUrl,
             imageUrl,
             image: imageUrl,
+            attributes: {},
+            variants: []
           });
         }
       });

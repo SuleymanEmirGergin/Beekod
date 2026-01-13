@@ -4,7 +4,7 @@ import { query } from '../db.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { AppError } from '../errors/AppError.js';
-import { auditService } from './auditService.js';
+import { auditService } from './product/auditService.js';
 
 const SALT_ROUNDS = 10;
 const JWT_SECRET = config.server.jwtSecret || process.env.JWT_SECRET || 'dev-secret-do-not-use-in-prod';

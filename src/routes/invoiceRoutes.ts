@@ -4,7 +4,7 @@ import { z } from "zod";
 import { requireJsonBody } from "../middleware/requireJsonBody.js";
 import { validateBody } from "../validation.js";
 import { logger } from "../logger.js";
-import { scanInvoiceImage } from "../services/aiScannerService.js";
+import { scanInvoiceImage } from "../services/ai/aiService.js";
 import {
   getAllInvoices,
   createInvoice,
@@ -14,7 +14,7 @@ import {
   createInvoicesFromOrders,
   officialiseInvoice,
   getInvoicePdfBuffer
-} from "../services/invoiceService.js";
+} from "../services/order/invoiceService.js";
 
 const router = Router();
 const upload = multer({

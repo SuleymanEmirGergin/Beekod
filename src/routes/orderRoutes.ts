@@ -3,9 +3,9 @@ import { z } from "zod";
 import { requireJsonBody } from "../middleware/requireJsonBody.js";
 import { validateBody } from "../validation.js";
 import { logger } from "../logger.js";
-import { getAllOrders, createOrder, getOrderById, updateOrderStatus, updateOrderShipping } from "../services/orderService.js";
-import { syncOrdersFromMarketplaces } from "../services/orderSyncService.js";
-import { shippingService } from "../services/shippingService.js";
+import { getAllOrders, createOrder, getOrderById, updateOrderStatus, updateOrderShipping } from "../services/order/orderService.js";
+import { syncOrdersFromMarketplaces } from "../services/order/orderSyncService.js";
+import { shippingService } from "../services/order/shippingService.js";
 
 const router = Router();
 
@@ -54,11 +54,11 @@ router.get("/shipping/stats", async (req, res) => {
 // GET /api/orders
 router.get("/", async (req, res) => {
   try {
-    const orders = await getAllOrders();
-    res.json(orders);
+    const ordersRes = await getAllOrders();
+    res.handleResult(ordersRes);
   } catch (error) {
     logger.error("orders.list_failed", { err: error });
-    res.status(500).json([]); // Return empty array on error for frontend data.map
+    res.status(500).json([]);
   }
 });
 
@@ -76,9 +76,8 @@ router.post("/sync", async (req, res) => {
 // GET /api/orders/:id
 router.get("/:id", async (req, res) => {
   try {
-    const order = await getOrderById(req.params.id);
-    if (!order) return res.status(404).json({ error: "Order not found" });
-    res.json(order);
+    const orderRes = await getOrderById(req.params.id);
+    res.handleResult(orderRes, { notFoundMessage: "Order not found" });
   } catch (error) {
     logger.error("orders.get_failed", { err: error });
     res.status(500).json({ error: "Failed to get order" });
@@ -88,8 +87,8 @@ router.get("/:id", async (req, res) => {
 // POST /api/orders
 router.post("/", validateBody(createOrderSchema), async (req, res) => {
   try {
-    const newOrder = await createOrder(req.body);
-    res.status(201).json(newOrder);
+    const newOrderRes = await createOrder(req.body);
+    res.handleResult(newOrderRes, { successStatus: 201 });
   } catch (error) {
     logger.error("orders.create_failed", { err: error });
     res.status(500).json({ error: "Failed to create order" });
@@ -99,8 +98,8 @@ router.post("/", validateBody(createOrderSchema), async (req, res) => {
 // PUT /api/orders/:id/status
 router.put("/:id/status", validateBody(updateStatusSchema), async (req, res) => {
   try {
-    const updatedOrder = await updateOrderStatus(req.params.id, req.body.status);
-    res.json(updatedOrder);
+    const updatedOrderRes = await updateOrderStatus(req.params.id, req.body.status);
+    res.handleResult(updatedOrderRes);
   } catch (error) {
     logger.error("orders.update_status_failed", { err: error });
     res.status(500).json({ error: "Failed to update order status" });
@@ -114,8 +113,11 @@ router.post("/:id/shipping-label", async (req, res) => {
 
   try {
     const labelResult = await shippingService.generateLabel(req.params.id, provider);
-    const updatedOrder = await updateOrderShipping(req.params.id, labelResult);
-    res.json({ success: true, order: updatedOrder, shipping: labelResult });
+    const updatedOrderRes = await updateOrderShipping(req.params.id, labelResult);
+    if (!updatedOrderRes.ok) {
+      return res.status(500).json({ error: updatedOrderRes.error?.message || "Failed to update shipping" });
+    }
+    res.json({ success: true, order: updatedOrderRes.value, shipping: labelResult });
   } catch (error) {
     logger.error("orders.shipping_label_failed", { err: error, id: req.params.id });
     res.status(500).json({ error: "Failed to generate shipping label" });

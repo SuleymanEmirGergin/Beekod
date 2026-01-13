@@ -1,5 +1,5 @@
 import { Product } from "../types.js";
-import { getAllProducts, searchProductsByName } from "./productService.js";
+import { getAllProducts, searchProductsByName } from "./product/productService.js";
 
 export type NameResolution = {
   product?: Product;
@@ -53,7 +53,8 @@ export async function resolveProductByName(name: string): Promise<NameResolution
     return { notFound: true };
   }
   const numericTokens = extractNumericTokens(trimmed);
-  const matches = await searchProductsByName(trimmed, 5);
+  const matchesResult = await searchProductsByName(trimmed, 5);
+  const matches = matchesResult.ok ? matchesResult.value : [];
   const narrowedMatches = filterByNumericTokens(matches, numericTokens);
   const effectiveMatches = narrowedMatches.length ? narrowedMatches : matches;
 
@@ -64,7 +65,8 @@ export async function resolveProductByName(name: string): Promise<NameResolution
     return { ambiguous: effectiveMatches.map((item) => ({ barcode: item.barcode, name: item.name })) };
   }
 
-  const all = await getAllProducts(50);
+  const allResult = await getAllProducts(50);
+  const all = allResult.ok ? allResult.value : [];
   const narrowedAll = filterByNumericTokens(all, numericTokens);
   const candidates = narrowedAll.length ? narrowedAll : all;
   const scored = candidates

@@ -12,12 +12,13 @@
     "dev:worker:video": "tsx watch src/workers/videoWorker.ts",
     "dev:worker:ai-model": "tsx watch src/workers/aiModelWorker.ts",
     "test": "vitest run",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\""
   },
   "dependencies": {
+    "@fal-ai/client": "^1.7.2",
     "@google-cloud/vision": "^5.3.4",
     "@google/genai": "^1.34.0",
     "@google/generative-ai": "^0.21.0",

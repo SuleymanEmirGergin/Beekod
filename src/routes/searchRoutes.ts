@@ -6,7 +6,7 @@ import { validateQuery } from "../validation.js";
 // REMOVED: import { googleSearch } from "../marketplaces/api/googleSearch.js";
 import { universalProductSearch } from "../services/search/searchAggregator.js";
 import multer from "multer";
-import { searchByImage } from "../services/imageSearch.js";
+import { searchByImage } from "../services/search/imageSearchService.js";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } }); // 5MB limit
 

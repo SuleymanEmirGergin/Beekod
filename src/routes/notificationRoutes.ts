@@ -9,7 +9,7 @@ import {
   getUnreadCount,
   generateAIRecommendations,
 } from "../services/notificationService.js";
-import { getAllProducts } from "../services/productService.js";
+import { getAllProducts } from '../services/product/productService.js';
 import { query } from "../db.js";
 
 const router = Router();

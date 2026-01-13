@@ -1,4 +1,4 @@
-import { getBrowser, closeBrowser, createPage } from "../src/services/scraper/browser.js";
+import { getBrowser, closeBrowser, createPage } from "../../src/services/scraper/browser.js";
 
 async function main() {
     console.log("Debugging Hepsiburada - Sayfa 30 saniye açık kalacak...");

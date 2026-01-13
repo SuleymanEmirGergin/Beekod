@@ -10,6 +10,17 @@ import {
   draftCustomerReplyTool,
   createShipmentTool,
   analyticsQueryTool,
+  getProductByBarcodeTool,
+  getPriceCompetitionTool,
+  analyzePricingStrategyTool,
+  auditInventoryConsistencyTool,
+  detectStockRisksTool,
+  analyzeProductReviewsTool,
+  updateMarketplacePriceTool,
+  updateAISettingsTool,
+  checkAPIHealthTool,
+  runAutonomousPricingTool,
+  getStockForecastTool,
 } from "./implementations.js";
 import { logger } from "../../logger.js";
 import { redactSecrets } from "../audit/redact.js";
@@ -25,6 +36,17 @@ toolRegistry.set("searchCheapestProduct", searchCheapestProductTool);
 toolRegistry.set("draftCustomerReply", draftCustomerReplyTool);
 toolRegistry.set("createShipment", createShipmentTool);
 toolRegistry.set("analyticsQuery", analyticsQueryTool);
+toolRegistry.set("getProductByBarcode", getProductByBarcodeTool);
+toolRegistry.set("getPriceCompetition", getPriceCompetitionTool);
+toolRegistry.set("analyzePricingStrategy", analyzePricingStrategyTool);
+toolRegistry.set("auditInventoryConsistency", auditInventoryConsistencyTool);
+toolRegistry.set("detectStockRisks", detectStockRisksTool);
+toolRegistry.set("analyzeProductReviews", analyzeProductReviewsTool);
+toolRegistry.set("updateMarketplacePrice", updateMarketplacePriceTool);
+toolRegistry.set("updateAISettings", updateAISettingsTool);
+toolRegistry.set("checkAPIHealth", checkAPIHealthTool);
+toolRegistry.set("runAutonomousPricing", runAutonomousPricingTool);
+toolRegistry.set("getStockForecast", getStockForecastTool);
 
 export function getAvailableTools(): string[] {
   return Array.from(toolRegistry.keys());

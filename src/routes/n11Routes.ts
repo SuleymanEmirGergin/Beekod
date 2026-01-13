@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { n11Service } from "../services/n11Service.js";
+import { n11Service } from "../services/marketplace/n11Service.js";
 import { sendSuccessResponse, sendErrorResponse } from "../utils/responseHelper.js";
 import { logger } from "../logger.js";
 

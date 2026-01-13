@@ -8,7 +8,7 @@ import {
   connectIntegration,
   disconnectIntegration,
   updateIntegrationConfig,
-} from "../services/integrationService.js";
+} from "../services/marketplace/integrationService.js";
 
 const router = Router();
 

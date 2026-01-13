@@ -1,4 +1,4 @@
-import { MarketplaceName } from "../../marketplaces/types.js";
+import { MarketplaceName } from "../marketplace/types.js";
 
 export interface SearchResultItem {
   marketplace: MarketplaceName;
@@ -8,9 +8,34 @@ export interface SearchResultItem {
   url: string;
   imageUrl?: string;
   image?: string; // Alias for frontend compatibility
-  barcode?: string; // Optional, hard to find on search pages
+  barcode?: string;
   rating?: number;
   reviewCount?: number;
+  
+  // Detaylı Bilgiler
+  description?: string;
+  brand?: string;
+  category?: string;
+  inStock?: boolean;
+  stockCount?: number;
+  seller?: {
+    name: string;
+    rating?: number;
+  };
+  attributes?: Record<string, string | number>;
+  variants?: {
+    barcode: string;
+    sku?: string;
+    price: number;
+    stock: number;
+    attributes: Record<string, string>;
+  }[];
+  
+  // Competitive Data (Phase 3)
+  buyBoxPrice?: number;
+  isWinningBuyBox?: boolean;
+  competitorCount?: number;
+  marketPosition?: "lowest" | "average" | "highest" | "competitive";
 }
 
 export interface SearchAdapter {

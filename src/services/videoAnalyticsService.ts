@@ -1,7 +1,10 @@
 import { pool } from "../db.js";
 import { logger } from "../logger.js";
-import { generateGeminiReply } from "./geminiClient.js";
+import { generateGeminiReply } from "./ai/geminiClient.js";
 import { IVideoAnalytics, IVideoAnalyticsDbRow, mapVideoAnalyticsRow } from "../models/VideoAnalytics.js";
+import { RowDataPacket } from "mysql2";
+
+interface VideoAnalyticsRow extends IVideoAnalyticsDbRow, RowDataPacket {}
 
 function calculateEngagementRate(views: number, likes: number, comments: number, shares: number): number {
   if (views === 0) return 0;
@@ -85,11 +88,11 @@ export async function recordVideoAnalytics(data: IVideoAnalyticsInput): Promise<
       performanceScore,
     ]);
 
-    const [rows] = await pool.query("SELECT * FROM video_analytics WHERE video_id = ? AND platform = ?", [
-      data.videoId,
-      data.platform,
-    ]);
-    const row = (rows as IVideoAnalyticsDbRow[])[0];
+    const [rows] = await pool.query<VideoAnalyticsRow[]>(
+      "SELECT * FROM video_analytics WHERE video_id = ? AND platform = ?",
+      [data.videoId, data.platform],
+    );
+    const row = rows[0];
     if (!row) throw new Error("Failed to record video analytics");
     return mapVideoAnalyticsRow(row);
   } catch (error) {
@@ -99,23 +102,27 @@ export async function recordVideoAnalytics(data: IVideoAnalyticsInput): Promise<
 }
 
 export async function getVideoAnalytics(videoId: string): Promise<IVideoAnalytics[]> {
-  const [rows] = await pool.query("SELECT * FROM video_analytics WHERE video_id = ? ORDER BY platform ASC", [videoId]);
-  return (rows as any[]).map(mapVideoAnalyticsRow);
+  const [rows] = await pool.query<VideoAnalyticsRow[]>(
+    "SELECT * FROM video_analytics WHERE video_id = ? ORDER BY platform ASC",
+    [videoId],
+  );
+  return rows.map(mapVideoAnalyticsRow);
 }
 
 export async function getTopPerformingVideos(limit: number = 10): Promise<IVideoAnalytics[]> {
-  const [rows] = await pool.query("SELECT * FROM video_analytics ORDER BY performance_score DESC, views DESC LIMIT ?", [
-    limit,
-  ]);
-  return (rows as any[]).map(mapVideoAnalyticsRow);
+  const [rows] = await pool.query<VideoAnalyticsRow[]>(
+    "SELECT * FROM video_analytics ORDER BY performance_score DESC, views DESC LIMIT ?",
+    [limit],
+  );
+  return rows.map(mapVideoAnalyticsRow);
 }
 
 export async function getProductVideoAnalytics(productBarcode: string): Promise<IVideoAnalytics[]> {
-  const [rows] = await pool.query(
+  const [rows] = await pool.query<VideoAnalyticsRow[]>(
     "SELECT * FROM video_analytics WHERE product_barcode = ? ORDER BY published_at DESC",
     [productBarcode],
   );
-  return (rows as any[]).map(mapVideoAnalyticsRow);
+  return rows.map(mapVideoAnalyticsRow);
 }
 
 export async function generateVideoRecommendations(productBarcode?: string): Promise<string[]> {
@@ -134,15 +141,13 @@ export async function generateVideoRecommendations(productBarcode?: string): Pro
 
     const avgEngagement = topVideos.reduce((sum, v) => sum + (v.engagementRate || 0), 0) / topVideos.length;
     const avgCompletion = topVideos.reduce((sum, v) => sum + (v.completionRate || 50), 0) / topVideos.length;
-    const mostUsedPlatform = topVideos.reduce(
-      (acc, v) => {
-        acc[v.platform] = (acc[v.platform] || 0) + 1;
-        return acc;
-      },
-      {} as Record<string, number>,
-    );
+    const mostUsedPlatform = topVideos.reduce((acc, v) => {
+      acc[v.platform] = (acc[v.platform] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
 
-    const topPlatform = Object.entries(mostUsedPlatform).sort((a, b) => b[1] - a[1])[0][0];
+    const sortedPlatforms = Object.entries(mostUsedPlatform).sort((a, b) => b[1] - a[1]);
+    const topPlatform = sortedPlatforms.length > 0 ? sortedPlatforms[0][0] : "Bilinmiyor";
 
     const prompt = `Sen bir video marketing uzmanısın. Aşağıdaki performans verilerine göre 5 kısa, net öneri ver:
         

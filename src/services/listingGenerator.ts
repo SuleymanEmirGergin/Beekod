@@ -1,4 +1,4 @@
-import { generateGeminiReply } from "./geminiClient.js";
+import { generateGeminiReply } from "./ai/geminiClient.js";
 import { CanonicalProduct } from "./canonicalProductService.js";
 import { logger } from "../logger.js";
 

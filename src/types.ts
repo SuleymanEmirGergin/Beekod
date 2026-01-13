@@ -67,6 +67,25 @@ export type MarketplaceListing = {
   currency: string;
   title: string;
   active: boolean;
+  /* Rich Data */
+  brand?: string;
+  category?: string;
+  imageUrl?: string;
+  images?: string[];
+  description?: string;
+  attributes?: Record<string, string | number>;
+  variants?: {
+    barcode: string;
+    sku?: string;
+    price: number;
+    stock: number;
+    attributes: Record<string, string>;
+  }[];
+  /* Competitive Data (Phase 3) */
+  buyBoxPrice?: number;
+  isWinningBuyBox?: boolean;
+  competitorCount?: number;
+  marketPosition?: "lowest" | "average" | "highest" | "competitive";
 };
 
 export type MarketplaceStats = {
@@ -106,4 +125,21 @@ export interface IDbRow {
   created_at?: Date;
   updated_at?: Date;
   [key: string]: string | number | boolean | Date | null | undefined | any; // Keep any as fallout for now but add common types
+}
+
+export interface ConsolidatedInventoryDetail {
+  marketplace: string;
+  price: number;
+  stock: number;
+  active: boolean;
+}
+
+export interface ConsolidatedInventoryItem {
+  barcode: string;
+  title: string;
+  marketplaces: string[];
+  details: ConsolidatedInventoryDetail[];
+  minPrice: number;
+  maxPrice: number;
+  totalStock: number;
 }

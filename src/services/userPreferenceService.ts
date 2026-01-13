@@ -13,6 +13,8 @@ export interface UserPreferences {
   tone?: Tone;
   detailLevel?: DetailLevel;
   locale?: string;
+  enable_ai_auto_pricing?: boolean;
+  enable_ai_stock_notifications?: boolean;
   [key: string]: any;
 }
 

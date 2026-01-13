@@ -1,65 +1,54 @@
-import * as cheerio from "cheerio";
 import { SearchAdapter, SearchResultItem } from "../types.js";
-import { getBrowser, createPage } from "../../scraper/browser.js";
+import { getMarketplaceProvider } from "../../marketplace/index.js";
 import { logger } from "../../../logger.js";
 
 export class PazaramaAdapter implements SearchAdapter {
   name = "Pazarama" as const;
 
   async search(query: string): Promise<SearchResultItem[]> {
-    let page;
     try {
-      const browser = await getBrowser();
-      page = await createPage(browser);
+      const provider = getMarketplaceProvider("Pazarama");
+      if (!provider || !provider.isConfigured()) {
+        logger.warn("pazarama_adapter.provider_not_configured");
+        return [];
+      }
 
-      const url = `https://www.pazarama.com/arama?q=${encodeURIComponent(query)}`;
-      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 15000 });
+      logger.info("pazarama_adapter.search_start", { query });
 
-      const content = await page.content();
-      const $ = cheerio.load(content);
-      const items: SearchResultItem[] = [];
+      // Fetch listings via provider
+      const result = await provider.listListings();
+      if (!result.ok) {
+        logger.error("pazarama_adapter.list_listings_failed", { error: result.error });
+        return [];
+      }
 
-      // Pazarama grid items
-      $(".product-list-item, .card-product").each((_, element) => {
-        const el = $(element);
-        const linkTag = el.find("a").first();
-        const relativeUrl = linkTag.attr("href") || "";
-        const productUrl = relativeUrl.startsWith("http") ? relativeUrl : `https://www.pazarama.com${relativeUrl}`;
+      const queryLower = query.toLowerCase();
 
-        const title = el.find(".text-gray-600, .card-product-title, .title").text().trim();
+      // Client-side filtering
+      return (result.value.items || [])
+        .filter((item) => (item.title || "").toLowerCase().includes(queryLower))
+        .map((item) => ({
+           marketplace: this.name,
+           title: item.title,
+           price: item.price,
+           currency: item.currency || "TRY",
+           url: `https://www.pazarama.com/p-${item.barcode}`, 
+           imageUrl: item.imageUrl || (item.images && item.images[0]) || "",
+           image: item.imageUrl || (item.images && item.images[0]) || "",
+           stockCount: item.stock,
+           inStock: (item.stock || 0) > 0,
+           barcode: item.barcode,
+           brand: item.brand,
+           description: item.description,
+           category: item.category,
+           attributes: item.attributes,
+           variants: item.variants
+        }))
+        .slice(0, 10);
 
-        // Price: usually .current-price or .price
-        const priceText = el
-          .find(".text-primary-500, .current-price, .price")
-          .first()
-          .text()
-          .trim()
-          .replace(/[.]/g, "")
-          .replace(",", ".")
-          .replace("TL", "");
-        const price = parseFloat(priceText);
-
-        const imageUrl = el.find("img").attr("data-src") || el.find("img").attr("src") || "";
-
-        if (title && price && productUrl) {
-          items.push({
-            marketplace: this.name,
-            title,
-            price,
-            currency: "TRY",
-            url: productUrl,
-            imageUrl,
-            image: imageUrl,
-          });
-        }
-      });
-
-      return items.slice(0, 10);
     } catch (error) {
-      logger.error(`search.pazarama_failed`, { error });
-      return [];
-    } finally {
-      if (page) await page.close();
+       logger.error("pazarama_adapter.search_failed", { error });
+       return [];
     }
   }
 }

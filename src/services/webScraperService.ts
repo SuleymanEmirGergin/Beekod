@@ -1,7 +1,7 @@
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 
-import type { Browser, Page } from "puppeteer";
+import type { Browser } from "puppeteer";
 import { logger } from "../logger.js";
 
 // Use dynamic require for puppeteer-extra due to TypeScript compatibility issues
@@ -10,11 +10,6 @@ const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 
 // Configure plugins
 puppeteerExtra.use(StealthPlugin());
-
-// Note: Adblocker plugin has compatibility issues with latest puppeteer-extra
-// Commented out for now - can be re-enabled if needed
-// const AdblockerPlugin = require("puppeteer-extra-plugin-adblocker");
-// puppeteerExtra.use(AdblockerPlugin({ blockTrackers: true }));
 
 let browserInstance: Browser | null = null;
 
@@ -37,11 +32,12 @@ async function getBrowser(): Promise<Browser> {
             "--disable-accelerated-2d-canvas",
             "--disable-gpu",
             "--window-size=1920x1080",
-            "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            ...getProxyArgs()
         ],
     });
 
-    return browserInstance!; // Non-null assertion since we just created it
+    return browserInstance!; 
 }
 
 /**
@@ -65,139 +61,140 @@ export type ScrapedProduct = {
 };
 
 /**
+ * Get proxy configuration if available.
+ */
+function getProxyArgs(): string[] {
+    const proxy = process.env.SCRAPER_PROXY; // Format: http://user:pass@host:port
+    if (proxy) {
+        return [`--proxy-server=${proxy}`];
+    }
+    return [];
+}
+
+/**
  * Scrape a marketplace for product search results.
  * Uses site-specific selectors to extract product data.
  */
 export async function scrapeMarketplace(
     siteName: string,
     query: string,
-    options: { timeout?: number; maxResults?: number } = {}
+    options: { timeout?: number; maxResults?: number; retries?: number } = {}
 ): Promise<ScrapedProduct[]> {
-    const { timeout = 15000, maxResults = 5 } = options;
+    const { timeout = 20000, maxResults = 5, retries = 2 } = options;
+    let attempt = 0;
 
-    const browser = await getBrowser();
-    const page = await browser.newPage();
+    while (attempt < retries) {
+        attempt++;
+        const browser = await getBrowser();
+        const page = await browser.newPage();
 
-    try {
-        // Set viewport and user agent
-        await page.setViewport({ width: 1920, height: 1080 });
+        try {
+            // Set viewport and random user agent
+            await page.setViewport({ width: 1920, height: 1080 });
+            
+            // Navigate to search page
+            const searchUrl = getSearchUrl(siteName, query);
+            logger.info("scraper.navigate", { site: siteName, url: searchUrl, attempt });
 
-        // Navigate to search page
-        const searchUrl = getSearchUrl(siteName, query);
-        logger.info("scraper.navigate", { site: siteName, url: searchUrl });
+            // Use networkidle2 for better content loading assessment
+            await page.goto(searchUrl, {
+                waitUntil: "networkidle2",
+                timeout,
+            });
 
-        await page.goto(searchUrl, {
-            waitUntil: "domcontentloaded",
-            timeout,
-        });
+            // Wait for products to load with a fallback
+            const selectors = getSiteSelectors(siteName);
+            const found = await page.waitForSelector(selectors.productCard, { timeout: 10000 }).catch(() => null);
 
-        // Fast wait for body or a small delay to let JS run a bit
-        await new Promise(r => setTimeout(r, 3000));
-
-        // Wait for products to load
-        const selectors = getSiteSelectors(siteName);
-        await page.waitForSelector(selectors.productCard, { timeout: 8000 }).catch(async () => {
-            logger.warn("scraper.no_products_found", { site: siteName, query });
-            const fs = require("fs");
-            const html = await page.content();
-            fs.writeFileSync(`scraper_fail_${siteName}.html`, html);
-        });
-
-        // Extract product data
-        const products = await page.evaluate((sel, max) => {
-            const items: ScrapedProduct[] = [];
-            const cards = document.querySelectorAll(sel.productCard);
-
-            for (let i = 0; i < Math.min(cards.length, max); i++) {
-                const card = cards[i];
-
-                const titleEl = card.querySelector(sel.title);
-                const priceEl = card.querySelector(sel.price);
-                let linkEl = card.querySelector(sel.link);
-                // If card itself is the link (common in semantic HTML5)
-                if (!linkEl && card.tagName === 'A') {
-                    linkEl = card;
-                }
-
-                const imageEl = card.querySelector(sel.image);
-
-                if (!titleEl || !priceEl || !linkEl) continue;
-
-                const title = titleEl.textContent?.trim() || "";
-                const priceText = priceEl.textContent?.trim() || "0";
-                const url = (linkEl as HTMLAnchorElement).href || "";
-
-                // Better image extraction (handle lazy loading)
-                let image = undefined;
-                if (imageEl) {
-                    const img = imageEl as HTMLImageElement;
-                    image = img.getAttribute('data-src') ||
-                        img.getAttribute('data-original') ||
-                        img.getAttribute('srcset')?.split(' ')[0] ||
-                        img.src;
-                }
-
-                // Parse price (remove non-numeric characters except decimal point)
-                // Handle formats like "1.299,00 TL" or "₺1.299"
-                const cleanPriceText = priceText.replace(/[^\d.,]/g, "").trim();
-                let price = 0;
-
-                if (cleanPriceText) {
-                    // If contains both . and , (e.g. 1.250,50)
-                    if (cleanPriceText.includes('.') && cleanPriceText.includes(',')) {
-                        price = parseFloat(cleanPriceText.replace(/\./g, "").replace(",", "."));
-                    }
-                    // If contains only , and it's likely a decimal (e.g. 1250,50)
-                    else if (cleanPriceText.includes(',') && cleanPriceText.indexOf(',') > cleanPriceText.length - 4) {
-                        price = parseFloat(cleanPriceText.replace(",", "."));
-                    }
-                    // If contains only . and it's likely a thousand separator (e.g. 1.250)
-                    else if (cleanPriceText.includes('.') && cleanPriceText.indexOf('.') <= cleanPriceText.length - 4) {
-                        price = parseFloat(cleanPriceText.replace(/\./g, ""));
-                    }
-                    else {
-                        price = parseFloat(cleanPriceText);
-                    }
-                }
-
-                // Detect currency
-                const currency = priceText.includes("$") ? "USD"
-                    : priceText.includes("€") ? "EUR"
-                        : "TL";
-
-                // Check stock status
-                const inStock = !card.textContent?.toLowerCase().includes("stokta yok");
-
-                items.push({ title, price, currency, url, image, inStock });
+            if (!found && attempt < retries) {
+                logger.warn("scraper.retry_triggered", { site: siteName, query, attempt });
+                await page.close();
+                continue; 
             }
 
-            return items;
-        }, selectors, maxResults);
+            // Extract product data
+            const products = await page.evaluate((sel, max) => {
+                const items: ScrapedProduct[] = [];
+                const cards = document.querySelectorAll(sel.productCard);
 
-        logger.info("scraper.success", {
-            site: siteName,
-            query,
-            resultsFound: products.length
-        });
+                for (let i = 0; i < Math.min(cards.length, max); i++) {
+                    const card = cards[i];
 
-        if (products.length === 0) {
-            const fs = require("fs");
-            const html = await page.content();
-            fs.writeFileSync(`scraper_zero_${siteName}.html`, html);
+                    const titleEl = card.querySelector(sel.title);
+                    const priceEl = card.querySelector(sel.price);
+                    let linkEl = card.querySelector(sel.link);
+                    if (!linkEl && card.tagName === 'A') {
+                        linkEl = card;
+                    }
+
+                    const imageEl = card.querySelector(sel.image);
+
+                    if (!titleEl || !priceEl || !linkEl) continue;
+
+                    const title = titleEl.textContent?.trim() || "";
+                    const priceText = priceEl.textContent?.trim() || "0";
+                    const url = (linkEl as HTMLAnchorElement).href || "";
+
+                    let image = undefined;
+                    if (imageEl) {
+                        const img = imageEl as HTMLImageElement;
+                        image = img.getAttribute('data-src') ||
+                            img.getAttribute('data-original') ||
+                            img.getAttribute('srcset')?.split(' ')[0] ||
+                            img.src;
+                    }
+
+                    const cleanPriceText = priceText.replace(/[^\d.,]/g, "").trim();
+                    let price = 0;
+
+                    if (cleanPriceText) {
+                        if (cleanPriceText.includes('.') && cleanPriceText.includes(',')) {
+                            price = parseFloat(cleanPriceText.replace(/\./g, "").replace(",", "."));
+                        }
+                        else if (cleanPriceText.includes(',') && cleanPriceText.indexOf(',') > cleanPriceText.length - 4) {
+                            price = parseFloat(cleanPriceText.replace(",", "."));
+                        }
+                        else if (cleanPriceText.includes('.') && cleanPriceText.indexOf('.') <= cleanPriceText.length - 4) {
+                            price = parseFloat(cleanPriceText.replace(/\./g, ""));
+                        }
+                        else {
+                            price = parseFloat(cleanPriceText);
+                        }
+                    }
+
+                    const currency = priceText.includes("$") ? "USD"
+                        : priceText.includes("€") ? "EUR"
+                            : "TL";
+
+                    const inStock = !card.textContent?.toLowerCase().includes("stokta yok");
+
+                    items.push({ title, price, currency, url, image, inStock });
+                }
+
+                return items;
+            }, selectors, maxResults);
+
+            logger.info("scraper.success", {
+                site: siteName,
+                query,
+                resultsFound: products.length
+            });
+
+            return products;
+
+        } catch (error) {
+            logger.error("scraper.failed", {
+                site: siteName,
+                query,
+                attempt,
+                error: error instanceof Error ? error.message : String(error)
+            });
+            if (attempt === retries) return [];
+        } finally {
+            await page.close();
         }
-
-        return products;
-
-    } catch (error) {
-        logger.error("scraper.failed", {
-            site: siteName,
-            query,
-            error: error instanceof Error ? error.message : String(error)
-        });
-        return [];
-    } finally {
-        await page.close();
     }
+    return [];
 }
 
 /**
@@ -229,18 +226,18 @@ function getSiteSelectors(siteName: string): {
     link: string;
     image: string;
 } {
-    const selectors: Record<string, any> = {
+    const selectors: Record<string, { productCard: string; title: string; price: string; link: string; image: string; }> = {
         "N11": {
-            productCard: ".columnContent",
-            title: ".productName",
-            price: ".priceContainer ins",
+            productCard: ".columnContent, .pro, .product-item, [data-testid='product-card']",
+            title: ".productName, .proName",
+            price: ".priceContainer ins, .newPrice",
             link: "a.plink",
-            image: ".lazy-load-image",
+            image: ".lazy-load-image, .cardImage",
         },
         "Ciceksepeti": {
-            productCard: ".product-card",
-            title: ".product-title",
-            price: ".price",
+            productCard: ".product-card, .products__item, .js-product-item, .product-item",
+            title: ".product-title, .products__item-title",
+            price: ".price, .product-price, .products__item-price",
             link: "a",
             image: "img",
         },

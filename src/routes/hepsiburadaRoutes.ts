@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { hepsiburadaService } from "../services/hepsiburadaService.js";
+import { hepsiburadaService } from "../services/marketplace/hepsiburadaService.js";
 import { sendSuccessResponse, sendErrorResponse } from "../utils/responseHelper.js";
 import { logger } from "../logger.js";
 

@@ -6,14 +6,14 @@ import { logger } from "../logger.js";
 import { requireAdminKey } from "../middleware/adminKey.js";
 import { requireJsonBody } from "../middleware/requireJsonBody.js";
 import { validateBody, validateQuery } from "../validation.js";
-import { exportProductsCsv } from "../services/exportService.js";
-import { importProductsFromFile } from "../services/productImport.js";
-import { generateQrCode } from "../services/qrService.js";
-import { handleStockAlert } from "../services/stockAlertService.js";
-import { generateProductDescription, suggestCategory } from "../services/aiToolService.js";
-import { getPriceSuggestion } from "../services/pricingService.js";
-import { syncPriceStock, bulkSyncPriceStock } from "../services/syncService.js";
-import { getStockHistory } from "../services/stockHistoryService.js";
+import { exportProductsCsv } from "../services/product/exportService.js";
+import { importProductsFromFile, importProductFromUrl } from "../services/product/importService.js";
+import { generateQrCode } from "../services/product/qrService.js";
+import { handleStockAlert } from "../services/product/stockAlertService.js";
+import { generateProductDescription, suggestCategory, removeBackground } from "../services/ai/aiService.js";
+import { getPriceSuggestion, analyzePricing } from "../services/pricingService.js";
+import { syncPriceStock, bulkSyncPriceStock } from "../services/marketplace/syncService.js";
+import { getStockHistory } from "../services/product/stockHistoryService.js";
 import jwt from 'jsonwebtoken';
 import {
   getAllProducts,
@@ -29,8 +29,8 @@ import {
   getProductPrices,
   addProductPrice,
   deleteProductPrice,
-} from "../services/productService.js";
-import { calculateInventoryPredictions, getPredictionForProduct } from "../services/predictiveService.js";
+} from "../services/product/productService.js";
+
 import { getAdminSettings } from "../services/adminSettingsService.js";
 
 const router = Router();
@@ -114,12 +114,12 @@ router.post("/:barcode/sync", requireJsonBody, async (req, res) => {
   const { barcode } = req.params;
 
   try {
-    const product = await getProductByBarcode(barcode);
-    if (!product) {
+    const productRes = await getProductByBarcode(barcode);
+    if (!productRes.ok) {
       return res.status(404).json({ error: "product_not_found" });
     }
 
-    const { stock, price } = product;
+    const { stock, price } = productRes.value;
     // We send current DB values to sync service
     const result = await syncPriceStock({
       barcode,
@@ -247,7 +247,6 @@ router.post("/import-url", requireAdminKey, requireJsonBody, async (req, res) =>
   }
 
   try {
-    const { importProductFromUrl } = await import("../services/productImportService.js");
     const result = await importProductFromUrl(url);
 
     if (!result.success) {
@@ -269,7 +268,6 @@ router.post("/analyze-price", requireAdminKey, requireJsonBody, async (req, res)
   }
 
   try {
-    const { analyzePricing } = await import("../services/pricingService.js");
     const result = await analyzePricing({
       productName,
       myCost: typeof myCost === "number" ? myCost : undefined,
@@ -327,7 +325,6 @@ router.post("/ai/remove-background", requireAdminKey, requireJsonBody, async (re
   }
 
   try {
-    const { removeBackground } = await import("../services/aiToolService.js");
     const result = await removeBackground(imageUrl);
     res.json({ status: "ok", imageUrl: result });
   } catch (error) {
@@ -363,8 +360,9 @@ router.get("/export", requireAdminKey, validateQuery(productExportQuerySchema), 
   const limitRaw = Number(req.query.limit ?? 1000);
   const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 5000) : 1000;
   try {
-    const items = await getAllProducts(limit);
-    const csv = exportProductsCsv(items);
+    const productsResult = await getAllProducts(limit);
+    if (!productsResult.ok) throw productsResult.error;
+    const csv = exportProductsCsv(productsResult.value);
     res
       .status(200)
       .type("text/csv")
@@ -388,8 +386,9 @@ router.get("/low-stock", requireAdminKey, validateQuery(lowStockQuerySchema), as
     if (critical > threshold) {
       critical = threshold;
     }
-    const items = await getLowStockProducts(threshold, limit);
-    return res.json({ items, threshold, critical, limit });
+    const productsResult = await getLowStockProducts(threshold, limit);
+    if (!productsResult.ok) throw productsResult.error;
+    return res.json({ items: productsResult.value, threshold, critical, limit });
   } catch (error) {
     logger.error("products.low_stock_failed", { requestId: res.locals?.requestId, err: error });
     return res.status(500).json({ error: "low_stock_list_failed" });
@@ -403,15 +402,15 @@ router.get("/", requireAdminKey, validateQuery(productQuerySchema), async (req, 
   const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 200) : 50;
   try {
     if (barcode) {
-      const item = await getProductByBarcode(barcode.toLowerCase());
-      return res.json({ items: item ? [item] : [] });
+      const productResult = await getProductByBarcode(barcode.toLowerCase());
+      return res.json({ items: productResult.ok ? [productResult.value] : [] });
     }
     if (search) {
-      const items = await searchProductsByName(search, limit);
-      return res.json({ items });
+      const productsResult = await searchProductsByName(search, limit);
+      return res.json({ items: productsResult.ok ? productsResult.value : [] });
     }
-    const items = await getAllProducts(limit);
-    return res.json({ items });
+    const productsResult = await getAllProducts(limit);
+    return res.json({ items: productsResult.ok ? productsResult.value : [] });
   } catch (error) {
     logger.error("products.list_failed", { requestId: res.locals?.requestId, err: error });
     res.status(500).json({ error: "product_list_failed" });
@@ -429,24 +428,16 @@ router.get("/search", requireAdminKey, async (req, res) => {
   }
 
   try {
-    const items = await searchProductsByName(q, limit);
-    res.json({ success: true, query: q, items });
+    const productsResult = await searchProductsByName(q, limit);
+    if (!productsResult.ok) throw productsResult.error;
+    res.json({ success: true, query: q, items: productsResult.value });
   } catch (error) {
     logger.error("products.search_failed", { requestId: res.locals?.requestId, err: error });
     res.status(500).json({ error: "product_search_failed", success: false });
   }
 });
 
-router.get("/predictions", requireAdminKey, async (req, res) => {
-  try {
-    const { calculateProductPredictions } = await import("../services/predictionService.js");
-    const predictions = await calculateProductPredictions();
-    res.json(predictions);
-  } catch (error) {
-    logger.error("products.predictions_failed", { requestId: res.locals?.requestId, err: error });
-    res.status(500).json({ error: "predictions_failed" });
-  }
-});
+
 
 router.post("/", requireAdminKey, validateBody(productCreateSchema), async (req, res) => {
   const barcode = req.body.barcode.trim().toLowerCase();
@@ -478,7 +469,7 @@ router.post("/", requireAdminKey, validateBody(productCreateSchema), async (req,
   }
 
   try {
-    const item = await upsertProduct({
+    const productResult = await upsertProduct({
       barcode,
       name,
       category: req.body.category,
@@ -507,14 +498,16 @@ router.post("/", requireAdminKey, validateBody(productCreateSchema), async (req,
       preparation_days: req.body.preparation_days,
       translations: req.body.translations,
     });
-    if (item) {
+    if (productResult.ok) {
       try {
-        await handleStockAlert(item, "admin.product.upsert");
+        await handleStockAlert(productResult.value, "admin.product.upsert");
       } catch (error) {
         logger.warn("products.stock_alert_failed", { requestId: res.locals?.requestId, err: error });
       }
+      res.json({ item: productResult.value });
+    } else {
+      res.status(500).json({ error: productResult.error.message || "product_upsert_failed" });
     }
-    res.json({ item });
   } catch (error) {
     logger.error("products.upsert_failed", { requestId: res.locals?.requestId, err: error });
     res.status(500).json({ error: "product_upsert_failed" });
@@ -542,10 +535,11 @@ router.put("/:barcode/price", requireAdminKey, validateBody(priceUpdateSchema), 
   }
 
   try {
-    const product = await getProductByBarcode(barcode);
-    if (!product) {
+    const productRes = await getProductByBarcode(barcode);
+    if (!productRes.ok) {
       return res.status(404).json({ error: "product_not_found" });
     }
+    const product = productRes.value;
     const base = Number(product.price ?? 0);
     let nextValue = valueRaw;
     if (action !== "set") {
@@ -557,8 +551,11 @@ router.put("/:barcode/price", requireAdminKey, validateBody(priceUpdateSchema), 
       return res.status(400).json({ error: "invalid_price" });
     }
 
-    const updated = await updatePrice(barcode, Number(nextValue), userId);
-    res.json({ item: updated });
+    const updatedRes = await updatePrice(barcode, Number(nextValue), userId);
+    if (!updatedRes.ok) {
+       return res.status(500).json({ error: updatedRes.error?.message || "product_price_update_failed" });
+    }
+    res.json({ item: updatedRes.value });
   } catch (error) {
     logger.error("products.price_update_failed", { requestId: res.locals?.requestId, err: error });
     res.status(500).json({ error: "product_price_update_failed" });
@@ -586,10 +583,11 @@ router.put("/:barcode/stock", requireAdminKey, validateBody(stockUpdateSchema), 
   }
 
   try {
-    const product = await getProductByBarcode(barcode);
-    if (!product) {
+    const productRes = await getProductByBarcode(barcode);
+    if (!productRes.ok) {
       return res.status(404).json({ error: "product_not_found" });
     }
+    const product = productRes.value;
     const base = Number(product.stock ?? 0);
     let nextValue = valueRaw;
     if (action !== "set") {
@@ -599,24 +597,24 @@ router.put("/:barcode/stock", requireAdminKey, validateBody(stockUpdateSchema), 
     if (!Number.isFinite(nextValue) || nextValue < 0) {
       return res.status(400).json({ error: "invalid_stock" });
     }
-    const updated = await updateStock(
+    const updatedRes = await updateStock(
       barcode,
       Math.trunc(nextValue) - base,
       "Stok Kartı",
       `Manuel güncelleme (${action}: ${valueRaw}${isPercent ? "%" : ""})`,
       userId
     );
-    if (updated) {
-      try {
-        const updatedProduct = await getProductByBarcode(barcode);
-        if (updatedProduct) {
-          await handleStockAlert(updatedProduct, "admin.product.stock");
-        }
-      } catch (error) {
-        logger.warn("products.stock_alert_failed", { requestId: res.locals?.requestId, err: error });
-      }
+    if (!updatedRes.ok) {
+       return res.status(500).json({ error: updatedRes.error?.message || "product_stock_update_failed" });
     }
-    res.json({ item: updated });
+
+    try {
+      await handleStockAlert(updatedRes.value, "admin.product.update_stock");
+    } catch (error) {
+      logger.warn("products.stock_alert_failed", { requestId: res.locals?.requestId, err: error });
+    }
+
+    res.json({ item: updatedRes.value });
   } catch (error) {
     logger.error("products.stock_update_failed", { requestId: res.locals?.requestId, err: error });
     res.status(500).json({ error: "product_stock_update_failed" });
@@ -648,8 +646,9 @@ router.post("/bulk-sync", requireAdminKey, requireJsonBody, async (req, res) => 
     const results = [];
     for (const barcode of barcodes) {
       try {
-        const product = await getProductByBarcode(barcode);
-        if (product) {
+        const productRes = await getProductByBarcode(barcode);
+        if (productRes.ok) {
+          const product = productRes.value;
           const syncResult = await syncPriceStock({
             barcode,
             price: product.price,

@@ -1,4 +1,4 @@
-import { getAllProducts } from "./productService.js";
+import { getAllProducts } from "./product/productService.js";
 import { getSalesRecords } from "./salesStore.js";
 import { Product, SalesRecord } from "../types.js";
 
@@ -142,7 +142,9 @@ function validateSales(records: SalesRecord[], knownBarcodes: Set<string>) {
 }
 
 export async function generateDataQualityReport() {
-  const products = await getAllProducts(5000);
+  const productsResult = await getAllProducts(5000);
+  if (!productsResult.ok) throw productsResult.error;
+  const products = productsResult.value;
   const sales = await getSalesRecords();
   const productReport = validateProducts(products);
   const barcodeSet = new Set(products.map((item) => item.barcode.toLowerCase()));

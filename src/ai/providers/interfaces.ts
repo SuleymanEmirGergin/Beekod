@@ -102,9 +102,12 @@ export interface TryOnRequest {
   productImageUrl: string;
   modelImageUrl: string;
   options?: {
-    category?: 'upper_body' | 'lower_body' | 'full_body' | 'dress';
+    category?: 'upper_body' | 'lower_body' | 'full_body' | 'dress' | 'tops' | 'bottoms' | 'one-pieces';
     style?: string;
-    pose?: 'auto' | 'standing' | 'sitting';
+    pose?: string;
+    mood?: string;
+    appearance?: string;
+    origin?: string;
     outputFormat?: 'png' | 'jpeg' | 'webp';
   };
 }
@@ -177,6 +180,9 @@ export interface ImageRequest {
     height?: number;
     aspectRatio?: '1:1' | '16:9' | '9:16' | '4:3' | '3:4';
     style?: string;
+    mood?: string;
+    appearance?: string;
+    origin?: string;
     negativePrompt?: string;
     numOutputs?: number;
     outputFormat?: 'png' | 'jpeg' | 'webp';

@@ -1,5 +1,5 @@
 import { logger } from "../logger.js";
-import { MarketplaceActionResult, MarketplaceName } from "./types.js";
+import { MarketplaceActionResult, MarketplaceName } from "../services/marketplace/types.js";
 
 type MarketplaceLogEntry = {
   provider: MarketplaceName;

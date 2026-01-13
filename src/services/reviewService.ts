@@ -1,5 +1,6 @@
-import { generateGeminiReply } from "./geminiClient.js";
+import { generateGeminiReply } from "./ai/geminiClient.js";
 import { logger } from "../logger.js";
+import { getMarketplaceProvider } from "./marketplace/index.js";
 
 export interface ReviewAnalysis {
   sentiment: number; // 0-100
@@ -65,9 +66,45 @@ export async function generateReviewReply(productName: string, reviewText: strin
 }
 
 /**
+ * Fetches reviews from a specific marketplace for a barcode.
+ */
+export async function fetchMarketplaceReviews(marketplace: string, barcode: string): Promise<string[]> {
+  const provider = getMarketplaceProvider(marketplace);
+  if (!provider || !provider.getProductReviews) {
+    logger.warn("review.provider_not_supported", { marketplace });
+    return [];
+  }
+
+  const result = await provider.getProductReviews(barcode);
+  if (!result.ok) {
+    logger.error("review.fetch_failed", { marketplace, barcode, error: result.error.message });
+    return [];
+  }
+
+  return result.value.reviews.map(r => r.comment).filter(Boolean);
+}
+
+/**
+ * Full flow: Fetch real reviews and analyze them with Gemini.
+ */
+export async function analyzeReviewsForProduct(barcode: string, marketplace: string): Promise<ReviewAnalysis | null> {
+  const reviews = await fetchMarketplaceReviews(marketplace, barcode);
+  if (reviews.length === 0) {
+    return null;
+  }
+  
+  // We need the product name for context
+  const { getProductByBarcode } = await import("./product/productService.js");
+  const productRes = await getProductByBarcode(barcode);
+  const productName = productRes.ok ? productRes.value.name : "Ürün";
+
+  return analyzeProductReviews(productName, reviews);
+}
+
+/**
  * Simulates fetching reviews from external platforms.
  */
-export async function getMockReviews(productName: string): Promise<string[]> {
+export async function getMockReviews(_productName: string): Promise<string[]> {
   return [
     "Ürün gerçekten çok kaliteli, kargo da çok hızlıydı. Teşekkürler!",
     "Beklediğimden küçük geldi ama işini yapıyor.",

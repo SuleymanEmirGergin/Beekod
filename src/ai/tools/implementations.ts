@@ -3,7 +3,7 @@
  */
 
 import { z } from "zod";
-import { ToolDefinition, ToolContext, ToolResult } from "./interfaces.js";
+import { ToolDefinition, ToolResult } from "./interfaces.js";
 import {
   getOrderByIdArgsSchema,
   listRecentOrdersArgsSchema,
@@ -12,12 +12,24 @@ import {
   createShipmentArgsSchema,
   analyticsQueryArgsSchema,
   getProductByBarcodeArgsSchema,
+  getPriceCompetitionArgsSchema,
+  analyzePricingStrategyArgsSchema,
+  auditInventoryConsistencyArgsSchema,
+  detectStockRisksArgsSchema,
+  analyzeProductReviewsArgsSchema,
+  updateMarketplacePriceArgsSchema,
+  updateAISettingsArgsSchema,
+  checkAPIHealthArgsSchema,
+  runAutonomousPricingArgsSchema,
+  getStockForecastArgsSchema,
 } from "./validators.js";
 import { logger } from "../../logger.js";
-import { getOrderById, getRecentOrders, updateOrderShipping } from "../../services/orderService.js";
-import { unifiedMarketplaceSearch } from "../../services/unifiedMarketplaceSearch.js";
+import { getOrderById, getRecentOrders, updateOrderShipping } from "../../services/order/orderService.js";
+import { unifiedMarketplaceSearch } from "../../services/search/unifiedMarketplaceSearch.js";
 import { cargoService } from "../../services/cargo/cargoService.js";
 import { query } from "../../db.js";
+import { getPriceCompetition } from "../../services/marketplace/index.js";
+import { SearchResult } from "../../services/search/unifiedMarketplaceSearch.js";
 
 type GetOrderByIdArgs = z.infer<typeof getOrderByIdArgsSchema>;
 type ListRecentOrdersArgs = z.infer<typeof listRecentOrdersArgsSchema>;
@@ -26,12 +38,28 @@ type DraftCustomerReplyArgs = z.infer<typeof draftCustomerReplyArgsSchema>;
 type CreateShipmentArgs = z.infer<typeof createShipmentArgsSchema>;
 type AnalyticsQueryArgs = z.infer<typeof analyticsQueryArgsSchema>;
 type GetProductByBarcodeArgs = z.infer<typeof getProductByBarcodeArgsSchema>;
+type GetPriceCompetitionArgs = z.infer<typeof getPriceCompetitionArgsSchema>;
+type AnalyzePricingStrategyArgs = z.infer<typeof analyzePricingStrategyArgsSchema>;
+type AuditInventoryConsistencyArgs = z.infer<typeof auditInventoryConsistencyArgsSchema>;
+type DetectStockRisksArgs = z.infer<typeof detectStockRisksArgsSchema>;
+type AnalyzeProductReviewsArgs = z.infer<typeof analyzeProductReviewsArgsSchema>;
+type UpdateMarketplacePriceArgs = z.infer<typeof updateMarketplacePriceArgsSchema>;
+type UpdateAISettingsArgs = z.infer<typeof updateAISettingsArgsSchema>;
+type CheckAPIHealthArgs = z.infer<typeof checkAPIHealthArgsSchema>;
+type RunAutonomousPricingArgs = z.infer<typeof runAutonomousPricingArgsSchema>;
+type GetStockForecastArgs = z.infer<typeof getStockForecastArgsSchema>;
+
+import { listMarketplaceProviders } from "../../services/marketplace/index.js";
+import { credentialService } from "../../services/credentialService.js";
 
 const DEFAULT_ANALYTICS_DAYS = 30;
 const DEFAULT_ANALYTICS_LIMIT = 10;
 const MAX_ANALYTICS_DAYS = 365;
 const MAX_ANALYTICS_LIMIT = 50;
 const DEFAULT_LIST_ORDERS_LIMIT = 50;
+
+import { autonomousPricingService } from "../../services/pricing/autonomousPricingService.js";
+import { stockForecastingService } from "../../services/product/stockForecastingService.js";
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
@@ -114,17 +142,24 @@ export const getOrderByIdTool: ToolDefinition<GetOrderByIdArgs> = {
   async execute(args, ctx): Promise<ToolResult> {
     const startTime = Date.now();
     try {
-      const order = await getOrderById(args.orderId);
+      const result = await getOrderById(args.orderId);
+      if (!result.ok) {
+        return {
+          success: false,
+          error: result.error.message,
+          meta: { executionTimeMs: Date.now() - startTime },
+        };
+      }
       return {
         success: true,
-        data: order,
+        data: result.value,
         meta: { executionTimeMs: Date.now() - startTime },
       };
-    } catch (error) {
+    } catch (err: unknown) {
       logger.warn("tool.getOrderById.failed", { orderId: args.orderId, requestId: ctx.requestId });
       return {
         success: false,
-        error: "Order not found.",
+        error: "Order not found or system error.",
         meta: { executionTimeMs: Date.now() - startTime },
       };
     }
@@ -142,14 +177,21 @@ export const listRecentOrdersTool: ToolDefinition<ListRecentOrdersArgs> = {
   async execute(args, ctx): Promise<ToolResult> {
     const startTime = Date.now();
     try {
-      const orders = await getRecentOrders(args.days, DEFAULT_LIST_ORDERS_LIMIT);
-      const data = orders.map((order) => ({
+      const result = await getRecentOrders(args.days, DEFAULT_LIST_ORDERS_LIMIT);
+      if (!result.ok) {
+        return {
+          success: false,
+          error: result.error.message,
+          meta: { executionTimeMs: Date.now() - startTime },
+        };
+      }
+      const data = result.value.map((order) => ({
         id: order.requestId,
         date: order.date,
         customer: order.customer.name,
         total: order.total,
         status: order.status.label,
-        itemCount: order.items.length,
+        itemCount: order.items?.length || 0,
       }));
       return {
         success: true,
@@ -160,8 +202,8 @@ export const listRecentOrdersTool: ToolDefinition<ListRecentOrdersArgs> = {
         },
         meta: { executionTimeMs: Date.now() - startTime },
       };
-    } catch (error) {
-      logger.error("tool.listRecentOrders.failed", { error: String(error), requestId: ctx.requestId });
+    } catch (err: unknown) {
+      logger.error("tool.listRecentOrders.failed", { error: String(err), requestId: ctx.requestId });
       return {
         success: false,
         error: "Failed to list recent orders.",
@@ -182,7 +224,15 @@ export const searchCheapestProductTool: ToolDefinition<SearchCheapestProductArgs
   async execute(args, ctx): Promise<ToolResult> {
     const startTime = Date.now();
     try {
-      const results = await unifiedMarketplaceSearch(args.query);
+      const result = await unifiedMarketplaceSearch(args.query);
+      if (!result.ok) {
+        return {
+          success: false,
+          error: result.error.message,
+          meta: { executionTimeMs: Date.now() - startTime },
+        };
+      }
+      const results = result.value;
       if (!results.length) {
         return {
           success: true,
@@ -192,8 +242,8 @@ export const searchCheapestProductTool: ToolDefinition<SearchCheapestProductArgs
       }
 
       const sorted = results
-        .filter((item) => typeof item.price === "number")
-        .sort((a, b) => a.price - b.price);
+        .filter((item: SearchResult) => typeof item.price === "number")
+        .sort((a: SearchResult, b: SearchResult) => a.price - b.price);
 
       const cheapest = sorted[0] || results[0];
       return {
@@ -205,8 +255,8 @@ export const searchCheapestProductTool: ToolDefinition<SearchCheapestProductArgs
         },
         meta: { executionTimeMs: Date.now() - startTime },
       };
-    } catch (error) {
-      logger.error("tool.searchCheapestProduct.failed", { error: String(error), requestId: ctx.requestId });
+    } catch (err: unknown) {
+      logger.error("tool.searchCheapestProduct.failed", { error: String(err), requestId: ctx.requestId });
       return {
         success: false,
         error: "Failed to search products.",
@@ -261,15 +311,16 @@ export const draftCustomerReplyTool: ToolDefinition<DraftCustomerReplyArgs> = {
   async execute(args, ctx): Promise<ToolResult> {
     const startTime = Date.now();
     try {
-      const order = await getOrderById(args.orderId);
-      if (!order) {
+      const result = await getOrderById(args.orderId);
+      if (!result.ok) {
         return {
           success: false,
-          error: "Order not found.",
+          error: "Order not found or access denied.",
           meta: { executionTimeMs: Date.now() - startTime },
         };
       }
-      const items = order.items.map((item) => item.product_name).join(", ");
+      const order = result.value;
+      const items = order.items?.map((item: any) => item.product_name).join(", ") || "No items";
       const draft = buildDraftReply(
         args.tone,
         order.customer.name,
@@ -287,8 +338,8 @@ export const draftCustomerReplyTool: ToolDefinition<DraftCustomerReplyArgs> = {
         },
         meta: { executionTimeMs: Date.now() - startTime },
       };
-    } catch (error) {
-      logger.error("tool.draftCustomerReply.failed", { error: String(error), requestId: ctx.requestId });
+    } catch {
+      logger.error("tool.draftCustomerReply.failed", { error: "Unknown error", requestId: ctx.requestId });
       return {
         success: false,
         error: "Failed to draft customer reply.",
@@ -309,14 +360,15 @@ export const createShipmentTool: ToolDefinition<CreateShipmentArgs> = {
   async execute(args, ctx): Promise<ToolResult> {
     const startTime = Date.now();
     try {
-      const order = await getOrderById(args.orderId);
-      if (!order) {
+      const result = await getOrderById(args.orderId);
+      if (!result.ok) {
         return {
           success: false,
           error: "Order not found.",
           meta: { executionTimeMs: Date.now() - startTime },
         };
       }
+      const order = result.value;
 
       if (order.shipping?.trackingNumber) {
         return {
@@ -339,23 +391,23 @@ export const createShipmentTool: ToolDefinition<CreateShipmentArgs> = {
         recipientAddress: order.customer.address || "",
         recipientCity: "Istanbul",
         recipientDistrict: "Merkez",
-        items: order.items.map((item) => ({ name: item.product_name, quantity: item.quantity })),
+        items: order.items?.map((item: any) => ({ name: item.product_name, quantity: item.quantity })) || [],
       };
 
-      const result = await cargoService.createShipment(shipmentRequest);
+      const cargoResult = await cargoService.createShipment(shipmentRequest);
 
-      if (!result.success) {
+      if (!cargoResult.success) {
         return {
           success: false,
-          error: result.error || "Shipment creation failed.",
+          error: cargoResult.error || "Shipment creation failed.",
           meta: { executionTimeMs: Date.now() - startTime },
         };
       }
 
-      if (result.trackingNumber) {
+      if (cargoResult.trackingNumber) {
         await updateOrderShipping(order.requestId, {
           provider: args.carrier,
-          trackingNumber: result.trackingNumber,
+          trackingNumber: cargoResult.trackingNumber,
           labelUrl: "",
         });
       }
@@ -364,14 +416,14 @@ export const createShipmentTool: ToolDefinition<CreateShipmentArgs> = {
         success: true,
         data: {
           orderId: order.requestId,
-          provider: result.provider,
-          trackingNumber: result.trackingNumber,
+          provider: cargoResult.provider,
+          trackingNumber: cargoResult.trackingNumber,
           status: "created",
         },
         meta: { executionTimeMs: Date.now() - startTime },
       };
-    } catch (error) {
-      logger.error("tool.createShipment.failed", { error: String(error), requestId: ctx.requestId });
+    } catch (err: unknown) {
+      logger.error("tool.createShipment.failed", { error: String(err), requestId: ctx.requestId });
       return {
         success: false,
         error: "Failed to create shipment.",
@@ -496,22 +548,22 @@ export const getProductByBarcodeTool: ToolDefinition<GetProductByBarcodeArgs> = 
   async execute(args, ctx): Promise<ToolResult> {
     const startTime = Date.now();
     try {
-      const { getProductByBarcode } = await import("../../services/productService.js");
-      const product = await getProductByBarcode(args.barcode);
-      if (!product) {
+      const { getProductByBarcode } = await import("../../services/product/productService.js");
+      const result = await getProductByBarcode(args.barcode);
+      if (!result.ok) {
         return {
           success: false,
-          error: "Product not found.",
+          error: result.error.message,
           meta: { executionTimeMs: Date.now() - startTime },
         };
       }
       return {
         success: true,
-        data: product,
+        data: result.value,
         meta: { executionTimeMs: Date.now() - startTime },
       };
-    } catch (error) {
-      logger.error("tool.getProductByBarcode.failed", { error: String(error), requestId: ctx.requestId });
+    } catch (err: unknown) {
+      logger.error("tool.getProductByBarcode.failed", { error: String(err), requestId: ctx.requestId });
       return {
         success: false,
         error: "Failed to fetch product.",
@@ -520,3 +572,395 @@ export const getProductByBarcodeTool: ToolDefinition<GetProductByBarcodeArgs> = 
     }
   },
 };
+
+// ============================================
+// getPriceCompetition Tool
+// ============================================
+
+export const getPriceCompetitionTool: ToolDefinition<GetPriceCompetitionArgs> = {
+  name: "getPriceCompetition",
+  description: "Get real-time price competition and Buy-Box analysis for products.",
+  argsSchema: getPriceCompetitionArgsSchema,
+  async execute(args, ctx): Promise<ToolResult> {
+    const startTime = Date.now();
+    try {
+      const result = await getPriceCompetition(args.marketplace, args.barcodes);
+      if (!result.ok) {
+        return {
+          success: false,
+          error: result.error.message,
+          meta: { executionTimeMs: Date.now() - startTime },
+        };
+      }
+      return {
+        success: true,
+        data: result.value,
+        meta: { executionTimeMs: Date.now() - startTime },
+      };
+    } catch (error) {
+      logger.error("tool.getPriceCompetition.failed", { error: String(error), requestId: ctx.requestId });
+      return {
+        success: false,
+        error: "Failed to fetch price competition data.",
+        meta: { executionTimeMs: Date.now() - startTime },
+      };
+    }
+  },
+};
+
+// ============================================
+// analyzePricingStrategy Tool
+// ============================================
+
+export const analyzePricingStrategyTool: ToolDefinition<AnalyzePricingStrategyArgs> = {
+  name: "analyzePricingStrategy",
+  description: "Analyze Buy-Box status and get strategic pricing recommendations for a product.",
+  argsSchema: analyzePricingStrategyArgsSchema,
+  async execute(args, ctx): Promise<ToolResult> {
+    const startTime = Date.now();
+    try {
+      const { pricingIntelligenceService } = await import("../../services/ai/pricingIntelligenceService.js");
+      const result = await pricingIntelligenceService.analyzeBuyBoxStatus(args.barcode);
+      if (!result.ok) {
+        return {
+          success: false,
+          error: result.error.message,
+          meta: { executionTimeMs: Date.now() - startTime },
+        };
+      }
+      return {
+        success: true,
+        data: result.value,
+        meta: { executionTimeMs: Date.now() - startTime },
+      };
+    } catch (error) {
+      logger.error("tool.analyzePricingStrategy.failed", { error: String(error), requestId: ctx.requestId });
+      return {
+        success: false,
+        error: "Failed to analyze pricing strategy.",
+        meta: { executionTimeMs: Date.now() - startTime },
+      };
+    }
+  },
+};
+
+// ============================================
+// auditInventoryConsistency Tool
+// ============================================
+
+export const auditInventoryConsistencyTool: ToolDefinition<AuditInventoryConsistencyArgs> = {
+  name: "auditInventoryConsistency",
+  description: "Audit stock consistency across marketplaces for a specific product.",
+  argsSchema: auditInventoryConsistencyArgsSchema,
+  async execute(args, ctx): Promise<ToolResult> {
+    const startTime = Date.now();
+    try {
+      const { inventoryAuditService } = await import("../../services/ai/inventoryAuditService.js");
+      const result = await inventoryAuditService.auditStockConsistency(args.barcode);
+      if (!result.ok) {
+        return {
+          success: false,
+          error: result.error.message,
+          meta: { executionTimeMs: Date.now() - startTime },
+        };
+      }
+      return {
+        success: true,
+        data: result.value,
+        meta: { executionTimeMs: Date.now() - startTime },
+      };
+    } catch (error) {
+      logger.error("tool.auditInventoryConsistency.failed", { error: String(error), requestId: ctx.requestId });
+      return {
+        success: false,
+        error: "Failed to audit inventory consistency.",
+        meta: { executionTimeMs: Date.now() - startTime },
+      };
+    }
+  },
+};
+
+// ============================================
+// detectStockRisks Tool
+// ============================================
+
+export const detectStockRisksTool: ToolDefinition<DetectStockRisksArgs> = {
+  name: "detectStockRisks",
+  description: "Detect over-selling risks across the entire inventory.",
+  argsSchema: detectStockRisksArgsSchema,
+  async execute(_args, ctx): Promise<ToolResult> {
+    const startTime = Date.now();
+    try {
+      const { inventoryAuditService } = await import("../../services/ai/inventoryAuditService.js");
+      const result = await inventoryAuditService.detectOverSellingRisks();
+      if (!result.ok) {
+        return {
+          success: false,
+          error: result.error.message,
+          meta: { executionTimeMs: Date.now() - startTime },
+        };
+      }
+      return {
+        success: true,
+        data: result.value,
+        meta: { executionTimeMs: Date.now() - startTime },
+      };
+    } catch (error) {
+      logger.error("tool.detectStockRisks.failed", { error: String(error), requestId: ctx.requestId });
+      return {
+        success: false,
+        error: "Failed to detect stock risks.",
+        meta: { executionTimeMs: Date.now() - startTime },
+      };
+    }
+  },
+};
+
+// ============================================
+// analyzeProductReviews Tool
+// ============================================
+
+export const analyzeProductReviewsTool: ToolDefinition<AnalyzeProductReviewsArgs> = {
+  name: "analyzeProductReviews",
+  description: "Analyze product reviews and sentiment from a specific marketplace.",
+  argsSchema: analyzeProductReviewsArgsSchema,
+  async execute(args, ctx): Promise<ToolResult> {
+    const startTime = Date.now();
+    try {
+      const { analyzeReviewsForProduct } = await import("../../services/reviewService.js");
+      const result = await analyzeReviewsForProduct(args.barcode, args.marketplace);
+      if (!result) {
+        return {
+          success: true,
+          data: { reviewsFound: false, barcode: args.barcode, marketplace: args.marketplace },
+          meta: { executionTimeMs: Date.now() - startTime },
+        };
+      }
+      return {
+        success: true,
+        data: { reviewsFound: true, ...result },
+        meta: { executionTimeMs: Date.now() - startTime },
+      };
+    } catch (error) {
+      logger.error("tool.analyzeProductReviews.failed", { error: String(error), requestId: ctx.requestId });
+      return {
+        success: false,
+        error: "Failed to analyze product reviews.",
+        meta: { executionTimeMs: Date.now() - startTime },
+      };
+    }
+  },
+};
+
+// ============================================
+// updateMarketplacePrice Tool
+// ============================================
+
+export const updateMarketplacePriceTool: ToolDefinition<UpdateMarketplacePriceArgs> = {
+  name: "updateMarketplacePrice",
+  description: "Update the price of a product on a specific marketplace.",
+  argsSchema: updateMarketplacePriceArgsSchema,
+  async execute(args, ctx): Promise<ToolResult> {
+    const startTime = Date.now();
+    try {
+      const { getMarketplaceProvider } = await import("../../services/marketplace/index.js");
+      const provider = getMarketplaceProvider(args.marketplace);
+      if (!provider) {
+        return {
+          success: false,
+          error: `Marketplace provider '${args.marketplace}' not found.`,
+          meta: { executionTimeMs: Date.now() - startTime },
+        };
+      }
+
+      const result = await provider.updateListing({
+        barcode: args.barcode,
+        price: args.price,
+      });
+
+      if (!result.ok) {
+        return {
+          success: false,
+          error: result.error.message,
+          meta: { executionTimeMs: Date.now() - startTime },
+        };
+      }
+
+      return {
+        success: true,
+        data: result.value,
+        meta: { executionTimeMs: Date.now() - startTime },
+      };
+    } catch (error) {
+      logger.error("tool.updateMarketplacePrice.failed", { error: String(error), requestId: ctx.requestId });
+      return {
+        success: false,
+        error: "Failed to update marketplace price.",
+        meta: { executionTimeMs: Date.now() - startTime },
+      };
+    }
+  },
+};
+
+// ============================================
+// updateAISettings Tool
+// ============================================
+
+export const updateAISettingsTool: ToolDefinition<UpdateAISettingsArgs> = {
+  name: "updateAISettings",
+  description: "Update AI Assistant settings like automatic pricing or notifications.",
+  argsSchema: updateAISettingsArgsSchema,
+  async execute(args, ctx): Promise<ToolResult> {
+    const startTime = Date.now();
+    try {
+      const { updateUserPreferences } = await import("../../services/userPreferenceService.js");
+      
+      const updates: any = {};
+      if (args.enableAutoPricing !== undefined) updates.enable_ai_auto_pricing = args.enableAutoPricing;
+      if (args.enableStockNotifications !== undefined) updates.enable_ai_stock_notifications = args.enableStockNotifications;
+
+      const result = updateUserPreferences("admin", updates);
+
+      return {
+        success: true,
+        data: { 
+          message: "AI settings updated successfully.",
+          currentSettings: result 
+        },
+        meta: { executionTimeMs: Date.now() - startTime },
+      };
+    } catch (error) {
+      logger.error("tool.updateAISettings.failed", { error: String(error), requestId: ctx.requestId });
+      return {
+        success: false,
+        error: "Failed to update AI settings.",
+        meta: { executionTimeMs: Date.now() - startTime },
+      };
+    }
+  },
+};
+
+/**
+ * Tool: checkAPIHealth
+ * AI evaluates credentials and connectivity of all configured marketplaces.
+ */
+export const checkAPIHealthTool: ToolDefinition<CheckAPIHealthArgs> = {
+  name: "checkAPIHealth",
+  description: "Check the health, configuration, and connectivity of all marketplace APIs.",
+  argsSchema: checkAPIHealthArgsSchema,
+  async execute(_args, ctx): Promise<ToolResult> {
+    const startTime = Date.now();
+    try {
+      const providers = listMarketplaceProviders();
+      const results = providers.map(p => {
+        const credStatus = credentialService.inspect(p.name);
+        return {
+          marketplace: p.name,
+          configured: p.configured,
+          status: p.token.status,
+          missingKeys: credStatus.missingKeys,
+          isValidFormat: credStatus.isValid,
+        };
+      });
+
+      return {
+        success: true,
+        data: {
+          summary: "API Health Evaluation",
+          results,
+        },
+        meta: { executionTimeMs: Date.now() - startTime },
+      };
+    } catch (err: unknown) {
+      logger.error("tool.checkAPIHealth.failed", { error: String(err), requestId: ctx.requestId });
+      return {
+        success: false,
+        error: "Failed to evaluate API health.",
+        meta: { executionTimeMs: Date.now() - startTime },
+      };
+    }
+  },
+};
+
+// ============================================
+// runAutonomousPricing Tool
+// ============================================
+
+export const runAutonomousPricingTool: ToolDefinition<RunAutonomousPricingArgs> = {
+  name: "runAutonomousPricing",
+  description: "Triggers autonomous pricing for a specific product or all products based on competitor data and target margin.",
+  argsSchema: runAutonomousPricingArgsSchema,
+  execute: async (args, ctx): Promise<ToolResult> => {
+    const startTime = Date.now();
+    try {
+      let result;
+      if (args.barcode) {
+        // Single product
+        const success = await autonomousPricingService.processProduct(args.barcode, {
+          type: "buybox",
+          minMargin: args.minMargin
+        });
+        result = { success, message: success ? "Fiyat başarıyla güncellendi." : "Fiyat güncellenemedi veya rakip bulunamadı." };
+      } else {
+        // All products
+        const stats = await autonomousPricingService.processAllProducts();
+        result = { 
+          summary: "Toplu otonom fiyatlandırma tamamlandı.", 
+          processed: stats.processed, 
+          updated: stats.success 
+        };
+      }
+
+      return {
+        success: true,
+        data: result,
+        meta: { executionTimeMs: Date.now() - startTime },
+      };
+    } catch (err: unknown) {
+      logger.error("tool.runAutonomousPricing.failed", { error: String(err), requestId: ctx.requestId });
+      return {
+        success: false,
+        error: "Otonom fiyatlandırma çalıştırılamadı.",
+        meta: { executionTimeMs: Date.now() - startTime },
+      };
+    }
+  },
+};
+
+// ============================================
+// getStockForecast Tool
+// ============================================
+
+export const getStockForecastTool: ToolDefinition<GetStockForecastArgs> = {
+  name: "getStockForecast",
+  description: "Get sales velocity and run-out prediction for a product.",
+  argsSchema: getStockForecastArgsSchema,
+  execute: async (args, ctx): Promise<ToolResult> => {
+    const startTime = Date.now();
+    try {
+      const forecast = await stockForecastingService.getForecast(args.barcode);
+
+      if (!forecast) {
+        return {
+          success: false,
+          error: "Stok tahmini yapılamadı. Ürün veya satış verisi bulunamadı.",
+          meta: { executionTimeMs: Date.now() - startTime },
+        };
+      }
+
+      return {
+        success: true,
+        data: forecast,
+        meta: { executionTimeMs: Date.now() - startTime },
+      };
+    } catch (err: unknown) {
+      logger.error("tool.getStockForecast.failed", { error: String(err), requestId: ctx.requestId });
+      return {
+        success: false,
+        error: "Stok tahmini alınamadı.",
+        meta: { executionTimeMs: Date.now() - startTime },
+      };
+    }
+  },
+};
+

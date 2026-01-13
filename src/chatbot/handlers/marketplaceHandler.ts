@@ -152,13 +152,87 @@ export class MarketplaceHandler implements ChatHandler {
             };
         }
 
-        // TODO: Get product from database and publish to marketplace
-        // This is a placeholder for now
+        // Get product from database
+        const { getProductByBarcode } = await import("../../services/productService.js");
+        const product = await getProductByBarcode(barcode);
+
+        if (!product) {
+            return {
+                success: false,
+                message: `Barkod ${barcode} sistemde bulunamadı. Önce ürünü ekleyin.`,
+            };
+        }
+
+        // Prepare payload for marketplace
+        const payload = {
+            barcode: product.barcode,
+            title: product.name,
+            description: product.description || "",
+            price: product.price,
+            stock: product.stock,
+            currency: product.currency || "TRY",
+            images: product.images || [],
+            brand: product.brand || "",
+            category: product.category || "",
+            attributes: product.attributes || {},
+        };
+
+        // Determine target marketplaces
+        const targetMarketplaces = marketplace
+            ? [marketplace as MarketplaceName]
+            : (["Trendyol", "Hepsiburada", "N11", "Ciceksepeti"] as MarketplaceName[]);
+
+        const results: { marketplace: string; status: string; message?: string }[] = [];
+
+        for (const mp of targetMarketplaces) {
+            const provider = getMarketplaceProvider(mp);
+            if (!provider || !provider.isConfigured()) {
+                results.push({ marketplace: mp, status: "skipped", message: "Yapılandırılmamış" });
+                continue;
+            }
+
+            try {
+                const result = await provider.upsertProduct(payload);
+                results.push({
+                    marketplace: mp,
+                    status: result.status,
+                    message: result.message,
+                });
+            } catch (error) {
+                logger.error("marketplaceHandler.publish.error", { marketplace: mp, error });
+                results.push({
+                    marketplace: mp,
+                    status: "error",
+                    message: error instanceof Error ? error.message : "Bilinmeyen hata",
+                });
+            }
+        }
+
+        // Audit log
+        if (sessionId) {
+            await auditService.log({
+                userId,
+                sessionId,
+                action: "marketplace_publish",
+                entity: "product",
+                entityId: barcode,
+                newValue: { marketplaces: targetMarketplaces, results },
+            });
+        }
+
+        const successCount = results.filter(r => r.status === "ok" || r.status === "queued").length;
+        const totalCount = results.filter(r => r.status !== "skipped").length;
+
+        let message = `📤 **${product.name}** (${barcode})\n\n`;
+        results.forEach(r => {
+            const icon = r.status === "ok" || r.status === "queued" ? "✅" : r.status === "skipped" ? "⏭️" : "❌";
+            message += `${icon} ${r.marketplace}: ${r.message || r.status}\n`;
+        });
 
         return {
-            success: true,
-            message: `📤 Barkod ${barcode} ${marketplace || "tüm pazaryerlerine"} yayınlanmak üzere kuyruğa alındı.`,
-            data: { barcode, marketplace, status: "queued" },
+            success: successCount > 0,
+            message,
+            data: { barcode, results },
         };
     }
 
@@ -236,40 +310,144 @@ export class MarketplaceHandler implements ChatHandler {
     private async getMarketplaceAnalytics(entities: ChatEntity): Promise<HandlerResult> {
         const { marketplace, barcode } = entities;
 
-        // Get price comparison across marketplaces
-        if (barcode) {
-            const comparison = await this.getPriceComparison(barcode);
+        // If no specific barcode, show cross-marketplace summary
+        if (!barcode) {
+            return await this.getCrossMarketplaceSummary();
+        }
 
-            if (comparison.length === 0) {
-                return {
-                    success: true,
-                    message: `Barkod ${barcode} için pazaryerlerinde veri bulunamadı.`,
-                    marketplaceComparison: [],
-                };
-            }
+        // Get price comparison across marketplaces for specific barcode
+        const comparison = await this.getPriceComparison(barcode);
 
-            let message = `📊 **Barkod ${barcode} - Pazaryeri Karşılaştırma**\n\n`;
-            comparison.forEach(c => {
-                const icon = c.available ? "✅" : "❌";
-                message += `${icon} **${c.marketplace}**: ${c.price} ${c.currency}`;
-                if (c.stock !== undefined) {
-                    message += ` (${c.stock} adet)`;
-                }
-                message += "\n";
-            });
-
+        if (comparison.length === 0) {
             return {
                 success: true,
-                message,
-                marketplaceComparison: comparison,
+                message: `Barkod ${barcode} için pazaryerlerinde veri bulunamadı.`,
+                marketplaceComparison: [],
             };
         }
 
+        let message = `📊 **Barkod ${barcode} - Pazaryeri Karşılaştırma**\n\n`;
+        comparison.forEach(c => {
+            const icon = c.available ? "✅" : "❌";
+            message += `${icon} **${c.marketplace}**: ${c.price} ${c.currency}`;
+            if (c.stock !== undefined) {
+                message += ` (${c.stock} adet)`;
+            }
+            message += "\n";
+        });
+
         return {
             success: true,
-            message: "Pazaryeri analizi için barkod belirtin.",
+            message,
+            marketplaceComparison: comparison,
         };
     }
+
+    /**
+     * Get cross-marketplace price summary
+     */
+    private async getCrossMarketplaceSummary(): Promise<HandlerResult> {
+        const fs = await import("fs");
+        const path = await import("path");
+        
+        // Try to read the price comparison report
+        const reportPath = path.join(process.cwd(), "price_comparison_report.json");
+        
+        try {
+            if (fs.existsSync(reportPath)) {
+                const reportData = JSON.parse(fs.readFileSync(reportPath, "utf-8"));
+                
+                let message = "📊 **Pazaryerleri Arası Fiyat Karşılaştırması**\n\n";
+                
+                // Summary by marketplace
+                message += "**📈 Ortalama Fiyatlar:**\n";
+                const summary = reportData.summary?.byMarketplace || {};
+                const sortedMPs = Object.entries(summary).sort((a: any, b: any) => a[1].avgPrice - b[1].avgPrice);
+                
+                for (const [mp, data] of sortedMPs as [string, { count: number; avgPrice: number }][]) {
+                    const cheapIcon = sortedMPs[0][0] === mp ? "💰" : "";
+                    message += `  ${cheapIcon} **${mp}**: ${data.avgPrice.toFixed(2)}₺ (${data.count} ürün)\n`;
+                }
+                
+                // Top differences
+                if (reportData.topDifferences?.length > 0) {
+                    message += "\n**🔥 En Büyük Fiyat Farkları:**\n";
+                    const top5 = reportData.topDifferences.slice(0, 5);
+                    for (const diff of top5) {
+                        message += `  • ${diff.title?.substring(0, 35)}...\n`;
+                        message += `    ${diff.cheapestAt}: ${diff.minPrice}₺ vs diğerleri: ${diff.maxPrice}₺ (**${diff.priceDiff.toFixed(0)}₺ fark**)\n`;
+                    }
+                }
+                
+                message += `\n📅 Rapor: ${new Date(reportData.timestamp).toLocaleString("tr-TR")}`;
+                message += `\n🔢 Toplam: ${reportData.totalProducts} ürün, ${reportData.comparisonsFound} eşleşme`;
+                
+                return {
+                    success: true,
+                    message,
+                    data: reportData,
+                };
+            }
+        } catch (err) {
+            logger.error("marketplaceHandler.getCrossMarketplaceSummary.error", { error: err });
+        }
+        
+        // If no report, generate one on-the-fly with live data
+        return await this.generateLivePriceComparison();
+    }
+    
+    /**
+     * Generate live price comparison from all marketplaces
+     */
+    private async generateLivePriceComparison(): Promise<HandlerResult> {
+        const providerInstances = getMarketplaceProviders();
+        const allProducts: { mp: string; barcode: string; price: number; stock: number }[] = [];
+        
+        let message = "📊 **Canlı Pazaryeri Analizi**\n\n";
+        
+        for (const provider of providerInstances) {
+            if (!provider.isConfigured()) continue;
+            
+            try {
+                const result = await provider.listListings({ size: 50 });
+                if (result.status === "ok" && result.items.length > 0) {
+                    for (const item of result.items) {
+                        allProducts.push({
+                            mp: provider.name,
+                            barcode: item.barcode,
+                            price: item.price || 0,
+                            stock: item.stock || 0,
+                        });
+                    }
+                    message += `✅ **${provider.name}**: ${result.items.length} ürün\n`;
+                }
+            } catch (err) {
+                message += `❌ **${provider.name}**: Bağlantı hatası\n`;
+            }
+        }
+        
+        // Calculate average prices per marketplace
+        const mpStats = new Map<string, { count: number; total: number }>();
+        for (const p of allProducts) {
+            if (!mpStats.has(p.mp)) mpStats.set(p.mp, { count: 0, total: 0 });
+            const stat = mpStats.get(p.mp)!;
+            stat.count++;
+            stat.total += p.price;
+        }
+        
+        message += "\n**📈 Ortalama Fiyatlar:**\n";
+        for (const [mp, stat] of mpStats) {
+            const avg = stat.total / stat.count;
+            message += `  • ${mp}: ${avg.toFixed(2)}₺\n`;
+        }
+        
+        return {
+            success: true,
+            message,
+            data: { totalProducts: allProducts.length, byMarketplace: Object.fromEntries(mpStats) },
+        };
+    }
+
 
     /**
      * Get price comparison from all marketplaces

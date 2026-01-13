@@ -46,7 +46,9 @@ Style: ${styleGuide[style] || styleGuide.normal}
 Rules:
 1) Use ONLY tool results. Do not fabricate data.
 2) If a tool failed, explain it succinctly.
-3) Do not include stack traces or internal errors.`;
+3) Do not include stack traces or internal errors.
+4) If the tool results containing products have 'attributes' or 'variants', use them to answer specific questions about size, color, material, or technical specs.
+5) If asked about pricing or competitive analysis, use 'buyBoxPrice', 'marketPosition', 'competitorCount', and 'isWinningBuyBox' data to provide detailed information about the user's market position (e.g., "You have the lowest price for this product" or "You appear to be 10 TL more expensive than your competitors").`;
   },
 };
 

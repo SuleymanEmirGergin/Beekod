@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { trendyolService } from "../services/trendyolService.js";
+import { trendyolService } from "../services/marketplace/trendyolService.js";
 import { sendSuccessResponse, sendErrorResponse } from "../utils/responseHelper.js";
 import { logger } from "../logger.js";
 

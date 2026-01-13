@@ -1,12 +1,12 @@
-import { MarketplaceConfigStatus, MarketplaceMode, MarketplaceName } from "./types.js";
+import { MarketplaceConfigStatus, MarketplaceMode, MarketplaceName } from "../services/marketplace/types.js";
 
 const REQUIRED_ENV: Record<MarketplaceName, string[]> = {
   Trendyol: ["TRENDYOL_API_BASE", "TRENDYOL_API_KEY", "TRENDYOL_API_SECRET", "TRENDYOL_SUPPLIER_ID"],
-  Hepsiburada: ["HEPSIBURADA_API_BASE", "HEPSIBURADA_API_KEY", "HEPSIBURADA_API_SECRET"],
-  N11: ["N11_API_BASE", "N11_API_KEY", "N11_API_SECRET"],
+  Hepsiburada: ["HEPSIBURADA_MERCHANT_ID", "HEPSIBURADA_API_USERNAME", "HEPSIBURADA_API_PASSWORD"],
+  N11: ["N11_API_KEY"],
   Ciceksepeti: ["CICEKSEPETI_API_KEY"],
-  PttAVM: ["PTTAVM_API_USER", "PTTAVM_API_PASS"],
-  Pazarama: ["PAZARAMA_API_KEY"],
+  PttAVM: ["PTTAVM_USERNAME", "PTTAVM_PASSWORD"],
+  Pazarama: ["PAZARAMA_API_KEY", "PAZARAMA_API_SECRET"],
   Amazon: ["AMAZON_API_KEY", "AMAZON_API_SECRET"],
   Shopify: ["SHOPIFY_SHOP_URL", "SHOPIFY_ACCESS_TOKEN"],
   Woocommerce: ["WOOCOMMERCE_URL", "WOOCOMMERCE_CONSUMER_KEY", "WOOCOMMERCE_CONSUMER_SECRET"],

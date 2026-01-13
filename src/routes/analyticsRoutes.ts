@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { requireAdminKey } from "../middleware/adminKey.js";
 import { logger } from "../logger.js";
-import { cacheMiddleware } from "../services/cacheService.js";
+import { cacheMiddleware } from "../services/product/cacheService.js";
 import {
   getDashboardStats,
   getProductPerformance,

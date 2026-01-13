@@ -1,5 +1,5 @@
-import { getProductByBarcode } from "./productService.js";
-import { generateGeminiReply } from "./geminiClient.js";
+import { getProductByBarcode } from "./product/productService.js";
+import { generateGeminiReply } from "./ai/geminiClient.js";
 import { logger } from "../logger.js";
 
 export interface CompetitorPrice {
@@ -19,18 +19,22 @@ export interface PriceSuggestion {
   aiInsight?: string;
 }
 
-import { unifiedMarketplaceSearch } from "./unifiedMarketplaceSearch.js";
+import { unifiedMarketplaceSearch } from "./search/unifiedMarketplaceSearch.js";
 
 /**
  * Fetches real competitor prices using unified marketplace search.
  */
 export async function getCompetitorPrices(barcode: string): Promise<CompetitorPrice[]> {
-  const product = await getProductByBarcode(barcode);
-  if (!product) return [];
+  const productResult = await getProductByBarcode(barcode);
+  if (!productResult.ok) return [];
+  const product = productResult.value;
 
   try {
     // We search by product name to find competitors
-    const searchResults = await unifiedMarketplaceSearch(product.name);
+    const searchResult = await unifiedMarketplaceSearch(product.name);
+    if (!searchResult.ok) return [];
+
+    const searchResults = searchResult.value;
 
     // Filter and map to CompetitorPrice format
     // We only take results that aren't the source URL itself (if possible)
@@ -55,8 +59,9 @@ export async function getCompetitorPrices(barcode: string): Promise<CompetitorPr
 }
 
 export async function getPriceSuggestion(barcode: string): Promise<PriceSuggestion | null> {
-  const product = await getProductByBarcode(barcode);
-  if (!product) return null;
+  const productResult = await getProductByBarcode(barcode);
+  if (!productResult.ok) return null;
+  const product = productResult.value;
 
   const competitors = await getCompetitorPrices(barcode);
   if (competitors.length === 0) return null;
@@ -89,8 +94,9 @@ export async function getPriceSuggestion(barcode: string): Promise<PriceSuggesti
  * Uses Gemini to consider more factors like stock scarcity and market trends
  */
 export async function generateDynamicPricingAI(barcode: string): Promise<PriceSuggestion | null> {
-  const product = await getProductByBarcode(barcode);
-  if (!product) return null;
+  const productResult = await getProductByBarcode(barcode);
+  if (!productResult.ok) return null;
+  const product = productResult.value;
 
   const competitors = await getCompetitorPrices(barcode);
   const baseSuggestion = await getPriceSuggestion(barcode);
@@ -127,7 +133,6 @@ export async function generateDynamicPricingAI(barcode: string): Promise<PriceSu
     if (aiResponse) {
       const priceMatch = aiResponse.match(/ÖNERİ:\s*([\d.,]+)/);
       const reasonMatch = aiResponse.match(/NEDEN:\s*(.*)/);
-      const tipMatch = aiResponse.match(/İPUCU:\s*(.*)/);
 
       if (priceMatch) {
         const aiPrice = parseFloat(priceMatch[1].replace(",", "."));
@@ -149,7 +154,7 @@ export async function generateDynamicPricingAI(barcode: string): Promise<PriceSu
 /**
  * Compatibility helper for generic pricing analysis
  */
-export async function analyzePricing(input: { productName: string; myCost?: number; locale?: string }) {
+export async function analyzePricing(_input: { productName: string; myCost?: number; locale?: string }) {
   const avgMarketPrice = 100 * (0.8 + Math.random() * 0.4);
   const min = avgMarketPrice * 0.85;
   const max = avgMarketPrice * 1.25;

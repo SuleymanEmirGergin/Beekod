@@ -10,7 +10,7 @@ import {
   deletePost,
   simulateAutoPost,
   generateSocialContent,
-} from "../services/socialService.js";
+} from "../services/social/socialService.js";
 
 const router = Router();
 
@@ -107,7 +107,7 @@ router.post("/bulk-generate-content", requireAdminKey, async (req, res) => {
   }
 
   try {
-    const { generateBulkSocialContent } = await import("../services/socialService.js");
+    const { generateBulkSocialContent } = await import("../services/social/socialService.js");
     const results = await generateBulkSocialContent(productIds, platform);
     res.json({ status: "ok", results });
   } catch (error) {

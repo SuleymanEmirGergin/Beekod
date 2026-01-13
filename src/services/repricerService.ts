@@ -1,5 +1,5 @@
 import { logger } from '../logger.js';
-import { inventoryService } from './inventoryService.js';
+import { updateBulkPrice } from './product/productService.js';
 
 export interface RepricerConfig {
     barcode: string;
@@ -58,7 +58,10 @@ export const repricerService = {
             });
 
             // Update on all marketplaces (simulation uses hardcoded marketplaces for now)
-            await inventoryService.updateBulkPrice(barcode, myNewPrice, ['Trendyol', 'Hepsiburada', 'N11']);
+            const result = await updateBulkPrice(barcode, myNewPrice, ['Trendyol', 'Hepsiburada', 'N11']);
+            if (!result.ok) {
+                logger.error('repricerService.adjustPrice_failed', { barcode, err: result.error });
+            }
         }
     }
 };

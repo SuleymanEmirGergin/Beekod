@@ -1,4 +1,5 @@
 import { getSalesRecords } from "./salesStore.js";
+import { SalesRecord } from "../types.js";
 import {
   DashboardData,
   DashboardStats,
@@ -7,9 +8,17 @@ import {
   MarketplaceOrder,
 } from "../models/dashboardTypes.js";
 
+interface GroupedOrder {
+  requestId: string;
+  date: Date;
+  marketplace: string;
+  items: SalesRecord[];
+  total: number;
+}
+
 // Helper to group sales records by Order ID
-const groupOrders = (records: any[]) => {
-  const orders = new Map<string, any>();
+const groupOrders = (records: SalesRecord[]): GroupedOrder[] => {
+  const orders = new Map<string, GroupedOrder>();
   for (const record of records) {
     if (!orders.has(record.orderId)) {
       orders.set(record.orderId, {
@@ -20,7 +29,7 @@ const groupOrders = (records: any[]) => {
         total: 0,
       });
     }
-    const order = orders.get(record.orderId);
+    const order = orders.get(record.orderId)!;
     order.items.push(record);
     order.total += record.unitPrice * record.quantity;
   }
@@ -33,7 +42,7 @@ export const getDashboardData = async (): Promise<DashboardData> => {
 
   // 1. Calculate Stats
   let totalRevenue = 0;
-  let returnsCount = 0; // standard csv doesn't track returns yet
+  const returnsCount = 0; // standard csv doesn't track returns yet
 
   // Products map for top selling
   const productSales = new Map<string, { name: string; image: string; count: number; revenue: number }>();
@@ -53,11 +62,7 @@ export const getDashboardData = async (): Promise<DashboardData> => {
   const monthlyData = new Map<string, { orders: number; revenue: number }>();
 
   for (const order of orders) {
-    if (!order.date) continue;
-    const date = new Date(order.date);
-    if (isNaN(date.getTime())) continue;
-
-    const monthKey = date.toLocaleString("tr-TR", { month: "long" }); // "Mart", "Kasım"
+    const monthKey = order.date.toLocaleString("tr-TR", { month: "long" });
 
     const current = monthlyData.get(monthKey) || { orders: 0, revenue: 0 };
     current.orders += 1;
@@ -86,11 +91,7 @@ export const getDashboardData = async (): Promise<DashboardData> => {
 
   // 4. Marketplace Orders (Recent 10)
   // Sort orders by date descending first
-  orders.sort((a, b) => {
-    const dateA = new Date(a.date).getTime();
-    const dateB = new Date(b.date).getTime();
-    return dateB - dateA;
-  });
+  orders.sort((a, b) => b.date.getTime() - a.date.getTime());
 
   const marketplaceOrders: MarketplaceOrder[] = orders.slice(0, 10).map((order) => ({
     id: order.requestId,
@@ -100,7 +101,7 @@ export const getDashboardData = async (): Promise<DashboardData> => {
       icon: "",
     },
     productName: order.items.length > 0 ? order.items[0].barcode || "Ürün" : "Ürün",
-    date: new Date(order.date).toLocaleString("tr-TR"),
+    date: order.date.toLocaleString("tr-TR"),
     price: order.total,
     currency: "TRY",
     status: "Tamamlandı", // Default status for historical sales

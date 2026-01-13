@@ -2,9 +2,17 @@ import crypto from "crypto";
 import { query } from "../db.js";
 import { refreshCaches, syncAllMarketplaceListings } from "./operationsService.js";
 import { performLiveUpdate, LiveUpdatePayload } from "./marketplaceLiveRetry.js";
-import { performPublish } from "./marketplacePublishService.js";
+import { performPublish } from "./marketplace/marketplacePublishService.js";
 
-export type JobType = "cache.refresh" | "marketplace.sync_all" | "marketplace.live_update" | "marketplace.publish";
+export type JobType = 
+  | "cache.refresh" 
+  | "marketplace.sync_all" 
+  | "marketplace.live_update" 
+  | "marketplace.publish" 
+  | "ai.inventory_audit" 
+  | "ai.auto_pricing"
+  | "ai.health_check"
+  | "ai.price_comparison";
 export type JobStatus = "queued" | "running" | "done" | "failed";
 
 export type JobRecord = {
@@ -231,21 +239,85 @@ async function runJob(job: JobRow) {
       if (!payload || typeof payload !== "object") {
         throw new Error("live_update_payload_required");
       }
-      const liveResult = await performLiveUpdate(payload);
+      const liveUpdateResult = await performLiveUpdate(payload);
+      if (!liveUpdateResult.ok) {
+        throw new Error(liveUpdateResult.error.message || "live_update_failed");
+      }
+      const liveResult = liveUpdateResult.value;
       result = liveResult;
       if (liveResult.status !== "ok") {
         throw new Error(liveResult.message || "live_update_failed");
       }
     } else if (job.type === "marketplace.publish") {
-      const payload = parseJson(job.payload) as any;
-      if (!payload || !payload.productId || !payload.marketplace) {
+      const payloadRaw = parseJson(job.payload) as { productId: string | number; marketplace: string; userId?: string | number } | undefined;
+      if (!payloadRaw || !payloadRaw.productId || !payloadRaw.marketplace) {
         throw new Error("publish_payload_invalid");
       }
-      const publishResult = await performPublish(payload);
+      const publishResult = await performPublish({
+        productId: Number(payloadRaw.productId),
+        marketplace: payloadRaw.marketplace,
+        userId: Number(payloadRaw.userId ?? 0)
+      });
       result = publishResult;
       if (publishResult.status === "failed") {
         throw new Error(publishResult.message || "publish_failed");
       }
+    } else if (job.type === "ai.inventory_audit") {
+      const { inventoryAuditService } = await import("./ai/inventoryAuditService.js");
+      const { getUserPreferences } = await import("./userPreferenceService.js");
+      
+      const prefs = getUserPreferences("admin"); // Default to admin for background tasks
+      if (prefs.enable_ai_stock_notifications === false) {
+        return { skipped: "notifications_disabled" };
+      }
+
+      const auditRes = await inventoryAuditService.detectOverSellingRisks();
+      if (!auditRes.ok) throw auditRes.error;
+      
+      // If risks found, they are already logged, but we could notify active users via socket/push here
+      result = { riskCount: auditRes.value.length, risks: auditRes.value };
+    } else if (job.type === "ai.auto_pricing") {
+      const { pricingIntelligenceService } = await import("./ai/pricingIntelligenceService.js");
+      const { getUserPreferences } = await import("./userPreferenceService.js");
+      const { getMarketplaceProvider } = await import("./marketplace/index.js");
+      const { query } = await import("../db.js");
+
+      const prefs = getUserPreferences("admin");
+      if (!prefs.enable_ai_auto_pricing) {
+        return { skipped: "auto_pricing_disabled" };
+      }
+
+      // Process a few high-priority products for background update
+      const products = await query<any[]>("SELECT barcode, name FROM products ORDER BY updated_at ASC LIMIT 2");
+      const updates = [];
+
+      for (const p of products) {
+        const analysisRes = await pricingIntelligenceService.analyzeBuyBoxStatus(p.barcode);
+        if (analysisRes.ok) {
+          const analysis = analysisRes.value;
+          if (analysis.suggestedPrice !== analysis.myPrice && analysis.suggestedPrice > 0) {
+             // Perform the update on all configured marketplaces
+             // In a real scenario, we might want to be more selective
+             const marketplaces = ["Trendyol", "Hepsiburada"]; // Example
+             for (const mp of marketplaces) {
+               const provider = getMarketplaceProvider(mp);
+               if (provider && provider.isConfigured()) {
+                 await provider.updateListing({ barcode: p.barcode, price: analysis.suggestedPrice });
+                 updates.push({ barcode: p.barcode, marketplace: mp, oldPrice: analysis.myPrice, newPrice: analysis.suggestedPrice });
+               }
+             }
+          }
+        }
+      }
+      result = { updatesProcessed: updates.length, details: updates };
+    } else if (job.type === "ai.health_check") {
+      const { healthCheckService } = await import("./marketplace/healthCheckService.js");
+      const healthResults = await healthCheckService.runAllChecks();
+      result = { summary: "Health check completed", results: healthResults };
+    } else if (job.type === "ai.price_comparison") {
+      const { runPriceComparison } = await import("./marketplace/priceComparisonService.js");
+      const comparisonResult = await runPriceComparison();
+      result = { summary: "Price comparison completed", ...comparisonResult };
     }
     await updateJobSuccess(job.id, result);
   } catch (error) {
@@ -415,6 +487,9 @@ export function startScheduler() {
 
   const cacheMinutes = Number(process.env.SCHEDULER_CACHE_MINUTES ?? 0);
   const syncMinutes = Number(process.env.SCHEDULER_SYNC_MINUTES ?? 0);
+  const aiAuditMinutes = Number(process.env.SCHEDULER_AI_AUDIT_MINUTES ?? 60); // Default 1 hour
+  const aiPricingMinutes = Number(process.env.SCHEDULER_AI_PRICING_MINUTES ?? 0);
+  const aiHealthMinutes = Number(process.env.SCHEDULER_AI_HEALTH_MINUTES ?? 720); // Default 12 hours
 
   if (Number.isFinite(cacheMinutes) && cacheMinutes > 0) {
     const ms = cacheMinutes * 60 * 1000;
@@ -424,5 +499,27 @@ export function startScheduler() {
   if (Number.isFinite(syncMinutes) && syncMinutes > 0) {
     const ms = syncMinutes * 60 * 1000;
     setInterval(() => void enqueueJob("marketplace.sync_all"), ms);
+  }
+
+  if (Number.isFinite(aiAuditMinutes) && aiAuditMinutes > 0) {
+    const ms = aiAuditMinutes * 60 * 1000;
+    setInterval(() => void enqueueJob("ai.inventory_audit"), ms);
+  }
+
+  if (Number.isFinite(aiPricingMinutes) && aiPricingMinutes > 0) {
+    const ms = aiPricingMinutes * 60 * 1000;
+    setInterval(() => void enqueueJob("ai.auto_pricing"), ms);
+  }
+
+  if (Number.isFinite(aiHealthMinutes) && aiHealthMinutes > 0) {
+    const ms = aiHealthMinutes * 60 * 1000;
+    setInterval(() => void enqueueJob("ai.health_check"), ms);
+  }
+
+  // Price comparison job - every 6 hours by default
+  const aiPriceComparisonMinutes = Number(process.env.SCHEDULER_PRICE_COMPARISON_MINUTES ?? 360);
+  if (Number.isFinite(aiPriceComparisonMinutes) && aiPriceComparisonMinutes > 0) {
+    const ms = aiPriceComparisonMinutes * 60 * 1000;
+    setInterval(() => void enqueueJob("ai.price_comparison"), ms);
   }
 }

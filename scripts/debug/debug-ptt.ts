@@ -1,5 +1,5 @@
-import { PttAVMAdapter } from "../src/services/search/adapters/pttavmAdapter.js";
-import { getBrowser, closeBrowser, createPage } from "../src/services/scraper/browser.js";
+import { PttAVMAdapter } from "../../src/services/search/adapters/pttavmAdapter.js";
+import { getBrowser, closeBrowser, createPage } from "../../src/services/scraper/browser.js";
 import fs from "fs";
 
 async function main() {

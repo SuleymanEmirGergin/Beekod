@@ -1,4 +1,4 @@
-import { MarketplaceName } from "../marketplaces/types.js";
+import { MarketplaceName } from "../services/marketplace/types.js";
 
 // ============================================================
 // INTENT TAXONOMY (PROMPTtaki şemaya göre)

@@ -34,6 +34,11 @@ export interface SearchResultItem {
     price?: number;
     currency?: string;
     image?: string;
+    barcode?: string;
+    stockCount?: number;
+    inStock?: boolean;
+    brand?: string;
+    description?: string;
 }
 
 export interface ScoredResult extends SearchResultItem {

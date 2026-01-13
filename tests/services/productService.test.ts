@@ -1,38 +1,99 @@
-
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { getProductByBarcode, updatePrice, updateStock } from "../../src/services/product/productService.js";
+import { query } from "../../src/db.js";
+import { getCache, setCache } from "../../src/services/product/cacheService.js";
+import { auditService } from "../../src/services/product/auditService.js";
 
-// These tests are skipped because productService has deep internal dependencies
-// that are difficult to mock properly (auditService default export, cache async calls, etc.)
-// 
-// TODO: Refactor productService to use dependency injection for easier testing
-// or use integration tests with a real test database
+// Mock dependencies
+vi.mock("../../src/db.js", () => ({
+    query: vi.fn(),
+}));
+
+vi.mock("../../src/services/product/cacheService.js", () => ({
+    getCache: vi.fn(),
+    setCache: vi.fn(),
+}));
+
+vi.mock("../../src/services/product/auditService.js", () => ({
+    auditService: {
+        log: vi.fn(),
+    },
+}));
+
+vi.mock("../../src/services/product/stockHistoryService.js", () => ({
+    logStockChange: vi.fn(),
+}));
+
+vi.mock("../../src/services/product/vectorService.js", () => ({
+    generateEmbedding: vi.fn(),
+    cosineSimilarity: vi.fn(),
+}));
 
 describe("ProductService", () => {
-    describe.skip("getProductByBarcode", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    describe("getProductByBarcode", () => {
         it("should return cached product if available", async () => {
-            // Requires proper cache mock setup
-            expect(true).toBe(true);
+            const mockProduct = { barcode: "123", name: "Test Product", stock: 10 };
+            vi.mocked(getCache).mockResolvedValue(mockProduct);
+
+            const result = await getProductByBarcode("123");
+
+            expect(result.ok).toBe(true);
+            if (result.ok) {
+                expect(result.value).toEqual(mockProduct);
+                expect(getCache).toHaveBeenCalledWith("product:123");
+                expect(query).not.toHaveBeenCalled();
+            }
+        });
+
+        it("should fetch from DB and cache if not in cache", async () => {
+            const mockProduct = { barcode: "123", name: "DB Product", stock: 5 };
+            vi.mocked(getCache).mockResolvedValue(null);
+            vi.mocked(query).mockResolvedValue([mockProduct]);
+
+            const result = await getProductByBarcode("123");
+
+            expect(result.ok).toBe(true);
+            if (result.ok) {
+                expect(result.value.name).toBe("DB Product");
+                expect(setCache).toHaveBeenCalledWith("product:123", expect.any(Object), 3600);
+            }
         });
     });
 
-    describe.skip("updatePrice", () => {
-        it("should update price and invalidate cache", async () => {
-            // Requires deep mocking of auditService, cache, db
-            expect(true).toBe(true);
+    describe("updatePrice", () => {
+        it("should update price and log audit", async () => {
+            vi.mocked(query).mockResolvedValue({ affectedRows: 1 });
+            // For the getProductByBarcode call inside updatePrice
+            vi.mocked(getCache).mockResolvedValue({ barcode: "123", price: 100 });
+
+            const result = await updatePrice("123", 150, 1);
+
+            expect(result.ok).toBe(true);
+            expect(auditService.log).toHaveBeenCalledWith(expect.objectContaining({
+                action: 'UPDATE_PRICE',
+                details: { price: 150 }
+            }));
         });
     });
 
-    describe.skip("updateStock", () => {
+    describe("updateStock", () => {
         it("should update stock and log change", async () => {
-            // Requires deep mocking of auditService, cache, db, stockHistoryService
-            expect(true).toBe(true);
+            vi.mocked(query)
+                .mockResolvedValueOnce({ affectedRows: 1 }) // update stock
+                .mockResolvedValueOnce([{ barcode: "123", name: "Test", stock: 15 }]); // get product inside log/audit (optional if mocked differently)
+            
+            vi.mocked(getCache).mockResolvedValue({ barcode: "123", name: "Test", stock: 10 });
+
+            const result = await updateStock("123", 5, "Test Source", "Test Reason", 1);
+
+            expect(result.ok).toBe(true);
+            expect(auditService.log).toHaveBeenCalledWith(expect.objectContaining({
+                action: 'UPDATE_STOCK',
+            }));
         });
     });
 });
-
-// Note: These tests were previously failing due to:
-// 1. auditService uses default export, hard to mock
-// 2. getProductByBarcode is called internally and not intercepted by mocks
-// 3. Cache functions are async but tests expected sync behavior
-//
-// Recommended fix: Integration tests with a test database

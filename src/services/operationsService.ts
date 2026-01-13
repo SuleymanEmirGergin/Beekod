@@ -1,5 +1,5 @@
-import { getAllProducts } from "./productService.js";
-import { getMarketplaceListings, upsertMarketplaceListings, resetMarketplaceCache } from "./marketplaceStore.js";
+import { getAllProducts } from "./product/productService.js";
+import { getMarketplaceListings, upsertMarketplaceListings, resetMarketplaceCache } from "./marketplace/marketplaceStore.js";
 import { resetSalesCache } from "./salesStore.js";
 
 export type SyncAllResult = {
@@ -21,7 +21,9 @@ export async function syncAllMarketplaceListings(): Promise<SyncAllResult> {
     };
   }
 
-  const products = await getAllProducts(5000);
+  const productsResult = await getAllProducts(5000);
+  if (!productsResult.ok) throw productsResult.error;
+  const products = productsResult.value;
   const productMap = new Map(products.map((product) => [product.barcode, product]));
   const listings = await getMarketplaceListings();
   let changed = 0;

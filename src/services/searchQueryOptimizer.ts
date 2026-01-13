@@ -1,6 +1,6 @@
 import { logger } from "../logger.js";
 import { Locale } from "../types.js";
-import { getClient } from "./geminiClient.js";
+import { getClient } from "./ai/geminiClient.js";
 
 const DEFAULT_MODEL = "gemini-1.5-flash";
 

@@ -1,4 +1,4 @@
-import { generateGeminiReply } from "./geminiClient.js";
+import { generateGeminiReply } from "./ai/geminiClient.js";
 
 export interface SceneTemplate {
   id: string;

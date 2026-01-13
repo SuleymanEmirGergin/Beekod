@@ -3,7 +3,7 @@ import { z } from "zod";
 import { googleSearchService } from "../services/googleSearchService.js";
 import { scrapeProductFromUrl } from "../services/productScraper.js";
 import { sendSuccessResponse, sendErrorResponse } from "../utils/responseHelper.js";
-import { upsertProduct } from "../services/productService.js";
+import { upsertProduct } from '../services/product/productService.js';
 import { logger } from "../logger.js";
 import fs from "fs/promises";
 import path from "path";

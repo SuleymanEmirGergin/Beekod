@@ -1,10 +1,6 @@
 import { logger } from "../logger.js";
-import { runVirtualTryOn, getTaskDetail } from "./wiroService.js";
+import { runVirtualTryOn } from "./visualIntelligenceService.js";
 
-interface TryOnRequest {
-  humanImage: string;
-  clothingImages: string | string[];
-}
 
 interface TryOnResult {
   taskId: string;
@@ -14,35 +10,37 @@ interface TryOnResult {
 }
 
 /**
- * Generates a Virtual Try-On task using Wiro AI.
+ * Generates a Virtual Try-On task using Fal.ai (via Visual Intelligence Service).
  */
 export async function generateVirtualTryOn(
   humanImage: string,
   clothingImages: string | string[],
 ): Promise<TryOnResult> {
-  logger.info("vto.generate_request_real", { humanImage: humanImage.substring(0, 50), clothesCount: Array.isArray(clothingImages) ? clothingImages.length : 1 });
+  logger.info("vto.generate_request_fal", { 
+    humanImage: humanImage.substring(0, 50), 
+    clothesCount: Array.isArray(clothingImages) ? clothingImages.length : 1 
+  });
 
-  const result = await runVirtualTryOn(humanImage, clothingImages);
+  const clothImage = Array.isArray(clothingImages) ? clothingImages[0] : clothingImages;
+  
+  // Fal.ai subscribe waits for the result, so we get the result immediately here
+  const resultUrl = await runVirtualTryOn(humanImage, clothImage, "tops");
 
   return {
-    taskId: result.taskid,
-    token: result.socketaccesstoken,
-    status: result.status || "queued"
+    taskId: "fal-" + Date.now(),
+    token: "fal-" + Date.now(),
+    status: "completed",
+    imageUrl: resultUrl
   };
 }
 
 /**
- * Polls for the result of a VTO task.
+ * Polls for the result. (For Fal.ai, it is usually finished when generateVirtualTryOn returns)
  */
 export async function pollTryOnResult(token: string): Promise<string | null> {
-  try {
-    const detail = await getTaskDetail(token);
-    if (detail && detail.status === "done" && detail.output && detail.output.length > 0) {
-      return detail.output[0];
-    }
-    return null;
-  } catch (error) {
-    logger.error("vto.poll_failed", { token, error });
-    return null;
-  }
+  // Since we are using the subscription model in generateVirtualTryOn,
+  // there's no real polling needed if we store the result.
+  // But for backward compatibility with existing callers, we return null or the stored result if we had a cache.
+  logger.info("vto.poll_request_fal", { token });
+  return null; 
 }

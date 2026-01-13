@@ -1,7 +1,8 @@
 // src/services/teamService.ts
 import { pool } from "../db.js";
-import type { ITeamMember } from "../models/TeamMember.js";
+import type { ITeamMember, ITeamMemberDbRow } from "../models/TeamMember.js";
 import { mapTeamMember } from "../models/TeamMember.js";
+import { RowDataPacket, ResultSetHeader } from "mysql2";
 
 const TABLE = "team_members" as const;
 
@@ -10,6 +11,14 @@ type Role = (typeof ROLES)[number];
 
 const STATUSES = ["Active", "Pending"] as const;
 type Status = (typeof STATUSES)[number];
+
+// Intersection type for DB results
+interface ITeamMemberRow extends ITeamMemberDbRow, RowDataPacket {}
+
+// Interface for INFORMATION_SCHEMA result
+interface ColumnRow extends RowDataPacket {
+  COLUMN_NAME: string;
+}
 
 function normalizeEmail(v: unknown): string {
   return String(v ?? "")
@@ -40,7 +49,7 @@ let columnCache: Set<string> | null = null;
 async function getColumns(): Promise<Set<string>> {
   if (columnCache) return columnCache;
 
-  const [rows] = await pool.query(
+  const [rows] = await pool.query<ColumnRow[]>(
     `
     SELECT COLUMN_NAME
     FROM INFORMATION_SCHEMA.COLUMNS
@@ -51,7 +60,7 @@ async function getColumns(): Promise<Set<string>> {
   );
 
   const set = new Set<string>();
-  for (const r of rows as any[]) set.add(String(r.COLUMN_NAME));
+  for (const r of rows) set.add(String(r.COLUMN_NAME));
   columnCache = set;
   return set;
 }
@@ -69,7 +78,7 @@ async function pickUpdatableFields(patch: Record<string, unknown>) {
   const allow = ["name", "email", "phone", "location", "position", "bio", "company"];
 
   const fields: string[] = [];
-  const values: any[] = [];
+  const values: (string | number)[] = [];
 
   for (const key of allow) {
     if (!cols.has(key)) continue;
@@ -102,19 +111,18 @@ async function pickUpdatableFields(patch: Record<string, unknown>) {
 // -------------------- Core Reads --------------------
 
 export async function getAllTeamMembers(): Promise<ITeamMember[]> {
-  const [rows] = await pool.query(`SELECT * FROM ${TABLE} ORDER BY id ASC`);
-  return (rows as any[]).map(mapTeamMember);
+  const [rows] = await pool.query<ITeamMemberRow[]>(`SELECT * FROM ${TABLE} ORDER BY id ASC`);
+  return rows.map(mapTeamMember);
 }
 
 export async function getTeamMemberById(id: number): Promise<ITeamMember | null> {
-  const [rows] = await pool.query(`SELECT * FROM ${TABLE} WHERE id = ? LIMIT 1`, [id]);
-  const list = rows as any[];
-  if (!list.length) return null;
-  return mapTeamMember(list[0]);
+  const [rows] = await pool.query<ITeamMemberRow[]>(`SELECT * FROM ${TABLE} WHERE id = ? LIMIT 1`, [id]);
+  if (!rows.length) return null;
+  return mapTeamMember(rows[0]);
 }
 
 export async function getCurrentUser(): Promise<ITeamMember | null> {
-  const [rows] = await pool.query(
+  const [rows] = await pool.query<ITeamMemberRow[]>(
     `
     SELECT *
     FROM ${TABLE}
@@ -129,9 +137,8 @@ export async function getCurrentUser(): Promise<ITeamMember | null> {
     `,
   );
 
-  const list = rows as any[];
-  if (!list.length) return null;
-  return mapTeamMember(list[0]);
+  if (!rows.length) return null;
+  return mapTeamMember(rows[0]);
 }
 
 // -------------------- Profile Update --------------------
@@ -140,7 +147,7 @@ export async function updateTeamMemberById(
   id: number,
   patch: Partial<Pick<ITeamMember, "name" | "email" | "phone" | "location" | "position" | "bio" | "company">>,
 ): Promise<ITeamMember | null> {
-  const { fields, values } = await pickUpdatableFields(patch as any);
+  const { fields, values } = await pickUpdatableFields(patch as Record<string, unknown>);
 
   if (fields.length) {
     values.push(id);
@@ -169,14 +176,13 @@ export async function inviteMember(input: { name?: string; email: string; role?:
   const status: Status = "Pending";
 
   // Önce var mı bak
-  const [existing] = await pool.query(`SELECT * FROM ${TABLE} WHERE email = ? LIMIT 1`, [email]);
-  const ex = existing as any[];
-  if (ex.length) return mapTeamMember(ex[0]);
+  const [existing] = await pool.query<ITeamMemberRow[]>(`SELECT * FROM ${TABLE} WHERE email = ? LIMIT 1`, [email]);
+  if (existing.length) return mapTeamMember(existing[0]);
 
   // Kolonlara göre INSERT’i dinamik kur (schema değişikliği yüzünden patlamasın)
   const cols = await getColumns();
   const insertCols: string[] = ["name", "email", "role"];
-  const insertVals: any[] = [name, email, role];
+  const insertVals: (string | number | Date)[] = [name, email, role];
   const placeholders: string[] = ["?", "?", "?"];
 
   if (cols.has("status")) {
@@ -201,7 +207,7 @@ export async function inviteMember(input: { name?: string; email: string; role?:
   }
 
   try {
-    const [result] = await pool.query(
+    const [result] = await pool.query<ResultSetHeader>(
       `
       INSERT INTO ${TABLE} (${insertCols.join(", ")})
       VALUES (${placeholders.join(", ")})
@@ -209,17 +215,16 @@ export async function inviteMember(input: { name?: string; email: string; role?:
       insertVals,
     );
 
-    const insertId = (result as any).insertId as number;
+    const insertId = result.insertId;
     const created = await getTeamMemberById(insertId);
     if (!created) throw new Error("Invite created but could not be fetched");
     return created;
-  } catch (e: any) {
+  } catch (e: unknown) {
     // Unique index varsa duplicate key yakalayalım: tekrar SELECT dön
-    const msg = String(e?.message ?? "");
+    const msg = String((e as any)?.message ?? "");
     if (msg.includes("Duplicate") || msg.includes("ER_DUP_ENTRY")) {
-      const [rows] = await pool.query(`SELECT * FROM ${TABLE} WHERE email = ? LIMIT 1`, [email]);
-      const list = rows as any[];
-      if (list.length) return mapTeamMember(list[0]);
+      const [rows] = await pool.query<ITeamMemberRow[]>(`SELECT * FROM ${TABLE} WHERE email = ? LIMIT 1`, [email]);
+      if (rows.length) return mapTeamMember(rows[0]);
     }
     throw e;
   }

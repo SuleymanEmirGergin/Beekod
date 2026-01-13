@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { requireAdminKey } from "../middleware/adminKey.js";
-import { resetMarketplaceCache } from "../services/marketplaceStore.js";
+import { resetMarketplaceCache } from "../services/marketplace/marketplaceStore.js";
 import { resetSalesCache } from "../services/salesStore.js";
 
 const router = Router();

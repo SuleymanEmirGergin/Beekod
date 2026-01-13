@@ -11,7 +11,20 @@ export interface IQuestion {
   isPublic: boolean;
 }
 
-export function mapQuestionRow(row: any): IQuestion {
+export interface IQuestionDbRow {
+  id: number;
+  marketplace: "Trendyol" | "Hepsiburada" | "N11" | "Pazarama";
+  product_name: string;
+  image_url: string;
+  customer_name: string;
+  question_text: string;
+  status: "replied" | "unreplied";
+  answer?: string;
+  is_public: number;
+  created_at: Date | string;
+}
+
+export function mapQuestionRow(row: IQuestionDbRow): IQuestion {
   return {
     id: row.id,
     marketplace: row.marketplace,

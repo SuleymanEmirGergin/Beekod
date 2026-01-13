@@ -1,19 +1,65 @@
 import { query } from '../db.js';
 import { logger } from '../logger.js';
+import { ResultSetHeader } from 'mysql2';
+
+interface NotificationMetadata {
+  [key: string]: unknown;
+}
 
 export interface NotificationPayload {
   title: string;
   message: string;
   type: 'stock_alert' | 'order_update' | 'price_change' | 'sync_status' | 'ai_recommendation' | 'system';
   priority?: 'critical' | 'high' | 'medium' | 'low';
-  metadata?: any;
+  metadata?: NotificationMetadata;
+}
+
+interface NotificationSetting {
+  channel: string;
+  event_type: string;
+  enabled: number;
+  config_json: string;
+}
+
+interface NotificationConfig {
+  to?: string;
+  url?: string;
+  [key: string]: unknown;
+}
+
+interface DispatchPayload {
+  title: string;
+  message: string;
+  type: string;
+  metadata?: NotificationMetadata;
+}
+
+interface NotificationRow {
+  id: number;
+  type: string;
+  priority: string;
+  title: string;
+  message: string;
+  is_read: number;
+  created_at: string;
+  metadata: string;
+}
+
+interface CountRow {
+  count: number;
+}
+
+interface AIRecommendationContext {
+  lowStockProducts?: number;
+  pendingOrders?: number;
+  [key: string]: unknown;
 }
 
 export const notificationService = {
   /**
    * Phase 10: Send a notification based on user preferences
    */
-  async notify(payload: { title: string; message: string; type: string; metadata?: any }): Promise<void> {
+  async notify(payload: DispatchPayload): Promise<void> {
     logger.info('notificationService.notify', { type: payload.type, title: payload.title });
 
     // Step 1: Create in-app notification by default
@@ -26,24 +72,25 @@ export const notificationService = {
     });
 
     // Step 2: Check preferences for external channels
-    const preferences = await query<any[]>('SELECT * FROM notification_settings WHERE event_type = ? AND enabled = 1', [payload.type]);
+    const preferences = await query<NotificationSetting[]>('SELECT * FROM notification_settings WHERE event_type = ? AND enabled = 1', [payload.type]);
 
     for (const pref of preferences) {
-      await this.dispatch(pref.channel, payload, pref.config_json);
+      const config = JSON.parse(pref.config_json || '{}') as NotificationConfig;
+      await this.dispatch(pref.channel, payload, config);
     }
   },
 
-  mapType(type: string): any {
-    const allowed = ['stock_alert', 'order_update', 'price_change', 'sync_status', 'ai_recommendation', 'system'];
+  mapType(type: string): NotificationPayload['type'] {
+    const allowed: NotificationPayload['type'][] = ['stock_alert', 'order_update', 'price_change', 'sync_status', 'ai_recommendation', 'system'];
     if (type === 'low_stock') return 'stock_alert';
     if (type === 'shipping_update') return 'order_update';
-    return allowed.includes(type) ? type : 'system';
+    return allowed.includes(type as NotificationPayload['type']) ? (type as NotificationPayload['type']) : 'system';
   },
 
   /**
    * Phase 10: Dispatch to external channels (now with real email)
    */
-  async dispatch(channel: string, payload: any, config: any): Promise<void> {
+  async dispatch(channel: string, payload: DispatchPayload, config: NotificationConfig): Promise<void> {
     logger.info('notificationService.dispatching', { channel, type: payload.type });
 
     switch (channel) {
@@ -76,7 +123,7 @@ export const notificationService = {
   /**
    * Save settings
    */
-  async saveSettings(channel: string, eventType: string, enabled: boolean, config: any): Promise<void> {
+  async saveSettings(channel: string, eventType: string, enabled: boolean, config: NotificationConfig): Promise<void> {
     await query(
       `INSERT INTO notification_settings (channel, event_type, enabled, config_json) 
              VALUES (?, ?, ?, ?) 
@@ -88,8 +135,8 @@ export const notificationService = {
   /**
    * Existing logic for routes: createNotification
    */
-  async createNotification(data: NotificationPayload): Promise<any> {
-    const result = await query<any>(
+  async createNotification(data: NotificationPayload): Promise<{ id: number } & NotificationPayload> {
+    const result = await query<ResultSetHeader>(
       `INSERT INTO notifications (type, priority, title, message, metadata) VALUES (?, ?, ?, ?, ?)`,
       [data.type, data.priority || 'medium', data.title, data.message, JSON.stringify(data.metadata || {})]
     );
@@ -99,16 +146,16 @@ export const notificationService = {
   /**
    * Existing logic for routes: getNotifications
    */
-  async getNotifications(limit: number = 20, includeRead: boolean = false): Promise<any[]> {
+  async getNotifications(limit: number = 20, includeRead: boolean = false): Promise<NotificationRow[]> {
     const where = includeRead ? "" : "WHERE is_read = 0";
-    return await query(`SELECT * FROM notifications ${where} ORDER BY created_at DESC LIMIT ?`, [limit]);
+    return await query<NotificationRow[]>(`SELECT * FROM notifications ${where} ORDER BY created_at DESC LIMIT ?`, [limit]);
   },
 
   /**
    * Existing logic for routes: markAsRead
    */
   async markAsRead(id: string): Promise<boolean> {
-    const result = await query<any>("UPDATE notifications SET is_read = 1 WHERE id = ?", [id]);
+    const result = await query<ResultSetHeader>("UPDATE notifications SET is_read = 1 WHERE id = ?", [id]);
     return result.affectedRows > 0;
   },
 
@@ -116,7 +163,7 @@ export const notificationService = {
    * Existing logic for routes: markAllAsRead
    */
   async markAllAsRead(): Promise<number> {
-    const result = await query<any>("UPDATE notifications SET is_read = 1 WHERE is_read = 0");
+    const result = await query<ResultSetHeader>("UPDATE notifications SET is_read = 1 WHERE is_read = 0");
     return result.affectedRows;
   },
 
@@ -124,14 +171,14 @@ export const notificationService = {
    * Existing logic for routes: getUnreadCount
    */
   async getUnreadCount(): Promise<number> {
-    const rows = await query<any[]>("SELECT COUNT(*) as count FROM notifications WHERE is_read = 0");
+    const rows = await query<CountRow[]>("SELECT COUNT(*) as count FROM notifications WHERE is_read = 0");
     return rows[0]?.count || 0;
   },
 
   /**
    * Existing logic for routes: generateAIRecommendations
    */
-  async generateAIRecommendations(context: any): Promise<any[]> {
+  async generateAIRecommendations(context: AIRecommendationContext): Promise<{ type: string; priority: string; title: string; message: string }[]> {
     // Simulated AI recommendations logic
     return [
       {

@@ -1,5 +1,5 @@
-import "../env.js";
-import { getBrowser, createPage } from "../src/services/scraper/browser.js";
+import "../../env.js";
+import { getBrowser, createPage } from "../../src/services/scraper/browser.js";
 import * as cheerio from "cheerio";
 import * as fs from "fs/promises";
 

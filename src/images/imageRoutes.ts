@@ -25,11 +25,11 @@ import {
   getImageInspectSummary,
   getImageInspectTrends,
 } from "./imageInspectStore.js";
-import { googleVisionOcrFromBuffer } from "../services/googleVisionService.js";
+import { googleVisionOcrFromBuffer } from "../services/ai/googleVisionService.js";
 import { buildSearchQueryFromOcr } from "./imageSearch.js";
-import { getProductByBarcode } from "../services/productService.js";
-import { CseConfigError, CseRequestError } from "../services/searchService.js";
-import { runImageSearch } from "../services/imageSearchService.js";
+import { getProductByBarcode } from "../services/product/productService.js";
+import { CseConfigError, CseRequestError } from "../services/search/searchService.js";
+import { runImageSearch } from "../services/search/imageSearchService.js";
 
 const require = createRequire(import.meta.url);
 const archiver = require("archiver");
@@ -455,36 +455,35 @@ imageRouter.post("/reprocess", validateBody(imageReprocessBodySchema), async (re
   }
 
   try {
-    const result = await reprocessByBarcode({
+    const profile = getImageProfile(profileName || config.images.defaultProfile);
+    if (!profile) {
+      return res.status(400).json({ error: "profile_not_found" });
+    }
+
+    const result = await reprocessLatestOriginal({
       barcode,
       marketplace,
-      profileName,
+      profile,
     });
-    if ("error" in result) {
-      if (result.error === "profile_not_found") {
-        return res.status(400).json({ error: "profile_not_found" });
-      }
-      if (result.error === "original_not_found") {
-        return res.status(404).json({ error: "original_not_found" });
-      }
-      return res.status(500).json({ error: "image_reprocess_failed" });
+    if (!result) {
+      return res.status(404).json({ error: "original_not_found" });
     }
     const inspectRequested = parseBooleanValue(req.body?.inspect ?? req.query?.inspect) ?? false;
     let inspectReport = null;
     if (inspectRequested) {
       try {
-        const processedBuffer = await fsPromises.readFile(resolveStoragePath(result.result.processedPath));
-        const inspectProfile = resolveImageProfile(result.result.profile) ?? null;
+        const processedBuffer = await fsPromises.readFile(resolveStoragePath(result.processedPath));
+        const inspectProfile = resolveImageProfile(result.profile) ?? null;
         inspectReport = await inspectImageBuffer(processedBuffer, {
           profile: inspectProfile,
           marketplace,
           maxBytes: config.images.maxUploadBytes,
         });
         await insertImageInspectReport({
-          imageId: result.result.imageId,
+          imageId: result.imageId,
           barcode,
           marketplace,
-          profile: inspectProfile?.name ?? result.result.profile,
+          profile: inspectProfile?.name ?? result.profile,
           source: "reprocessed",
           report: inspectReport,
           requestId: res.locals?.requestId,
@@ -496,11 +495,11 @@ imageRouter.post("/reprocess", validateBody(imageReprocessBodySchema), async (re
     return res.json({
       ok: true,
       barcode,
-      profile: result.result.profile,
-      originalUrl: result.result.originalUrl,
-      processedUrl: result.result.processedUrl,
-      imageId: result.result.imageId,
-      duplicate: result.result.duplicate === true,
+      profile: result.profile,
+      originalUrl: result.originalUrl,
+      processedUrl: result.processedUrl,
+      imageId: result.imageId,
+      duplicate: result.duplicate === true,
       inspect: inspectReport,
     });
   } catch (error) {
@@ -861,8 +860,12 @@ imageRouter.post(
         const scanned = await scanBarcodeFromBuffer(file.buffer);
         if (scanned?.text) {
           const barcode = scanned.text.toLowerCase();
-          const product = await getProductByBarcode(barcode);
-          query = product?.name ?? scanned.text;
+          const productResult = await getProductByBarcode(barcode);
+          if (productResult.ok) {
+            query = productResult.value.name;
+          } else {
+            query = scanned.text;
+          }
           source = "barcode";
         }
       } catch {

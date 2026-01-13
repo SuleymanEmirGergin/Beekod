@@ -1,4 +1,4 @@
-import { getProductByBarcode } from "./productService.js";
+import { getProductByBarcode } from "./product/productService.js";
 import { logger } from "../logger.js";
 import { runImageToVideo, runVirtualTryOn, getTaskDetail } from "./wiroService.js";
 import { NotFoundError, InternalError } from "../errors/AppError.js";
@@ -60,7 +60,7 @@ function detectGenderFromCategory(category?: string): 'male' | 'female' | 'neutr
 /**
  * Helper: Build motion prompt for video generation
  */
-function buildMotionPrompt(vibe: string, category?: string): string {
+function buildMotionPrompt(vibe: string, _category?: string): string {
   const basePrompt = "Professional fashion model showcase, commercial photography";
 
   const vibeMap: Record<string, string> = {
@@ -174,8 +174,9 @@ export const generateTryOnVideo = async (
   logger.info("video.try_on_video_start", { barcode, options });
 
   // 1. Get product details
-  const product = await getProductByBarcode(barcode);
-  if (!product) throw new NotFoundError("Product not found");
+  const productResult = await getProductByBarcode(barcode);
+  if (!productResult.ok) throw new NotFoundError("Product not found");
+  const product = productResult.value;
 
   // 2. Select appropriate mannequin
   const gender = options?.gender || detectGenderFromCategory(product.category);
@@ -223,8 +224,9 @@ export const generateVideoScript = async (
   vibe: string,
   platform: "instagram" | "tiktok" | "youtube_shorts",
 ): Promise<VideoScript> => {
-  const product = await getProductByBarcode(barcode);
-  if (!product) throw new NotFoundError("Product not found");
+  const productResult = await getProductByBarcode(barcode);
+  if (!productResult.ok) throw new NotFoundError("Product not found");
+  const product = productResult.value;
 
   const apiKey = (process.env.GEMINI_API_KEY ?? "").trim();
 
@@ -328,9 +330,10 @@ export const generateVideoScript = async (
 
 const PEXELS_API_KEY = process.env.PEXELS_API_KEY || "563492ad6f917000010000019056d3d4554247898864315264875321"; // Free tier key for demo
 
-export const generateVideoMedia = async (barcode: string, script: VideoScript): Promise<{ url: string }> => {
-  const product = await getProductByBarcode(barcode);
-  if (!product) throw new NotFoundError("Product not found");
+export const generateVideoMedia = async (barcode: string, _script: VideoScript): Promise<{ url: string }> => {
+  const productResult = await getProductByBarcode(barcode);
+  if (!productResult.ok) throw new NotFoundError("Product not found");
+  const product = productResult.value;
 
   // Extract simple search terms from product name (e.g., "iPhone 15" -> "smartphone", "Nike Air" -> "running shoes")
   // For now, we take the first 2 words or category fallback
@@ -390,8 +393,9 @@ export const generateVideoMedia = async (barcode: string, script: VideoScript): 
  * Generates a high-quality video using Wiro AI based on a product image and an AI-generated script.
  */
 export const generateAIDrivenVideo = async (barcode: string, vibe: string, customPrompt?: string): Promise<{ taskId: string; token: string }> => {
-  const product = await getProductByBarcode(barcode);
-  if (!product) throw new NotFoundError("Product not found");
+  const productResult = await getProductByBarcode(barcode);
+  if (!productResult.ok) throw new NotFoundError("Product not found");
+  const product = productResult.value;
 
   // 1. Select product image
   const imageUrl = (product.images && product.images.length > 0) ? product.images[0] : product.imageUrl;

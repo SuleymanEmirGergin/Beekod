@@ -1,4 +1,4 @@
-import { getAllProducts, updatePrice, updateStock } from "./productService.js";
+import { getAllProducts, updatePrice, updateStock } from "./product/productService.js";
 import { logger } from "../logger.js";
 
 export interface BatchUpdateParams {
@@ -20,7 +20,9 @@ export interface BatchUpdateResult {
  * @returns Result with success/failure counts
  */
 export async function batchUpdatePrice(params: BatchUpdateParams): Promise<BatchUpdateResult> {
-  const products = await getAllProducts();
+  const productsResult = await getAllProducts();
+  if (!productsResult.ok) return { updated: 0, failed: 0, errors: [{ barcode: "ALL", error: productsResult.error.message }] };
+  const products = productsResult.value;
   let filtered = products;
 
   // Filter by category if specified
@@ -45,7 +47,9 @@ export async function batchUpdatePrice(params: BatchUpdateParams): Promise<Batch
 
       const newPrice = Math.max(0, product.price + delta);
 
-      await updatePrice(product.barcode, newPrice);
+      const updateResult = await updatePrice(product.barcode, newPrice);
+      if (!updateResult.ok) throw updateResult.error;
+
       updated++;
     } catch (error) {
       failed++;
@@ -71,7 +75,9 @@ export async function batchUpdatePrice(params: BatchUpdateParams): Promise<Batch
  * @returns Result with success/failure counts
  */
 export async function batchUpdateStock(params: BatchUpdateParams): Promise<BatchUpdateResult> {
-  const products = await getAllProducts();
+  const productsResult = await getAllProducts();
+  if (!productsResult.ok) return { updated: 0, failed: 0, errors: [{ barcode: "ALL", error: productsResult.error.message }] };
+  const products = productsResult.value;
   let filtered = products;
 
   // Filter by category if specified
@@ -96,7 +102,9 @@ export async function batchUpdateStock(params: BatchUpdateParams): Promise<Batch
 
       const newStock = Math.max(0, Math.round(product.stock + delta));
 
-      await updateStock(product.barcode, newStock);
+      const updateResult = await updateStock(product.barcode, newStock);
+      if (!updateResult.ok) throw updateResult.error;
+
       updated++;
     } catch (error) {
       failed++;
@@ -122,7 +130,9 @@ export async function batchUpdateStock(params: BatchUpdateParams): Promise<Batch
  * @returns Result with success/failure counts
  */
 export async function batchSetPrice(params: BatchUpdateParams & { amount: number }): Promise<BatchUpdateResult> {
-  const products = await getAllProducts();
+  const productsResult = await getAllProducts();
+  if (!productsResult.ok) return { updated: 0, failed: 0, errors: [{ barcode: "ALL", error: productsResult.error.message }] };
+  const products = productsResult.value;
   let filtered = products;
 
   const categoryQuery = params.category;
@@ -138,7 +148,8 @@ export async function batchSetPrice(params: BatchUpdateParams & { amount: number
 
   for (const product of filtered) {
     try {
-      await updatePrice(product.barcode, newPrice);
+      const updateResult = await updatePrice(product.barcode, newPrice);
+      if (!updateResult.ok) throw updateResult.error;
       updated++;
     } catch (error) {
       failed++;
@@ -158,7 +169,9 @@ export async function batchSetPrice(params: BatchUpdateParams & { amount: number
  * @returns Result with success/failure counts
  */
 export async function batchSetStock(params: BatchUpdateParams & { amount: number }): Promise<BatchUpdateResult> {
-  const products = await getAllProducts();
+  const productsResult = await getAllProducts();
+  if (!productsResult.ok) return { updated: 0, failed: 0, errors: [{ barcode: "ALL", error: productsResult.error.message }] };
+  const products = productsResult.value;
   let filtered = products;
 
   const categoryQuery = params.category;
@@ -174,7 +187,8 @@ export async function batchSetStock(params: BatchUpdateParams & { amount: number
 
   for (const product of filtered) {
     try {
-      await updateStock(product.barcode, newStock);
+      const updateResult = await updateStock(product.barcode, newStock);
+      if (!updateResult.ok) throw updateResult.error;
       updated++;
     } catch (error) {
       failed++;

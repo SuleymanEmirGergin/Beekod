@@ -4,6 +4,7 @@ import * as Sentry from "@sentry/node";
 import path from "path";
 import express from "express";
 import cors from "cors";
+import type { Server } from "http";
 
 // Core infrastructure - use new modular imports
 import { config, logConfigStatus } from "./core/config/index.js";
@@ -11,6 +12,7 @@ import { logger } from "./core/logging/index.js";
 import { imageRouter, productImageRouter } from "./images/imageRoutes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { requestContext } from "./middleware/requestContext.js";
+import { handleResultMiddleware } from "./middleware/handleResult.js";
 import { rateLimit } from "./middleware/rateLimit.js";
 import { securityHeaders } from "./middleware/securityHeaders.js";
 
@@ -28,6 +30,7 @@ import { cacheRouter } from "./routes/cacheRoutes.js";
 import { competitorRouter } from "./routes/competitorRoutes.js";
 import { contentConfigRouter } from "./routes/contentConfigRoutes.js";
 import { contentPreviewRouter } from "./routes/contentPreviewRoutes.js";
+import { campaignRouter } from "./routes/campaignRoutes.js";
 import { docsRouter } from "./routes/docsRoutes.js";
 import { healthRouter } from "./routes/healthRoutes.js";
 import { logRouter } from "./routes/logRoutes.js";
@@ -72,6 +75,7 @@ import aiModelRouter from "./routes/aiModelRoutes.js";
 import chatbotRouter from "./routes/chatbotRoutes.js";
 import wholesalerRouter from "./routes/wholesalerRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
+import { automationRouter } from "./routes/automationRoutes.js";
 import { registerProcessHandlers } from "./monitoring/processHandlers.js";
 
 // Log configuration status on startup
@@ -104,6 +108,7 @@ app.use(
 app.use(express.json({ limit: config.server.jsonBodyLimit }));
 app.use(express.urlencoded({ extended: true, limit: config.server.urlEncodedBodyLimit }));
 app.use(requestContext);
+app.use(handleResultMiddleware);
 app.use(securityHeaders);
 const publicBase = config.images.publicBase;
 const publicPath = publicBase.startsWith("http") ? new URL(publicBase).pathname : publicBase;
@@ -137,20 +142,11 @@ app.use("/api/questions", questionRouter);
 app.use("/api/video", videoRouter);
 app.use("/api/social", socialRouter);
 app.use("/api/intelligence", intelligenceRouter);
-import { campaignRouter } from "./routes/campaignRoutes.js";
-
-// ... existing imports
-
-// Routes
-// ... existing routes
 app.use("/api/notifications", notificationRouter);
 app.use("/api/campaigns", campaignRouter);
-app.use("/api/social", socialRouter);
-// ...
 app.use("/api/video-analytics", videoAnalyticsRouter);
 app.use("/api/revenue", revenueRouter);
 app.use("/api/feedback", feedbackRouter);
-app.use("/api/product-import", productImportRouter);
 app.use("/api/trendyol", trendyolRouter); // ✅ Trendyol Category API
 app.use("/api/n11", n11Router); // ✅ N11 Category API
 app.use("/api/hepsiburada", hepsiburadaRouter); // ✅ Hepsiburada API
@@ -176,6 +172,7 @@ app.use("/api/ai-model", aiModelRouter);
 app.use("/api/chat", chatbotRouter);
 app.use("/api/wholesaler", wholesalerRouter);
 app.use("/api/ai", aiRoutes);
+app.use("/api/automation", automationRouter);
 
 // SPA Fallback - Serve index.html for unknown routes
 app.get("*", (req, res, next) => {
@@ -194,7 +191,7 @@ app.use(errorHandler);
 startScheduler();
 startStockAlertJob();
 
-let server: any;
+let server: Server | undefined;
 
 if (process.env.NODE_ENV !== 'test') {
   server = app.listen(config.port, () => {

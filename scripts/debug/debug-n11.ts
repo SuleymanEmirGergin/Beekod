@@ -1,5 +1,5 @@
-import { N11Adapter } from "../src/services/search/adapters/n11Adapter.js";
-import { getBrowser, closeBrowser, createPage } from "../src/services/scraper/browser.js";
+import { N11Adapter } from "../../src/services/search/adapters/n11Adapter.js";
+import { getBrowser, closeBrowser, createPage } from "../../src/services/scraper/browser.js";
 import fs from "fs";
 
 async function main() {

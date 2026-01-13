@@ -1,24 +1,44 @@
 import { pool } from "../db.js";
-import { generateGeminiReply } from "./geminiClient.js";
-import { searchProductsByName } from "./productService.js";
-import { IQuestion, mapQuestionRow } from "../models/Question.js";
+import { generateGeminiReply } from "./ai/geminiClient.js";
+import { searchProductsByName } from "./product/productService.js";
+import { IQuestion, IQuestionDbRow, mapQuestionRow } from "../models/Question.js";
+import { RowDataPacket } from "mysql2";
+
+interface QuestionRow extends IQuestionDbRow, RowDataPacket {}
+
+interface CountResult extends RowDataPacket {
+  total: number;
+}
+
+interface CountUnrepliedResult extends RowDataPacket {
+  unreplied: number;
+}
+
+interface CountRepliedResult extends RowDataPacket {
+  replied: number;
+}
+
+interface MarketplaceStat extends RowDataPacket {
+  _id: string;
+  count: number;
+}
 
 export const getQuestions = async (status?: "replied" | "unreplied"): Promise<IQuestion[]> => {
   let sql = "SELECT * FROM questions";
-  const params: any[] = [];
+  const params: string[] = [];
   if (status) {
     sql += " WHERE status = ?";
     params.push(status);
   }
   sql += " ORDER BY created_at DESC";
 
-  const [rows] = await pool.query(sql, params);
-  return (rows as any[]).map(mapQuestionRow);
+  const [rows] = await pool.query<QuestionRow[]>(sql, params);
+  return rows.map(mapQuestionRow);
 };
 
 export const getQuestionById = async (id: string): Promise<IQuestion | null> => {
-  const [rows] = await pool.query("SELECT * FROM questions WHERE id = ?", [id]);
-  const row = (rows as any[])[0];
+  const [rows] = await pool.query<QuestionRow[]>("SELECT * FROM questions WHERE id = ?", [id]);
+  const row = rows[0];
   return row ? mapQuestionRow(row) : null;
 };
 
@@ -28,25 +48,25 @@ export const answerQuestion = async (id: string, text: string): Promise<IQuestio
 };
 
 export const getQuestionsStats = async () => {
-  const [totalResult] = (await pool.query("SELECT COUNT(*) as total FROM questions")) as any;
-  const total = totalResult[0].total;
+  const [totalResult] = await pool.query<CountResult[]>("SELECT COUNT(*) as total FROM questions");
+  const total = totalResult[0]?.total || 0;
 
-  const [unrepliedResult] = (await pool.query(
+  const [unrepliedResult] = await pool.query<CountUnrepliedResult[]>(
     "SELECT COUNT(*) as unreplied FROM questions WHERE status = 'unreplied'",
-  )) as any;
-  const unreplied = unrepliedResult[0].unreplied;
+  );
+  const unreplied = unrepliedResult[0]?.unreplied || 0;
 
-  const [repliedResult] = (await pool.query(
+  const [repliedResult] = await pool.query<CountRepliedResult[]>(
     "SELECT COUNT(*) as replied FROM questions WHERE status = 'replied'",
-  )) as any;
-  const replied = repliedResult[0].replied;
+  );
+  const replied = repliedResult[0]?.replied || 0;
 
-  const [marketplaceStats] = (await pool.query(
+  const [marketplaceStats] = await pool.query<MarketplaceStat[]>(
     "SELECT marketplace as _id, COUNT(*) as count FROM questions GROUP BY marketplace",
-  )) as any;
+  );
 
-  const byMarketplace = marketplaceStats.reduce((acc: Record<string, number>, curr: any) => {
-    acc[curr._id] = curr.count;
+  const byMarketplace = marketplaceStats.reduce((acc: Record<string, number>, curr) => {
+    acc[curr._id] = Number(curr.count);
     return acc;
   }, {});
 
@@ -57,7 +77,8 @@ export const suggestAnswer = async (id: string): Promise<string> => {
   const question = await getQuestionById(id);
   if (!question) throw new Error("Question not found");
 
-  const products = await searchProductsByName(question.productName, 1);
+  const productsResult = await searchProductsByName(question.productName, 1);
+  const products = productsResult.ok ? productsResult.value : [];
   const product = products[0];
 
   let productContext = "";

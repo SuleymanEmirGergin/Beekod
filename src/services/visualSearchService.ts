@@ -1,5 +1,5 @@
-import { analyzeImage } from "./geminiClient.js";
-import { searchProductsByName } from "./productService.js";
+import { analyzeImage } from "./ai/geminiClient.js";
+import { searchProductsByName } from "./product/productService.js";
 import { Product } from "../types.js";
 import { logger } from "../logger.js";
 
@@ -33,7 +33,9 @@ export async function runVisualSearch(imageBuffer: Buffer, mimeType: string): Pr
 
     // 2. Search by name/keywords in the database
     // For simplicity, we search by the name Gemini suggested
-    const searchResults = await searchProductsByName(info.name, 5);
+    const searchResult = await searchProductsByName(info.name, 5);
+    if (!searchResult.ok) return [];
+    const searchResults = searchResult.value;
 
     // 3. Map to match objects
     return searchResults.map((p) => ({

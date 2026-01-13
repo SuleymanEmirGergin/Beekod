@@ -7,7 +7,7 @@
 export * from "../../services/content/store.js";
 export * from "../../services/content/seo.js";
 export * from "../../services/content/social.js";
-export * from "../../services/socialMediaService.js";
+export * from "../../services/socialService.js";
 export * from "../../services/videoService.js";
 
 // Routes

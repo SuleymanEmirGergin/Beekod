@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { ciceksepetiService } from "../services/ciceksepetiService.js";
+import { ciceksepetiService } from "../services/marketplace/ciceksepetiService.js";
 import { sendSuccessResponse, sendErrorResponse } from "../utils/responseHelper.js";
 import { logger } from "../logger.js";
 
