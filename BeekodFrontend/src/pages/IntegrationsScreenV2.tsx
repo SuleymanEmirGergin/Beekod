@@ -127,17 +127,7 @@ export function IntegrationsScreenV2({ onNavigate, userName = 'BK' }: Integratio
     },
   });
 
-  // Effect to load config into state when modal opens
-  useEffect(() => {
-    if (showConfigureModal && trendyol) {
-      setConfigSupplierId(trendyol.config.supplierId || '');
-      setConfigApiSecret(trendyol.config.apiSecret || '');
-      setConfigWebhookUrl(trendyol.config.webhookUrl || '');
-      setConfigAutoPriceUpdates(trendyol.config.autoPriceUpdates);
-      setConfigStockNotifications(trendyol.config.stockNotifications);
-      setConfigOrderAutoImport(trendyol.config.orderAutoImport);
-    }
-  }, [showConfigureModal, trendyol]);
+
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -253,7 +243,17 @@ export function IntegrationsScreenV2({ onNavigate, userName = 'BK' }: Integratio
                   Log Settings
                 </button>
                 <button
-                  onClick={() => setShowConfigureModal(true)}
+                  onClick={() => {
+                    if (trendyol) {
+                      setConfigSupplierId(trendyol.config.supplierId || '');
+                      setConfigApiSecret(trendyol.config.apiSecret || '');
+                      setConfigWebhookUrl(trendyol.config.webhookUrl || '');
+                      setConfigAutoPriceUpdates(trendyol.config.autoPriceUpdates);
+                      setConfigStockNotifications(trendyol.config.stockNotifications);
+                      setConfigOrderAutoImport(trendyol.config.orderAutoImport);
+                    }
+                    setShowConfigureModal(true);
+                  }}
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   <SettingsIcon className="w-4 h-4" />

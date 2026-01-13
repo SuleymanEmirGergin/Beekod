@@ -43,7 +43,7 @@ export interface SyncLog {
 // NOTE: Logs are still mocked in the backend for now as we haven't implemented log persistence yet.
 // We will retrieve logs from a potential future endpoint or keep them mocked for this iteration
 // until Tier 8.5 (Sync Logs).
-let mockLogs: SyncLog[] = [
+const mockLogs: SyncLog[] = [
   {
     id: '1',
     marketplace: 'Trendyol',
@@ -108,7 +108,7 @@ export const getIntegrations = async (): Promise<Integration[]> => {
       itemsSynced: i.itemsSynced,
       config: i.config,
     }));
-  } catch (error) {
+  } catch {
     console.warn('API getIntegrations failed');
     return [];
   }

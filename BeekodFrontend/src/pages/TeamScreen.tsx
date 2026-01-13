@@ -16,7 +16,7 @@ interface TeamScreenProps {
   userName?: string;
 }
 
-export function TeamScreen({ onNavigate, userName = 'BK' }: TeamScreenProps) {
+export function TeamScreen({ onNavigate }: TeamScreenProps) {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<'Admin' | 'Member' | 'Viewer'>('Member');
@@ -31,16 +31,19 @@ export function TeamScreen({ onNavigate, userName = 'BK' }: TeamScreenProps) {
 
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
 
-  useEffect(() => {
-    loadMembers();
-  }, []);
-
   const loadMembers = async () => {
     setLoading(true);
     const members = await getMembers();
     setTeamMembers(members);
     setLoading(false);
   };
+
+  useEffect(() => {
+    // Avoid synchronous setState warning
+    requestAnimationFrame(() => {
+      loadMembers();
+    });
+  }, []);
 
   const handleInvite = async () => {
     if (inviteEmail) {
@@ -109,6 +112,14 @@ export function TeamScreen({ onNavigate, userName = 'BK' }: TeamScreenProps) {
         return 'bg-gray-50 text-gray-700 border-gray-200';
     }
   };
+
+  if (loading && teamMembers.length === 0) {
+    return (
+        <div className="flex h-screen items-center justify-center bg-gray-50">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+        </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-gray-50">
