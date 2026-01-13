@@ -247,6 +247,10 @@ router.post("/import-url", requireAdminKey, requireJsonBody, async (req, res) =>
   }
 
   try {
+<<<<<<< HEAD
+=======
+    const { importProductFromUrl } = await import("../services/productImportService.js");
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
     const result = await importProductFromUrl(url);
 
     if (!result.success) {
@@ -618,6 +622,25 @@ router.put("/:barcode/stock", requireAdminKey, validateBody(stockUpdateSchema), 
   } catch (error) {
     logger.error("products.stock_update_failed", { requestId: res.locals?.requestId, err: error });
     res.status(500).json({ error: "product_stock_update_failed" });
+  }
+});
+
+router.delete("/:barcode", requireAdminKey, async (req, res) => {
+  const { barcode } = req.params;
+  if (!barcode) {
+    return res.status(400).json({ error: "barcode_required" });
+  }
+
+  try {
+    const success = await deleteProduct(barcode);
+    if (success) {
+      res.json({ status: "ok" });
+    } else {
+      res.status(404).json({ error: "product_not_found" });
+    }
+  } catch (error) {
+    logger.error("products.delete_failed", { barcode, err: error });
+    res.status(500).json({ error: "delete_failed" });
   }
 });
 

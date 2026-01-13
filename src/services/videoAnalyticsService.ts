@@ -1,6 +1,10 @@
 import { pool } from "../db.js";
 import { logger } from "../logger.js";
+<<<<<<< HEAD
 import { generateGeminiReply } from "./ai/geminiClient.js";
+=======
+import { generateGeminiReply } from "./geminiClient.js";
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 import { IVideoAnalytics, IVideoAnalyticsDbRow, mapVideoAnalyticsRow } from "../models/VideoAnalytics.js";
 import { RowDataPacket } from "mysql2";
 

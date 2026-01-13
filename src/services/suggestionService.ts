@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import { generateGeminiReply } from "./ai/geminiClient.js";
+=======
+import { generateGeminiReply } from "./geminiClient.js";
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 import { SalesSummary, TopProduct, MarketplaceSummary } from "./reportService.js";
 import { Locale } from "../types.js";
 import { t } from "../i18n.js";

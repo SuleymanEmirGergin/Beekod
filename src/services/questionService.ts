@@ -1,4 +1,5 @@
 import { pool } from "../db.js";
+<<<<<<< HEAD
 import { generateGeminiReply } from "./ai/geminiClient.js";
 import { searchProductsByName } from "./product/productService.js";
 import { IQuestion, IQuestionDbRow, mapQuestionRow } from "../models/Question.js";
@@ -22,6 +23,11 @@ interface MarketplaceStat extends RowDataPacket {
   _id: string;
   count: number;
 }
+=======
+import { generateGeminiReply } from "./geminiClient.js";
+import { searchProductsByName } from "./productService.js";
+import { IQuestion, mapQuestionRow } from "../models/Question.js";
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 
 export const getQuestions = async (status?: "replied" | "unreplied"): Promise<IQuestion[]> => {
   let sql = "SELECT * FROM questions";

@@ -278,6 +278,27 @@ export async function unifiedMarketplaceSearch(
       logger.warn("unified_search.normalization_failed", { error: e });
     }
 
+    // 6. Deep Scrape for Barcodes (Phase 8)
+    // Only enrichment for top results if barcode is missing
+    const resultsToEnrich = finalResults.filter(r => !r.barcode && r.url).slice(0, 3);
+    if (resultsToEnrich.length > 0) {
+      logger.info("unified_search.deep_scrape_enrichment", { count: resultsToEnrich.length });
+      await Promise.all(resultsToEnrich.map(async (r) => {
+        try {
+          const { scrapeProductDetails } = await import("../webScraperService.js");
+          const details = await scrapeProductDetails(r.url, r.site);
+          if (details.barcode) {
+            r.barcode = details.barcode;
+            if (details.brand && !r.brand) r.brand = details.brand;
+            if (details.description && !r.description) r.description = details.description;
+            logger.info("unified_search.barcode_enriched", { site: r.site, barcode: r.barcode });
+          }
+        } catch (e) {
+          logger.warn("unified_search.enrichment_failed", { site: r.site, error: e });
+        }
+      }));
+    }
+
     // Cache the results before returning
     if (finalResults.length > 0) {
       searchCache.set(sanitizedQuery, {

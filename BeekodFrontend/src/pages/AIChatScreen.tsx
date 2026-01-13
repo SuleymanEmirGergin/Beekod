@@ -1,5 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+<<<<<<< HEAD
 import { motion } from "framer-motion";
+=======
+import { motion, AnimatePresence } from "framer-motion";
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 import {
     Send,
     Loader2,
@@ -14,12 +18,21 @@ import {
     Bot,
     User,
     MessageSquare,
+<<<<<<< HEAD
     Trash2
+=======
+    Trash2,
+    ExternalLink
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+<<<<<<< HEAD
 import { chatApi, ProductCard, WholesalerStockHolder, MarketplaceComparisonCard } from "@/services/chatApi";
+=======
+import { chatApi, ChatMessage, ChatResponse, ProductCard, WholesalerStockHolder, MarketplaceComparisonCard } from "@/services/chatApi";
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 
 // ============================================================
 // TYPES
@@ -36,7 +49,10 @@ interface Message {
     confirmationCode?: string;
     confirmationType?: "destructive" | "privacy";
     suggestions?: string[];
+<<<<<<< HEAD
     intent?: string;
+=======
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 }
 
 interface AIChatScreenProps {
@@ -79,7 +95,10 @@ export function AIChatScreen(props: AIChatScreenProps) {
                 content: "Merhaba! 👋 Ben BEEKOD AI asistanınız. İşletmenizi yönetmenize nasıl yardımcı olabilirim?",
                 timestamp: new Date(),
                 suggestions: [
+<<<<<<< HEAD
                     "🔍 iPhone 15 Fiyatları",
+=======
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
                     "📦 Stok Durumu",
                     "💰 Karlılık Analizi",
                     "🏪 Toptancı Bul",
@@ -100,7 +119,17 @@ export function AIChatScreen(props: AIChatScreenProps) {
             timestamp: new Date(),
         };
 
+<<<<<<< HEAD
         setInputValue("");
+=======
+        // If triggered via chip, standard state update might lag, so use text directly
+        if (text !== inputValue) {
+            setInputValue("");
+        } else {
+            setInputValue("");
+        }
+
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
         setMessages(prev => [...prev, userMessage]);
 
         // Add placeholder assistant message
@@ -115,6 +144,7 @@ export function AIChatScreen(props: AIChatScreenProps) {
         setIsLoading(true);
 
         try {
+<<<<<<< HEAD
             // Use new AI Orchestrator
             const response = await chatApi.sendAIRequest(userMessage.content);
 
@@ -123,6 +153,25 @@ export function AIChatScreen(props: AIChatScreenProps) {
                 content: response.answer,
                 intent: response.intent,
                 timestamp: new Date()
+=======
+            const response = await chatApi.sendMessage({
+                sessionId: sessionId || undefined,
+                message: userMessage.content,
+            });
+
+            if (response.sessionId && !sessionId) {
+                setSessionId(response.sessionId);
+            }
+
+            setMessages(prev => prev.map(m => m.id === assistantId ? {
+                ...m,
+                content: response.message || "Anladım.",
+                productCards: response.productCards,
+                wholesalerList: response.wholesalerList,
+                marketplaceComparison: response.marketplaceComparison,
+                confirmationCode: response.confirmationCode,
+                confirmationType: response.confirmationType,
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
             } : m));
 
         } catch (error) {
@@ -142,6 +191,10 @@ export function AIChatScreen(props: AIChatScreenProps) {
         try {
             const res = await chatApi.importProduct(url);
 
+<<<<<<< HEAD
+=======
+            // Add a confirmation message to chat
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
             const confirmMessage: Message = {
                 id: `import-success-${Date.now()}`,
                 role: "assistant",
@@ -335,6 +388,7 @@ function MessageBubble({
                 "max-w-[85%] space-y-3",
                 isUser && "items-end"
             )}>
+<<<<<<< HEAD
                 {/* Intent Badge */}
                 {!isUser && message.intent && (
                     <div className="px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-[10px] font-bold uppercase tracking-wider w-fit mb-1">
@@ -342,6 +396,8 @@ function MessageBubble({
                     </div>
                 )}
 
+=======
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
                 {/* Text Bubble */}
                 <div className={cn(
                     "px-6 py-4 rounded-3xl text-base leading-relaxed shadow-sm",
@@ -424,6 +480,10 @@ function ProductCardList({
 }) {
     const [expanded, setExpanded] = useState(false);
     const displayProducts = expanded ? products : products.slice(0, 3);
+<<<<<<< HEAD
+=======
+    console.log("AIChatScreen Products:", products);
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 
     return (
         <div className="space-y-3 w-full">
@@ -442,6 +502,7 @@ function ProductCardList({
                     )}
                 >
                     <div className="flex gap-4">
+<<<<<<< HEAD
                         {product.image && (
                             <img
                                 src={product.image}
@@ -453,6 +514,50 @@ function ProductCardList({
                             <h4 className="text-base font-medium text-gray-900 dark:text-white truncate">
                                 {product.name}
                             </h4>
+=======
+                        <ProductImage
+                            src={product.image}
+                            alt={product.name}
+                            url={product.url}
+                        />
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                                {product.marketplace && (
+                                    product.url ? (
+                                        <a
+                                            href={product.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className={cn(
+                                                "text-[10px] font-bold px-1.5 py-0.5 rounded hover:opacity-80 transition-opacity flex items-center gap-1",
+                                                product.marketplace === "Trendyol" ? "bg-orange-500/10 text-orange-600 dark:text-orange-400" :
+                                                    product.marketplace === "Hepsiburada" ? "bg-orange-600/10 text-orange-600 dark:text-orange-500" :
+                                                        product.marketplace === "N11" ? "bg-red-500/10 text-red-600 dark:text-red-400" :
+                                                            "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                                            )}
+                                            title="Ürüne Git"
+                                        >
+                                            {product.marketplace} <ExternalLink className="w-2 h-2" />
+                                        </a>
+                                    ) : (
+                                        <span className={cn(
+                                            "text-[10px] font-bold px-1.5 py-0.5 rounded",
+                                            product.marketplace === "Trendyol" ? "bg-orange-500/10 text-orange-600 dark:text-orange-400" :
+                                                product.marketplace === "Hepsiburada" ? "bg-orange-600/10 text-orange-600 dark:text-orange-500" :
+                                                    product.marketplace === "N11" ? "bg-red-500/10 text-red-600 dark:text-red-400" :
+                                                        "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                                        )}>
+                                            {product.marketplace}
+                                        </span>
+                                    )
+                                )}
+                            </div>
+                            <a href={product.url} target="_blank" rel="noopener noreferrer" className="block group">
+                                <h4 className="text-base font-medium text-gray-900 dark:text-white truncate group-hover:text-purple-600 transition-colors">
+                                    {product.name}
+                                </h4>
+                            </a>
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
                             <p className="text-sm text-gray-500">{product.barcode}</p>
                             <div className="flex items-center gap-3 mt-2">
                                 <span className="text-green-600 dark:text-green-400 font-bold text-base">
@@ -552,7 +657,11 @@ function WholesalerList({ wholesalers }: { wholesalers: WholesalerStockHolder[] 
                                 <Button
                                     size="sm"
                                     variant="ghost"
+<<<<<<< HEAD
                                     className="h-8 w-8 p-0 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-100 dark:text-emerald-400 dark:hover:bg-emerald-900/20 rounded-full"
+=======
+                                    className="h-8 w-8 p-0 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-100 dark:text-emerald-400 dark:hover:bg-emerald-900/30 rounded-full"
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
                                 >
                                     <MessageSquare className="w-4 h-4" />
                                 </Button>
@@ -665,3 +774,48 @@ function ConfirmationBadge({
         </motion.div>
     );
 }
+<<<<<<< HEAD
+=======
+
+// ============================================================
+// PRODUCT IMAGE COMPONENT (Fallback Logic)
+// ============================================================
+
+function ProductImage({ src, alt, url }: { src?: string; alt?: string; url?: string }) {
+    const [error, setError] = useState(false);
+
+    // Reset error state if src changes
+    useEffect(() => {
+        setError(false);
+    }, [src]);
+
+    const content = (
+        <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0 bg-gray-100 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex items-center justify-center">
+            {src && !error ? (
+                <img
+                    key={src}
+                    src={src}
+                    alt={alt}
+                    referrerPolicy="no-referrer"
+                    onError={() => setError(true)}
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                />
+            ) : (
+                <div className="flex flex-col items-center justify-center text-gray-400">
+                    <Package className="w-6 h-6 mb-1 opacity-50" />
+                    <span className="text-[9px] font-bold uppercase text-gray-400">Ürün</span>
+                </div>
+            )}
+        </div>
+    );
+
+    if (url) {
+        return (
+            <a href={url} target="_blank" rel="noopener noreferrer" className="block hover:opacity-80 transition-opacity">
+                {content}
+            </a>
+        );
+    }
+    return content;
+}
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e

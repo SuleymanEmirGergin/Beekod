@@ -5,6 +5,11 @@ import { priceHandler } from "./handlers/priceHandler.js";
 import { stockHandler } from "./handlers/stockHandler.js";
 import { orderHandler } from "./handlers/orderHandler.js";
 import { marketplaceHandler } from "./handlers/marketplaceHandler.js";
+<<<<<<< HEAD
+=======
+import { productSearchHandler } from "./handlers/productSearchHandler.js";
+import { analyticsHandler } from "./handlers/analyticsHandler.js";
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 import { ChatIntent } from "./types.js";
 
 /**
@@ -17,12 +22,20 @@ export class HandlerRegistry {
 
     constructor() {
         // Register all handlers
+<<<<<<< HEAD
+=======
+        this.register(productSearchHandler); // Priority for demo
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
         this.register(searchHandler);
         this.register(wholesalerHandler);
         this.register(priceHandler);
         this.register(stockHandler);
         this.register(orderHandler);
         this.register(marketplaceHandler);
+<<<<<<< HEAD
+=======
+        this.register(analyticsHandler);
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
     }
 
     /**

@@ -9,7 +9,8 @@ import { shippingService } from "../services/order/shippingService.js";
 
 const router = Router();
 
-router.use(requireJsonBody);
+// Remove global middleware that blocks GET requests
+// router.use(requireJsonBody);
 
 const createOrderSchema = z.object({
   source: z.object({
@@ -63,7 +64,7 @@ router.get("/", async (req, res) => {
 });
 
 // POST /api/orders/sync
-router.post("/sync", async (req, res) => {
+router.post("/sync", requireJsonBody, async (req, res) => {
   try {
     const results = await syncOrdersFromMarketplaces();
     res.json(results);
@@ -85,7 +86,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // POST /api/orders
-router.post("/", validateBody(createOrderSchema), async (req, res) => {
+router.post("/", requireJsonBody, validateBody(createOrderSchema), async (req, res) => {
   try {
     const newOrderRes = await createOrder(req.body);
     res.handleResult(newOrderRes, { successStatus: 201 });
@@ -96,7 +97,7 @@ router.post("/", validateBody(createOrderSchema), async (req, res) => {
 });
 
 // PUT /api/orders/:id/status
-router.put("/:id/status", validateBody(updateStatusSchema), async (req, res) => {
+router.put("/:id/status", requireJsonBody, validateBody(updateStatusSchema), async (req, res) => {
   try {
     const updatedOrderRes = await updateOrderStatus(req.params.id, req.body.status);
     res.handleResult(updatedOrderRes);
@@ -107,7 +108,7 @@ router.put("/:id/status", validateBody(updateStatusSchema), async (req, res) => 
 });
 
 // POST /api/orders/:id/shipping-label
-router.post("/:id/shipping-label", async (req, res) => {
+router.post("/:id/shipping-label", requireJsonBody, async (req, res) => {
   const { provider } = req.body; // 'Yurtici', 'Aras', 'MNG'
   if (!provider) return res.status(400).json({ error: "Shipping provider required" });
 

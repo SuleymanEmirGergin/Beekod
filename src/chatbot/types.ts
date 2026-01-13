@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import { MarketplaceName } from "../services/marketplace/types.js";
+=======
+import { MarketplaceName } from "../marketplaces/types.js";
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 
 // ============================================================
 // INTENT TAXONOMY (PROMPTtaki şemaya göre)
@@ -142,6 +146,10 @@ export interface ProductCard {
     currency: string;
     stock?: number;
     imageUrl?: string;
+<<<<<<< HEAD
+=======
+    image?: string; // Frontend ChatWidget compatibility
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
     marketplace?: MarketplaceName;
     url?: string;
     canImport?: boolean; // Mağazama Ekle butonu

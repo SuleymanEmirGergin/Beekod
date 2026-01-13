@@ -113,7 +113,12 @@ export class ChatService {
                 intentResult.entities,
                 userId,
                 sessionId,
+<<<<<<< HEAD
                 intentResult.intent
+=======
+                intentResult.intent,
+                message
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
             );
 
             // 9. Generate conversational response

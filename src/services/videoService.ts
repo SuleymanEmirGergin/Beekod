@@ -1,8 +1,28 @@
+<<<<<<< HEAD
 import { getProductByBarcode } from "./product/productService.js";
+=======
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { getProductByBarcode } from "./productService.js";
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 import { logger } from "../logger.js";
 import { runImageToVideo, runVirtualTryOn, getTaskDetail } from "./wiroService.js";
 import { NotFoundError, InternalError } from "../errors/AppError.js";
 import { getGeminiProvider } from "../ai/providers/gemini/GeminiProvider.js";
+
+// Mannequin stock images for virtual try-on
+const MANNEQUIN_IMAGES = {
+  male: [
+    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=1200&fit=crop", // Professional male model
+    "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800&h=1200&fit=crop", // Casual male model
+  ],
+  female: [
+    "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&h=1200&fit=crop", // Professional female model
+    "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&h=1200&fit=crop", // Casual female model
+  ],
+  neutral: [
+    "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=800&h=1200&fit=crop", // Neutral/unisex model
+  ]
+};
 
 // Mannequin stock images for virtual try-on
 const MANNEQUIN_IMAGES = {
@@ -60,7 +80,11 @@ function detectGenderFromCategory(category?: string): 'male' | 'female' | 'neutr
 /**
  * Helper: Build motion prompt for video generation
  */
+<<<<<<< HEAD
 function buildMotionPrompt(vibe: string, _category?: string): string {
+=======
+function buildMotionPrompt(vibe: string, category?: string): string {
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
   const basePrompt = "Professional fashion model showcase, commercial photography";
 
   const vibeMap: Record<string, string> = {
@@ -174,9 +198,14 @@ export const generateTryOnVideo = async (
   logger.info("video.try_on_video_start", { barcode, options });
 
   // 1. Get product details
+<<<<<<< HEAD
   const productResult = await getProductByBarcode(barcode);
   if (!productResult.ok) throw new NotFoundError("Product not found");
   const product = productResult.value;
+=======
+  const product = await getProductByBarcode(barcode);
+  if (!product) throw new NotFoundError("Product not found");
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 
   // 2. Select appropriate mannequin
   const gender = options?.gender || detectGenderFromCategory(product.category);
@@ -270,7 +299,16 @@ export const generateVideoScript = async (
   }
 
   try {
+<<<<<<< HEAD
     const provider = getGeminiProvider();
+=======
+    const genAI = new GoogleGenerativeAI(apiKey);
+    // Use gemini-1.5-flash for better availability/speed
+    const modelName = "gemini-1.5-flash";
+    const model = genAI.getGenerativeModel({ model: modelName });
+
+    logger.info("video.using_model", { modelName });
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 
     const prompt = `
         Sen ödüllü bir Sosyal Medya İçerik Yönetmeni ve Viral Pazarlama Dehasısın.
@@ -311,7 +349,13 @@ export const generateVideoScript = async (
         }
     `;
 
+<<<<<<< HEAD
     const text = (await provider.generate(prompt)) || "";
+=======
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text() || "";
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 
     // Clean markdown code blocks if present
     const jsonStr = text
@@ -393,9 +437,14 @@ export const generateVideoMedia = async (barcode: string, _script: VideoScript):
  * Generates a high-quality video using Wiro AI based on a product image and an AI-generated script.
  */
 export const generateAIDrivenVideo = async (barcode: string, vibe: string, customPrompt?: string): Promise<{ taskId: string; token: string }> => {
+<<<<<<< HEAD
   const productResult = await getProductByBarcode(barcode);
   if (!productResult.ok) throw new NotFoundError("Product not found");
   const product = productResult.value;
+=======
+  const product = await getProductByBarcode(barcode);
+  if (!product) throw new NotFoundError("Product not found");
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 
   // 1. Select product image
   const imageUrl = (product.images && product.images.length > 0) ? product.images[0] : product.imageUrl;

@@ -92,6 +92,27 @@ export function OrdersListScreen({ onNavigate }: OrdersListScreenProps) {
       setNewOrderAddress('');
       setTimeout(() => setShowToast(false), 3000);
     },
+    onError: (error: any) => {
+      console.error("Create order failed:", error);
+
+      let errMsg = "Sipariş oluşturulamadı";
+      if (error.response?.data?.error) {
+        if (typeof error.response.data.error === 'object') {
+          errMsg = JSON.stringify(error.response.data.error);
+        } else {
+          errMsg = String(error.response.data.error);
+        }
+      } else if (error.message) {
+        errMsg = error.message;
+      }
+
+      setToastMessage({
+        title: '❌ Hata',
+        message: errMsg
+      });
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 5000);
+    }
   });
 
   // React Query - Bulk Create Invoices Mutation
@@ -285,12 +306,32 @@ export function OrdersListScreen({ onNavigate }: OrdersListScreenProps) {
   };
 
   const handleCreateOrder = () => {
-    if (!newOrderCustomer) return;
+    console.log("handleCreateOrder triggered", { newOrderCustomer });
+    if (!newOrderCustomer) {
+      alert("Lütfen müşteri adını giriniz.");
+      return;
+    }
 
     createOrderMutation.mutate({
-      customer: { name: newOrderCustomer },
+      customer: {
+        name: newOrderCustomer,
+        email: newOrderEmail,
+        phone: newOrderPhone,
+        address: newOrderAddress,
+        initials: newOrderCustomer.substring(0, 2).toUpperCase(),
+        color: 'bg-gray-500' // Default color
+      },
       source: { name: 'Beekod Direct', color: 'bg-yellow-500', icon: 'B' },
-      // Add other fields as needed
+      items: [
+        {
+          name: "Manuel Satış / Hizmet",
+          sku: "MANUAL-001",
+          price: "₺0.00",
+          quantity: 1,
+          image: "https://via.placeholder.com/150"
+        }
+      ],
+      total: "₺0.00"
     });
   };
 
@@ -478,7 +519,11 @@ export function OrdersListScreen({ onNavigate }: OrdersListScreenProps) {
                   {syncOrdersMutation.isPending ? 'Eşitleniyor...' : 'Siparişleri Eşitle'}
                 </button>
                 <button
+<<<<<<< HEAD
                   className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white rounded-xl text-sm font-medium transition-all shadow-md"
+=======
+                  className="relative z-10 flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white rounded-xl text-sm font-medium transition-all shadow-md"
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
                   onClick={() => setShowCreateOrderModal(true)}
                 >
                   <Plus className="w-4 h-4" />
@@ -671,12 +716,15 @@ export function OrdersListScreen({ onNavigate }: OrdersListScreenProps) {
       </div>
 
       {/* Floating Chat Button */}
+<<<<<<< HEAD
       
+=======
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 
-      {/* Create Order Modal */}
+
       {showCreateOrderModal && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-8 rounded-lg shadow-lg w-96">
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-50 flex items-center justify-center z-[60]">
+          <div className="bg-white p-8 rounded-lg shadow-lg w-96 relative z-[70]">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl text-gray-900">Manuel Sipariş Oluştur</h2>
               <button
@@ -732,10 +780,14 @@ export function OrdersListScreen({ onNavigate }: OrdersListScreenProps) {
                 Vazgeç
               </button>
               <button
-                className="px-4 py-2 bg-[#F5B800] text-gray-900 rounded-lg"
-                onClick={handleCreateOrder}
+                className="relative z-[80] px-4 py-2 bg-[#F5B800] text-gray-900 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer hover:bg-[#E5A800] transition-colors shadow-sm"
+                onClick={() => {
+                  console.log("Create Order Button Clicked");
+                  handleCreateOrder();
+                }}
+                disabled={createOrderMutation.isPending}
               >
-                Sipariş Oluştur
+                {createOrderMutation.isPending ? 'Oluşturuluyor...' : 'Sipariş Oluştur'}
               </button>
             </div>
           </div>

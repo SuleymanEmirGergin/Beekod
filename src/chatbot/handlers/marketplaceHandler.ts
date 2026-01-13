@@ -1,9 +1,16 @@
 import { ChatHandler } from "./baseHandler.js";
 import { ChatEntity, HandlerResult, MarketplaceComparisonCard } from "../types.js";
 import { logger } from "../../logger.js";
+<<<<<<< HEAD
 import { getMarketplaceProvider, getMarketplaceProviders, listMarketplaceProviders } from "../../services/marketplace/index.js";
 import { MarketplaceName } from "../../services/marketplace/types.js";
 import { auditService } from "../auditService.js";
+=======
+import { getMarketplaceProvider, getMarketplaceProviders, listMarketplaceProviders } from "../../marketplaces/index.js";
+import { MarketplaceName } from "../../marketplaces/types.js";
+import { auditService } from "../auditService.js";
+import { confirmationService } from "../confirmationService.js";
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 
 /**
  * Marketplace Handler
@@ -23,7 +30,10 @@ export class MarketplaceHandler implements ChatHandler {
         "listing_update",
         "batch_operation",
         "analytics_query",
+<<<<<<< HEAD
         "product_search",
+=======
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
     ];
 
     async handle(
@@ -51,9 +61,12 @@ export class MarketplaceHandler implements ChatHandler {
                 case "batch_operation":
                     return await this.handleBatchOperation(entities, userId, sessionId);
 
+<<<<<<< HEAD
                 case "product_search":
                     return await this.handleProductSearch(entities);
 
+=======
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
                 default:
                     return {
                         success: false,
@@ -118,6 +131,7 @@ export class MarketplaceHandler implements ChatHandler {
         }
 
         // Get listings from marketplace
+<<<<<<< HEAD
         const result = await provider.listListings({ barcode });
 
         if (!result.ok) {
@@ -131,11 +145,29 @@ export class MarketplaceHandler implements ChatHandler {
         const message = barcode
             ? `✅ **${marketplace}** - Barkod ${barcode} senkronize edildi.`
             : `✅ **${marketplace}** - ${items.length} ürün çekildi.`;
+=======
+        const listResult = await provider.listListings({ barcode });
+
+        if (listResult.status !== "ok") {
+            return {
+                success: false,
+                message: `${marketplace} senkronizasyon hatası: ${listResult.message}`,
+            };
+        }
+
+        const message = barcode
+            ? `✅ **${marketplace}** - Barkod ${barcode} senkronize edildi.`
+            : `✅ **${marketplace}** - ${listResult.items.length} ürün çekildi.`;
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 
         return {
             success: true,
             message,
+<<<<<<< HEAD
             data: { items },
+=======
+            data: { items: listResult.items },
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
         };
     }
 
@@ -156,6 +188,7 @@ export class MarketplaceHandler implements ChatHandler {
             };
         }
 
+<<<<<<< HEAD
         // Get product from database
         const { getProductByBarcode } = await import("../../services/productService.js");
         const product = await getProductByBarcode(barcode);
@@ -249,6 +282,15 @@ export class MarketplaceHandler implements ChatHandler {
             success: successCount > 0,
             message,
             data: { barcode, results },
+=======
+        // TODO: Get product from database and publish to marketplace
+        // This is a placeholder for now
+
+        return {
+            success: true,
+            message: `📤 Barkod ${barcode} ${marketplace || "tüm pazaryerlerine"} yayınlanmak üzere kuyruğa alındı.`,
+            data: { barcode, marketplace, status: "queued" },
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
         };
     }
 
@@ -292,6 +334,7 @@ export class MarketplaceHandler implements ChatHandler {
                 stock,
             });
 
+<<<<<<< HEAD
             if (result.ok) {
                 results.push({
                     marketplace: mp,
@@ -305,6 +348,13 @@ export class MarketplaceHandler implements ChatHandler {
                     message: result.error.message,
                 });
             }
+=======
+            results.push({
+                marketplace: mp,
+                status: result.status,
+                message: result.message,
+            });
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
         }
 
         // Audit log
@@ -334,6 +384,7 @@ export class MarketplaceHandler implements ChatHandler {
     private async getMarketplaceAnalytics(entities: ChatEntity): Promise<HandlerResult> {
         const { marketplace, barcode } = entities;
 
+<<<<<<< HEAD
         // If no specific barcode, show cross-marketplace summary
         if (!barcode) {
             return await this.getCrossMarketplaceSummary();
@@ -364,10 +415,45 @@ export class MarketplaceHandler implements ChatHandler {
             success: true,
             message,
             marketplaceComparison: comparison,
+=======
+        // Get price comparison across marketplaces
+        if (barcode) {
+            const comparison = await this.getPriceComparison(barcode);
+
+            if (comparison.length === 0) {
+                return {
+                    success: true,
+                    message: `Barkod ${barcode} için pazaryerlerinde veri bulunamadı.`,
+                    marketplaceComparison: [],
+                };
+            }
+
+            let message = `📊 **Barkod ${barcode} - Pazaryeri Karşılaştırma**\n\n`;
+            comparison.forEach(c => {
+                const icon = c.available ? "✅" : "❌";
+                message += `${icon} **${c.marketplace}**: ${c.price} ${c.currency}`;
+                if (c.stock !== undefined) {
+                    message += ` (${c.stock} adet)`;
+                }
+                message += "\n";
+            });
+
+            return {
+                success: true,
+                message,
+                marketplaceComparison: comparison,
+            };
+        }
+
+        return {
+            success: true,
+            message: "Pazaryeri analizi için barkod belirtin.",
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
         };
     }
 
     /**
+<<<<<<< HEAD
      * Get cross-marketplace price summary
      */
     private async getCrossMarketplaceSummary(): Promise<HandlerResult> {
@@ -474,6 +560,8 @@ export class MarketplaceHandler implements ChatHandler {
 
 
     /**
+=======
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
      * Get price comparison from all marketplaces
      */
     private async getPriceComparison(barcode: string): Promise<MarketplaceComparisonCard[]> {
@@ -508,6 +596,7 @@ export class MarketplaceHandler implements ChatHandler {
     }
 
     /**
+<<<<<<< HEAD
      * Evrensel Ürün Arama (Unified Search)
      */
     private async handleProductSearch(entities: ChatEntity): Promise<HandlerResult> {
@@ -570,6 +659,8 @@ export class MarketplaceHandler implements ChatHandler {
     }
 
     /**
+=======
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
      * Toplu işlem (requires confirmation)
      */
     private async handleBatchOperation(

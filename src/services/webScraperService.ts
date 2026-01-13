@@ -58,6 +58,10 @@ export type ScrapedProduct = {
     url: string;
     image?: string;
     inStock: boolean;
+    barcode?: string;
+    brand?: string;
+    description?: string;
+    attributes?: Record<string, string>;
 };
 
 /**
@@ -278,4 +282,111 @@ function getSiteSelectors(siteName: string): {
         link: "a",
         image: "img",
     };
+}
+
+/**
+ * Visit a product detail page to extract rich data like barcode.
+ */
+export async function scrapeProductDetails(
+    url: string,
+    siteName: string,
+    options: { timeout?: number } = {}
+): Promise<Partial<ScrapedProduct>> {
+    const { timeout = 15000 } = options;
+    const browser = await getBrowser();
+    const page = await browser.newPage();
+
+    try {
+        await page.setViewport({ width: 1920, height: 1080 });
+        logger.info("scraper.details.navigate", { site: siteName, url });
+
+        await page.goto(url, {
+            waitUntil: "networkidle2",
+            timeout,
+        });
+
+        // Extract using JSON-LD and specific selectors
+        const data = await page.evaluate((mp: string) => {
+            const result: { barcode?: string; brand?: string; description?: string } = {};
+            
+            // 1. Try JSON-LD (Standard)
+            const ldScripts = document.querySelectorAll('script[type="application/ld+json"]');
+            for (const script of Array.from(ldScripts)) {
+                try {
+                    const json = JSON.parse(script.textContent || "{}");
+                    const items = Array.isArray(json) ? json : [json];
+                    
+                    for (const item of items) {
+                        if (item["@type"] === "Product") {
+                            result.barcode = item.gtin13 || item.gtin || item.gtin8 || item.gtin12 || item.productID || item.sku;
+                            result.brand = typeof item.brand === 'object' ? item.brand.name : item.brand;
+                            result.description = item.description;
+                            if (result.barcode) break;
+                        }
+                    }
+                } catch { /* ignore parse errors */ }
+                if (result.barcode) break;
+            }
+
+            // 2. Site-specific fallbacks
+            if (!result.barcode) {
+                if (mp === "Trendyol") {
+                    const allScripts = Array.from(document.querySelectorAll('script'));
+                    for (const s of allScripts) {
+                        if (s.textContent?.includes('PRODUCT_DETAIL_APP_STATE')) {
+                            const match = s.textContent.match(/"barcode":"(\d+)"/);
+                            if (match) {
+                                result.barcode = match[1];
+                                break;
+                            }
+                        }
+                    }
+                } else if (mp === "Hepsiburada") {
+                    // Try data-test-id first
+                    const barcodeEl = document.querySelector('[data-test-id="barcode"]');
+                    if (barcodeEl) {
+                        result.barcode = barcodeEl.textContent?.trim();
+                    }
+                    // Fallback: search scripts for barcode/gtin regex
+                    if (!result.barcode) {
+                        const hbScripts = Array.from(document.querySelectorAll('script'));
+                        for (const s of hbScripts) {
+                            const text = s.textContent || "";
+                            if (text.includes('"barcode"') || text.includes('"gtin"')) {
+                                const barcodeMatch = text.match(/"barcode"\s*:\s*"(\d+)"/);
+                                const gtinMatch = text.match(/"gtin\d*"\s*:\s*"(\d+)"/);
+                                if (barcodeMatch) {
+                                    result.barcode = barcodeMatch[1];
+                                    break;
+                                }
+                                if (gtinMatch) {
+                                    result.barcode = gtinMatch[1];
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                } else if (mp === "N11") {
+                    const n11Scripts = Array.from(document.querySelectorAll('script'));
+                    for (const s of n11Scripts) {
+                        if (s.textContent?.includes('barcode')) {
+                            const match = s.textContent.match(/"barcode":"(\d+)"/);
+                            if (match) result.barcode = match[1];
+                        }
+                    }
+                }
+            }
+
+            return result;
+        }, siteName);
+
+        logger.info("scraper.details.success", { site: siteName, barcodeFound: !!data.barcode });
+        return data;
+
+    } catch (error) {
+        logger.error("scraper.details.failed", { site: siteName, url, error: String(error) });
+        return {};
+    } finally {
+        await page.close();
+    }
 }

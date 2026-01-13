@@ -1,0 +1,14 @@
+
+ RUN  v4.0.16 C:/Users/emirg/Desktop/Beekod/Beekod
+
+stdout | tests/unit/chat/messageController.test.ts > Message Controller > should override intent when action is TOP_SELLERS
+DEBUG: calling getIntentHandler with report.top_products
+DEBUG: handler found? [33mtrue[39m
+
+ Ô£ô tests/unit/chat/messageController.test.ts (7 tests | 6 skipped) 7ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 6 skipped (7)
+   Start at  01:10:08
+   Duration  4.12s (transform 956ms, setup 0ms, import 3.94s, tests 7ms, environment 0ms)
+

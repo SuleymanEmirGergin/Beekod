@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { authService } from '../services/authService.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { validateBody } from '../validation.js';
+import { query } from '../db.js';
 
 export const authRouter = Router();
 

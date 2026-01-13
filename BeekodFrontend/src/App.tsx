@@ -38,12 +38,15 @@ const DiscoveryLandingScreen = lazy(() => import('./pages/DiscoveryLandingScreen
 const MarketplaceInventoryScreen = lazy(() => import('./pages/MarketplaceInventoryScreen').then(m => ({ default: m.MarketplaceInventoryScreen })));
 const JobMonitoringScreen = lazy(() => import('./pages/JobMonitoringScreen').then(m => ({ default: m.JobMonitoringScreen })));
 const AuditLogScreen = lazy(() => import('./pages/AuditLogScreen').then(m => ({ default: m.AuditLogScreen })));
+<<<<<<< HEAD
 const ShippingManagementScreen = lazy(() => import('./pages/ShippingManagementScreen').then(m => ({ default: m.ShippingManagementScreen })));
 const CampaignManagerScreen = lazy(() => import('./pages/CampaignManagerScreen').then(m => ({ default: m.CampaignManagerScreen })));
 const NotificationsScreen = lazy(() => import('./pages/NotificationsScreen').then(m => ({ default: m.NotificationsScreen })));
 const TermsScreen = lazy(() => import('./pages/TermsScreen').then(m => ({ default: m.TermsScreen })));
 const PrivacyScreen = lazy(() => import('./pages/PrivacyScreen').then(m => ({ default: m.PrivacyScreen })));
 const NotFoundScreen = lazy(() => import('./pages/NotFoundScreen').then(m => ({ default: m.NotFoundScreen })));
+=======
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 
 import { CommandK } from './components/shared/CommandK';
 import ChatWidget from './components/ChatWidget';
@@ -96,7 +99,10 @@ const screenToPath: Record<string, string> = {
   'audit-logs': '/audit-logs',
   'marketplace-inventory': '/marketplace-inventory',
   'ai-chatbot': '/ai-chatbot',
+<<<<<<< HEAD
 
+=======
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
   jobs: '/jobs',
   shipping: '/shipping',
   campaigns: '/campaigns',
@@ -245,6 +251,7 @@ function AIChatRoute() {
   return <AIChatScreen onNavigate={onNavigate} />;
 }
 
+<<<<<<< HEAD
 function ShippingRoute() {
   const onNavigate = useOnNavigate();
   return <ShippingManagementScreen onNavigate={onNavigate} />;
@@ -270,6 +277,8 @@ function PrivacyRoute() {
   return <PrivacyScreen onNavigate={onNavigate} />;
 }
 
+=======
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 export default function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('beekod-theme') || 'Light');
   const isDark = theme === 'Dark';
@@ -301,8 +310,12 @@ export default function App() {
         <AuthProvider>
           <SocketProvider>
             <ErrorBoundary>
+<<<<<<< HEAD
               <Suspense fallback={<LoadingSpinner />}>
                 <Routes>
+=======
+              <Routes>
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
                 {/* Default: dashboard */}
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
@@ -318,11 +331,19 @@ export default function App() {
                 <Route path="/marketplace-inventory" element={<ProtectedRoute><MarketplaceInventoryRoute /></ProtectedRoute>} />
                 <Route path="/jobs" element={<ProtectedRoute><JobMonitoringRoute /></ProtectedRoute>} />
                 <Route path="/orders" element={<ProtectedRoute><OrdersRoute /></ProtectedRoute>} />
+<<<<<<< HEAD
 
                 <Route path="/products" element={<ProtectedRoute><ProductsRoute /></ProtectedRoute>} />
                 <Route path="/products/create" element={<ProtectedRoute><ProductEditScreen /></ProtectedRoute>} />
                 <Route path="/products/:barcode/edit" element={<ProtectedRoute><ProductEditScreen /></ProtectedRoute>} />
 
+=======
+                <Route path="/orders" element={<ProtectedRoute><OrdersRoute /></ProtectedRoute>} />
+                <Route path="/products" element={<ProtectedRoute><ProductsRoute /></ProtectedRoute>} />
+                <Route path="/products/create" element={<ProtectedRoute><ProductEditScreen /></ProtectedRoute>} />
+                <Route path="/products/:barcode/edit" element={<ProtectedRoute><ProductEditScreen /></ProtectedRoute>} />
+
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
                 <Route path="/stock" element={<ProtectedRoute><StockRoute /></ProtectedRoute>} />
                 <Route path="/team" element={<ProtectedRoute><TeamRoute /></ProtectedRoute>} />
                 <Route
@@ -344,11 +365,16 @@ export default function App() {
                 <Route path="/questions" element={<ProtectedRoute><QuestionsRoute /></ProtectedRoute>} />
                 <Route path="/invoices" element={<ProtectedRoute><InvoiceRoute /></ProtectedRoute>} />
                 <Route path="/ai-finance" element={<ProtectedRoute><FinancialFinanceRoute /></ProtectedRoute>} />
+<<<<<<< HEAD
 
+=======
+                <Route path="/ai-finance" element={<ProtectedRoute><FinancialFinanceRoute /></ProtectedRoute>} />
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
                 <Route path="/revenue-optimization" element={<ProtectedRoute><RevenueOptimizationRoute /></ProtectedRoute>} />
                 <Route path="/ai-chatbot" element={<ProtectedRoute><AIChatRoute /></ProtectedRoute>} />
                 <Route path="/audit-logs" element={<ProtectedRoute><AuditLogRoute /></ProtectedRoute>} />
 
+<<<<<<< HEAD
                 <Route path="/shipping" element={<ProtectedRoute><ShippingRoute /></ProtectedRoute>} />
                 <Route path="/campaigns" element={<ProtectedRoute><CampaignsRoute /></ProtectedRoute>} />
                 <Route path="/notifications" element={<ProtectedRoute><NotificationsRoute /></ProtectedRoute>} />
@@ -359,6 +385,11 @@ export default function App() {
                 <Route path="*" element={<Suspense fallback={<div>Loading...</div>}><NotFoundScreen /></Suspense>} />
                 </Routes>
               </Suspense>
+=======
+                {/* 404 -> dashboard */}
+                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              </Routes>
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 
               <CommandK />
               <ChatWidget />

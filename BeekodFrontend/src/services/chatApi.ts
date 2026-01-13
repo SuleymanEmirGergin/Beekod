@@ -147,6 +147,7 @@ class ChatApi {
             throw new Error(data?.error || "İçe aktarma başarısız");
         } catch (error: any) {
             console.error("ChatApi.importProduct error:", error);
+<<<<<<< HEAD
             throw new Error(error.response?.data?.error || "Ürün içe aktarılamadı");
         }
     }
@@ -166,10 +167,18 @@ class ChatApi {
         } catch (error: any) {
             console.error("ChatApi.sendAIRequest error:", error);
             throw new Error(error.response?.data?.error || "AI isteği başarısız");
+=======
+            let errMsg = error.response?.data?.error || "Ürün içe aktarılamadı";
+            if (typeof errMsg === "object") {
+                errMsg = JSON.stringify(errMsg);
+            }
+            throw new Error(errMsg);
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
         }
     }
 }
 
+<<<<<<< HEAD
 // AI Orchestrator Response Type
 export interface AIResponse {
     requestId: string;
@@ -189,6 +198,8 @@ export interface AIResponse {
     };
 }
 
+=======
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 // ============================================================
 // WHOLESALER API
 // ============================================================

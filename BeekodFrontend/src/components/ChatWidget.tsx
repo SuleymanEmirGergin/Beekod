@@ -428,6 +428,10 @@ function ProductCardList({
 }) {
     const [expanded, setExpanded] = useState(false);
     const displayProducts = expanded ? products : products.slice(0, 3);
+<<<<<<< HEAD
+=======
+    console.log("ProductCardList rendering:", products);
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 
     return (
         <div className="space-y-2">
@@ -453,6 +457,23 @@ function ProductCardList({
                             />
                         )}
                         <div className="flex-1 min-w-0">
+<<<<<<< HEAD
+=======
+                            <div className="flex items-center gap-2 mb-1">
+                                {product.marketplace && (
+                                    <span className={cn(
+                                        "text-[10px] font-bold px-1.5 py-0.5 rounded",
+                                        product.marketplace === "Trendyol" ? "bg-orange-500/20 text-orange-400" :
+                                            product.marketplace === "Hepsiburada" ? "bg-orange-600/20 text-orange-500" :
+                                                product.marketplace === "N11" ? "bg-red-500/20 text-red-500" :
+                                                    product.marketplace === "Amazon" ? "bg-yellow-500/20 text-yellow-500" :
+                                                        "bg-blue-500/20 text-blue-400"
+                                    )}>
+                                        {product.marketplace}
+                                    </span>
+                                )}
+                            </div>
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
                             <h4 className="text-sm font-medium text-white truncate">
                                 {product.name}
                             </h4>

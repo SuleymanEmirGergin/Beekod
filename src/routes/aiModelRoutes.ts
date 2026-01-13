@@ -3,7 +3,10 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { runVirtualTryOn, getTaskDetail, killTask, cancelTask, runImageToVideo, generateBaseModelWithFlux, pollFluxTaskForImage } from "../services/wiroService.js";
+<<<<<<< HEAD
 import { aiModelQueue } from "../queue/index.js";
+=======
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 import { logger } from "../logger.js";
 
 

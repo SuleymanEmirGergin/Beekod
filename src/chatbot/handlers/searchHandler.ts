@@ -1,7 +1,11 @@
 import { ChatHandler } from "./baseHandler.js";
 import { ChatEntity, HandlerResult, ProductCard } from "../types.js";
 import { logger } from "../../logger.js";
+<<<<<<< HEAD
 import { unifiedMarketplaceSearch } from "../../services/search/unifiedMarketplaceSearch.js";
+=======
+import { unifiedMarketplaceSearch } from "../../services/unifiedMarketplaceSearch.js";
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 
 /**
  * Search Handler
@@ -11,7 +15,11 @@ import { unifiedMarketplaceSearch } from "../../services/search/unifiedMarketpla
  */
 export class SearchHandler implements ChatHandler {
     name = "SearchHandler";
+<<<<<<< HEAD
     supportedIntents = ["product_search", "product_import"];
+=======
+    supportedIntents = ["product_import"]; // "product_search" delegated to ProductSearchHandler
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 
     async handle(entities: ChatEntity, userId?: string, sessionId?: string): Promise<HandlerResult> {
         try {
@@ -21,15 +29,27 @@ export class SearchHandler implements ChatHandler {
             const query = this.buildSearchQuery(entities);
 
             if (!query) {
+<<<<<<< HEAD
                 return {
                     success: false,
                     message: "Aranacak ürün adı veya barkod belirtilmedi.",
+=======
+                // Fallback: Use mock search service for "iphone" or similar queries if entity extraction failed
+                // This is a temporary fix to support the demo flow
+                return {
+                    success: false,
+                    message: "Aranacak ürün adı veya barkod bulunamadı. Lütfen 'iphone 17 bul' gibi bir ürün adı belirtin.",
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
                 };
             }
 
             // Unified marketplace search (6 pazaryeri)
+<<<<<<< HEAD
             const resultsResult = await unifiedMarketplaceSearch(query, entities);
             const results = resultsResult.ok ? resultsResult.value : [];
+=======
+            const results = await unifiedMarketplaceSearch(query, entities);
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 
             if (results.length === 0) {
                 return {

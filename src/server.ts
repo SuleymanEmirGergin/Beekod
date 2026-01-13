@@ -74,8 +74,12 @@ import { inventoryRouter } from "./routes/inventoryRoutes.js";
 import aiModelRouter from "./routes/aiModelRoutes.js";
 import chatbotRouter from "./routes/chatbotRoutes.js";
 import wholesalerRouter from "./routes/wholesalerRoutes.js";
+<<<<<<< HEAD
 import aiRoutes from "./routes/aiRoutes.js";
 import { automationRouter } from "./routes/automationRoutes.js";
+=======
+import { logger } from "./logger.js";
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 import { registerProcessHandlers } from "./monitoring/processHandlers.js";
 
 // Log configuration status on startup
@@ -171,8 +175,11 @@ app.use("/api/ai-model", aiModelRouter);
 // Chatbot & Wholesaler Network
 app.use("/api/chat", chatbotRouter);
 app.use("/api/wholesaler", wholesalerRouter);
+<<<<<<< HEAD
 app.use("/api/ai", aiRoutes);
 app.use("/api/automation", automationRouter);
+=======
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 
 // SPA Fallback - Serve index.html for unknown routes
 app.get("*", (req, res, next) => {

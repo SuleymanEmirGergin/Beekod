@@ -218,6 +218,13 @@ CEVAP FORMATI (JSON):
             intent = "order_query";
         } else if (lowerMsg.includes("kimde var") || lowerMsg.includes("toptancı")) {
             intent = "stock_holders_query";
+<<<<<<< HEAD
+=======
+        } else if (lowerMsg.includes("karlılık") || lowerMsg.includes("analiz")) {
+            intent = "analytics_query";
+        } else if (lowerMsg.includes("satış") && lowerMsg.includes("rapor")) {
+            intent = "sales_report";
+>>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
         }
 
         // Extract barcode (basit regex)
