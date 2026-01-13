@@ -374,6 +374,66 @@ export async function scrapeProductDetails(
                             if (match) result.barcode = match[1];
                         }
                     }
+                } else if (mp === "Ciceksepeti") {
+                    // Çiçeksepeti usually has product data in __NEXT_DATA__ or similar
+                    const csScripts = Array.from(document.querySelectorAll('script'));
+                    for (const s of csScripts) {
+                        const text = s.textContent || "";
+                        // Try multiple patterns
+                        if (text.includes('"barcode"') || text.includes('"productCode"') || text.includes('"sku"')) {
+                            const barcodeMatch = text.match(/"barcode"\s*:\s*"(\d+)"/);
+                            const skuMatch = text.match(/"productCode"\s*:\s*"(\d+)"/);
+                            if (barcodeMatch) {
+                                result.barcode = barcodeMatch[1];
+                                break;
+                            }
+                            if (skuMatch) {
+                                result.barcode = skuMatch[1];
+                                break;
+                            }
+                        }
+                    }
+                    // Fallback: Try meta tags
+                    if (!result.barcode) {
+                        const skuMeta = document.querySelector('meta[property="product:retailer_item_id"]');
+                        if (skuMeta) result.barcode = skuMeta.getAttribute('content') || undefined;
+                    }
+                } else if (mp === "Pazarama") {
+                    // Pazarama stores product info in scripts
+                    const pazScripts = Array.from(document.querySelectorAll('script'));
+                    for (const s of pazScripts) {
+                        const text = s.textContent || "";
+                        if (text.includes('"code"') || text.includes('"barcode"')) {
+                            const barcodeMatch = text.match(/"barcode"\s*:\s*"(\d+)"/);
+                            const codeMatch = text.match(/"code"\s*:\s*"(\d+)"/);
+                            if (barcodeMatch) {
+                                result.barcode = barcodeMatch[1];
+                                break;
+                            }
+                            if (codeMatch) {
+                                result.barcode = codeMatch[1];
+                                break;
+                            }
+                        }
+                    }
+                } else if (mp === "PttAVM") {
+                    // PttAVM often uses productCode or barcode in page scripts
+                    const pttScripts = Array.from(document.querySelectorAll('script'));
+                    for (const s of pttScripts) {
+                        const text = s.textContent || "";
+                        if (text.includes('"barcode"') || text.includes('"productBarcode"')) {
+                            const barcodeMatch = text.match(/"(?:product)?[Bb]arcode"\s*:\s*"(\d+)"/);
+                            if (barcodeMatch) {
+                                result.barcode = barcodeMatch[1];
+                                break;
+                            }
+                        }
+                    }
+                    // Fallback: Check for visible barcode element
+                    if (!result.barcode) {
+                        const barcodeSpan = document.querySelector('.product-barcode, [data-barcode]');
+                        if (barcodeSpan) result.barcode = barcodeSpan.textContent?.trim();
+                    }
                 }
             }
 
