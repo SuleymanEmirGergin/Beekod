@@ -64,6 +64,72 @@ export type ScrapedProduct = {
     attributes?: Record<string, string>;
 };
 
+// ============================================
+// ANTI-CLOUDFLARE UTILITIES (Phase 9)
+// ============================================
+
+/**
+ * Pool of realistic User-Agent strings for rotation
+ */
+const USER_AGENTS = [
+    // Chrome Windows
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+    // Chrome Mac
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    // Firefox Windows
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
+    // Safari Mac
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15",
+    // Edge Windows
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",
+    // Mobile Chrome Android
+    "Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
+    // Mobile Safari iOS
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/604.1",
+];
+
+/**
+ * Get a random User-Agent string
+ */
+function getRandomUserAgent(): string {
+    return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
+}
+
+/**
+ * Random delay to mimic human behavior
+ */
+async function humanDelay(minMs = 500, maxMs = 2000): Promise<void> {
+    const delay = Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs;
+    return new Promise(resolve => setTimeout(resolve, delay));
+}
+
+/**
+ * Simulate human-like page interaction
+ */
+async function simulateHumanBehavior(page: any): Promise<void> {
+    try {
+        // Random scroll
+        await page.evaluate(() => {
+            window.scrollTo(0, Math.floor(Math.random() * 500) + 100);
+        });
+        await humanDelay(300, 800);
+        
+        // Move mouse randomly
+        const viewport = page.viewport();
+        if (viewport) {
+            await page.mouse.move(
+                Math.floor(Math.random() * viewport.width),
+                Math.floor(Math.random() * viewport.height)
+            );
+        }
+        await humanDelay(200, 500);
+    } catch {
+        // Ignore errors in human simulation
+    }
+}
+
 /**
  * Get proxy configuration if available.
  */
@@ -286,24 +352,51 @@ function getSiteSelectors(siteName: string): {
 
 /**
  * Visit a product detail page to extract rich data like barcode.
+ * Uses anti-Cloudflare techniques: UA rotation, human behavior, retries.
  */
 export async function scrapeProductDetails(
     url: string,
     siteName: string,
-    options: { timeout?: number } = {}
+    options: { timeout?: number; retries?: number } = {}
 ): Promise<Partial<ScrapedProduct>> {
-    const { timeout = 15000 } = options;
-    const browser = await getBrowser();
-    const page = await browser.newPage();
-
-    try {
-        await page.setViewport({ width: 1920, height: 1080 });
-        logger.info("scraper.details.navigate", { site: siteName, url });
-
-        await page.goto(url, {
-            waitUntil: "networkidle2",
-            timeout,
-        });
+    const { timeout = 20000, retries = 2 } = options;
+    let lastError: Error | null = null;
+    
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        const browser = await getBrowser();
+        const page = await browser.newPage();
+        
+        try {
+            // Anti-Cloudflare: Random User-Agent
+            const userAgent = getRandomUserAgent();
+            await page.setUserAgent(userAgent);
+            await page.setViewport({ width: 1920, height: 1080 });
+            
+            // Set realistic headers
+            await page.setExtraHTTPHeaders({
+                'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache',
+            });
+            
+            logger.info("scraper.details.navigate", { site: siteName, url, attempt, userAgent: userAgent.substring(0, 30) + "..." });
+            
+            // Initial delay before navigation (looks more human)
+            if (attempt > 1) {
+                await humanDelay(1000, 3000);
+            }
+            
+            await page.goto(url, {
+                waitUntil: "networkidle2",
+                timeout,
+            });
+            
+            // Anti-Cloudflare: Human-like behavior
+            await simulateHumanBehavior(page);
+            
+            // Wait for page to fully render
+            await humanDelay(500, 1500);
 
         // Extract using JSON-LD and specific selectors
         const data = await page.evaluate((mp: string) => {
@@ -440,13 +533,25 @@ export async function scrapeProductDetails(
             return result;
         }, siteName);
 
-        logger.info("scraper.details.success", { site: siteName, barcodeFound: !!data.barcode });
+        logger.info("scraper.details.success", { site: siteName, barcodeFound: !!data.barcode, attempt });
         return data;
 
-    } catch (error) {
-        logger.error("scraper.details.failed", { site: siteName, url, error: String(error) });
-        return {};
-    } finally {
-        await page.close();
+        } catch (error) {
+            lastError = error instanceof Error ? error : new Error(String(error));
+            logger.warn("scraper.details.attempt_failed", { site: siteName, url, attempt, error: lastError.message });
+        } finally {
+            await page.close();
+        }
+        
+        // Exponential backoff before retry
+        if (attempt < retries) {
+            const backoffMs = Math.pow(2, attempt) * 1000;
+            logger.info("scraper.details.retry_backoff", { site: siteName, attempt, backoffMs });
+            await humanDelay(backoffMs, backoffMs + 1000);
+        }
     }
+    
+    // All retries failed
+    logger.error("scraper.details.all_retries_failed", { site: siteName, url, error: lastError?.message });
+    return {};
 }
