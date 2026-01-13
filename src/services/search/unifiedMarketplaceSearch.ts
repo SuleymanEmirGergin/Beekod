@@ -278,20 +278,35 @@ export async function unifiedMarketplaceSearch(
       logger.warn("unified_search.normalization_failed", { error: e });
     }
 
-    // 6. Deep Scrape for Barcodes (Phase 8)
+    // 6. Deep Scrape for Barcodes (Phase 8) + UPCitemdb Fallback (Phase 9)
     // Only enrichment for top results if barcode is missing
     const resultsToEnrich = finalResults.filter(r => !r.barcode && r.url).slice(0, 3);
     if (resultsToEnrich.length > 0) {
       logger.info("unified_search.deep_scrape_enrichment", { count: resultsToEnrich.length });
       await Promise.all(resultsToEnrich.map(async (r) => {
         try {
+          // Strategy 1: Web scraping (works for Hepsiburada)
           const { scrapeProductDetails } = await import("../webScraperService.js");
           const details = await scrapeProductDetails(r.url, r.site);
           if (details.barcode) {
             r.barcode = details.barcode;
             if (details.brand && !r.brand) r.brand = details.brand;
             if (details.description && !r.description) r.description = details.description;
-            logger.info("unified_search.barcode_enriched", { site: r.site, barcode: r.barcode });
+            logger.info("unified_search.barcode_from_scraper", { site: r.site, barcode: r.barcode });
+            return;
+          }
+          
+          // Strategy 2: UPCitemdb fallback (for international products)
+          const { findBarcode } = await import("../barcodeLookupService.js");
+          const lookupResult = await findBarcode(r.title, r.image);
+          if (lookupResult?.barcode) {
+            r.barcode = lookupResult.barcode;
+            if (lookupResult.product?.brand && !r.brand) r.brand = lookupResult.product.brand;
+            logger.info("unified_search.barcode_from_upcitemdb", { 
+              site: r.site, 
+              barcode: r.barcode, 
+              source: lookupResult.source 
+            });
           }
         } catch (e) {
           logger.warn("unified_search.enrichment_failed", { site: r.site, error: e });
