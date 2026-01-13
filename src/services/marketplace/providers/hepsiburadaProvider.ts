@@ -40,7 +40,120 @@ export class HepsiburadaProvider extends BaseMarketplaceProvider {
 
   async upsertProduct(payload: MarketplaceProductPayload): Promise<Result<MarketplaceActionResult>> {
     if (!this.isConfigured()) return ok(this.notConfigured("upsertProduct"));
-    return this.updateListing(payload);
+    
+    // If product exists (has HB SKU), update it. Otherwise, create new.
+    if (payload.sku && payload.sku.startsWith("HB")) {
+      return this.updateListing(payload);
+    }
+    
+    // Create new product via import API
+    return this.createProduct(payload);
+  }
+
+  /**
+   * Create a new product on Hepsiburada using the product import API
+   * POST /product/api/products/import
+   */
+  async createProduct(payload: MarketplaceProductPayload): Promise<Result<MarketplaceActionResult>> {
+    if (!this.isConfigured()) return ok(this.notConfigured("createProduct"));
+    if (!payload.barcode) return fail(new Error("barcode_required"));
+    if (!payload.categoryId) return fail(new Error("categoryId_required"));
+
+    const merchantId = process.env.HEPSIBURADA_MERCHANT_ID;
+    const apiKey = process.env.HEPSIBURADA_API_KEY;
+    
+    // Build product payload for Hepsiburada
+    const productData = {
+      merchantSku: payload.barcode,
+      barcode: payload.barcode,
+      productName: payload.name,
+      categoryId: Number(payload.categoryId),
+      brand: payload.brand || "Diğer",
+      price: payload.price,
+      listPrice: payload.listPrice || payload.price,
+      vat: payload.vat ?? 20,
+      stock: payload.stock ?? 0,
+      description: payload.description || payload.name,
+      images: payload.images?.map((url, i) => ({ 
+        url, 
+        order: i + 1 
+      })) || [],
+      attributes: payload.attributes ? Object.entries(payload.attributes).map(([key, value]) => ({
+        name: key,
+        value: String(value)
+      })) : [],
+    };
+
+    try {
+      // Hepsiburada uses mpmp.hepsiburada.com for product operations
+      const endpoint = `https://mpmp.hepsiburada.com/product/api/products/import`;
+      
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Authorization": `Basic ${Buffer.from(merchantId + ":" + apiKey).toString("base64")}`,
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        body: JSON.stringify([productData]), // API expects array
+      });
+
+      const responseData = await response.json() as { trackingId?: string; errors?: any[] };
+      
+      if (!response.ok) {
+        return fail(new Error(`HB API Error: ${response.status} - ${JSON.stringify(responseData)}`));
+      }
+
+      logMarketplaceEvent(this.name, "createProduct", {
+        status: "ok",
+        message: `Product created with trackingId: ${responseData.trackingId}`,
+        barcode: payload.barcode,
+      });
+
+      return ok({
+        status: "ok",
+        message: "Product import started",
+        requestId: responseData.trackingId,
+        data: responseData,
+      });
+    } catch (error: unknown) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      return fail(new Error(`createProduct failed: ${errorMsg}`));
+    }
+  }
+
+  /**
+   * Check the status of a product import by tracking ID
+   * GET /product/api/products/trackingId/{trackingId}
+   */
+  async checkProductStatus(trackingId: string): Promise<Result<MarketplaceActionResult>> {
+    if (!this.isConfigured()) return ok(this.notConfigured("checkProductStatus"));
+
+    const merchantId = process.env.HEPSIBURADA_MERCHANT_ID;
+    const apiKey = process.env.HEPSIBURADA_API_KEY;
+
+    try {
+      const endpoint = `https://mpmp.hepsiburada.com/product/api/products/trackingId/${trackingId}`;
+      
+      const response = await fetch(endpoint, {
+        method: "GET",
+        headers: {
+          "Authorization": `Basic ${Buffer.from(merchantId + ":" + apiKey).toString("base64")}`,
+          "Accept": "application/json",
+        },
+      });
+
+      const responseData = await response.json();
+      
+      return ok({
+        status: "ok",
+        message: "Status retrieved",
+        data: responseData,
+      });
+    } catch (error: unknown) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      return fail(new Error(`checkProductStatus failed: ${errorMsg}`));
+    }
   }
 
   async syncFromProduct(payload: MarketplaceProductPayload): Promise<Result<MarketplaceActionResult>> {

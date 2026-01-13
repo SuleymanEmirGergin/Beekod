@@ -40,6 +40,14 @@ export type MarketplaceProductPayload = {
   stock: number;
   currency: string;
   images?: string[] | Array<{ url: string }>;
+  // Extended fields for product creation
+  sku?: string;
+  categoryId?: string | number;
+  brand?: string;
+  listPrice?: number;
+  vat?: number;
+  description?: string;
+  attributes?: Record<string, string | number>;
 };
 
 export type MarketplaceUpdatePayload = {
