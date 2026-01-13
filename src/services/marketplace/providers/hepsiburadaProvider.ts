@@ -72,7 +72,7 @@ export class HepsiburadaProvider extends BaseMarketplaceProvider {
     }
   }
 
-  async listListings(params?: { status?: "active" | "inactive"; barcode?: string }): Promise<Result<MarketplaceListResult>> {
+  async listListings(params?: { status?: "active" | "inactive"; barcode?: string; size?: number }): Promise<Result<MarketplaceListResult>> {
     if (!this.isConfigured()) {
       const nc = this.notConfigured("listListings");
       return ok({ status: nc.status, message: nc.message, items: [] });
@@ -80,29 +80,48 @@ export class HepsiburadaProvider extends BaseMarketplaceProvider {
     if (isMarketplaceDryRun()) return ok({ status: "ok", message: "dry_run", items: [] });
 
     const merchantId = process.env.HEPSIBURADA_MERCHANT_ID;
-    const path = `/listings/merchantid/${merchantId}?limit=10&offset=0`;
+    const allItems: MarketplaceListing[] = [];
+    const pageSize = params?.size ?? 100;
+    const maxPages = 100; // 100 * 100 = 10,000 products
+    let offset = 0;
+    let hasMore = true;
+    let totalElements = 0;
 
     try {
-      const response = await this.requestRaw("GET", path);
-      if (!response.ok) return ok({ status: response.status, message: response.message, items: [] });
+      while (hasMore && (offset / pageSize) < maxPages) {
+        const path = `/listings/merchantid/${merchantId}?limit=${pageSize}&offset=${offset}`;
+        const response = await this.requestRaw("GET", path);
+        
+        if (!response.ok) {
+          if (offset === 0) return ok({ status: response.status, message: response.message, items: [] });
+          break;
+        }
 
-      const rawList = (response.data as any)?.listings || [];
-      const items = rawList
-        .map((item: any) => ({
-          marketplace: this.name,
-          barcode: item.merchantItemId || item.sku,
-          title: item.productName || item.sku,
-          price: Number(item.price),
-          stock: Number(item.availableStock),
-          currency: "TRY",
-          active: item.isSalable,
-        }))
-        .filter((item: any) => {
-          if (params?.barcode && item.barcode !== params.barcode) return false;
-          return true;
-        });
+        const data = response.data as any;
+        const rawList = data?.listings || [];
+        totalElements = data?.totalElements || 0;
 
-      return ok({ status: "ok", message: "ok", items });
+        const pageItems = rawList
+          .map((item: any) => ({
+            marketplace: this.name,
+            barcode: item.merchantItemId || item.sku,
+            title: item.productName || item.sku,
+            price: Number(item.price),
+            stock: Number(item.availableStock),
+            currency: "TRY",
+            active: item.isSalable,
+          }))
+          .filter((item: any) => {
+            if (params?.barcode && item.barcode !== params.barcode) return false;
+            return true;
+          });
+
+        allItems.push(...pageItems);
+        offset += pageSize;
+        hasMore = rawList.length === pageSize && allItems.length < totalElements;
+      }
+
+      return ok({ status: "ok", message: `Fetched ${allItems.length} products`, items: allItems });
     } catch (error: any) {
       return fail(error);
     }

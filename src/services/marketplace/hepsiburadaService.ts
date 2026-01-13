@@ -17,6 +17,14 @@ interface HBConfig {
     userAgent: string;
 }
 
+export interface HBAttribute {
+    attributeId: number;
+    attributeName: string;
+    mandatory: boolean;
+    type: string;
+    values?: any[];
+}
+
 // In-memory cache
 let categoryCache: HBCategory[] | null = null;
 let categoryFlatMap: Map<number, HBCategory> = new Map();
@@ -28,22 +36,20 @@ class HepsiburadaService {
 
     constructor() {
         this.config = {
-            merchantId: process.env.HEPSIBURADA_MERCHANT_ID || process.env.HB_MERCHANT_ID || "",
-            serviceKey: process.env.HEPSIBURADA_API_PASSWORD || process.env.HB_SERVICE_KEY || "",
-            username: process.env.HEPSIBURADA_API_USERNAME || process.env.HB_API_USERNAME || "",
-            baseUrl: process.env.HB_API_BASE_URL || "https://mpop.hepsiburada.com",
-            userAgent: process.env.HB_USER_AGENT || "BeekodIntegration"
+            merchantId: process.env.HEPSIBURADA_MERCHANT_ID || "",
+            serviceKey: process.env.HEPSIBURADA_API_KEY || "", // Use API_KEY consistent with provider
+            username: process.env.HEPSIBURADA_MERCHANT_ID || "", // Usually merchantId is used for Basic Auth username
+            baseUrl: process.env.HEPSIBURADA_BASE_URL || "https://listing-external.hepsiburada.com",
+            userAgent: "BeekodIntegration"
         };
     }
 
     isConfigured(): boolean {
-        return !!(this.config.merchantId && this.config.serviceKey && this.config.username);
+        return !!(this.config.merchantId && this.config.serviceKey);
     }
 
     private getAuthHeader(): string {
-        // HB expects username:password format, NOT merchantId:password
-        const user = this.config.username || this.config.merchantId;
-        const credentials = `${user}:${this.config.serviceKey}`;
+        const credentials = `${this.config.merchantId}:${this.config.serviceKey}`;
         const base64 = Buffer.from(credentials).toString("base64");
         return `Basic ${base64}`;
     }
@@ -188,7 +194,7 @@ class HepsiburadaService {
         categoryId: number | string,
         attributeId: number | string,
         params?: { version?: number; page?: number; size?: number }
-    ): Promise<any> {
+    ): Promise<unknown> {
         if (!this.isConfigured()) {
             throw new Error("Hepsiburada API credentials not configured");
         }

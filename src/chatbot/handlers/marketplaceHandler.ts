@@ -1,10 +1,9 @@
 import { ChatHandler } from "./baseHandler.js";
 import { ChatEntity, HandlerResult, MarketplaceComparisonCard } from "../types.js";
 import { logger } from "../../logger.js";
-import { getMarketplaceProvider, getMarketplaceProviders, listMarketplaceProviders } from "../../marketplaces/index.js";
-import { MarketplaceName } from "../../marketplaces/types.js";
+import { getMarketplaceProvider, getMarketplaceProviders, listMarketplaceProviders } from "../../services/marketplace/index.js";
+import { MarketplaceName } from "../../services/marketplace/types.js";
 import { auditService } from "../auditService.js";
-import { confirmationService } from "../confirmationService.js";
 
 /**
  * Marketplace Handler
@@ -24,6 +23,7 @@ export class MarketplaceHandler implements ChatHandler {
         "listing_update",
         "batch_operation",
         "analytics_query",
+        "product_search",
     ];
 
     async handle(
@@ -50,6 +50,9 @@ export class MarketplaceHandler implements ChatHandler {
 
                 case "batch_operation":
                     return await this.handleBatchOperation(entities, userId, sessionId);
+
+                case "product_search":
+                    return await this.handleProductSearch(entities);
 
                 default:
                     return {
@@ -115,23 +118,24 @@ export class MarketplaceHandler implements ChatHandler {
         }
 
         // Get listings from marketplace
-        const listResult = await provider.listListings({ barcode });
+        const result = await provider.listListings({ barcode });
 
-        if (listResult.status !== "ok") {
+        if (!result.ok) {
             return {
                 success: false,
-                message: `${marketplace} senkronizasyon hatası: ${listResult.message}`,
+                message: `${marketplace} senkronizasyon hatası: ${result.error.message}`,
             };
         }
 
+        const items = result.value.items;
         const message = barcode
             ? `✅ **${marketplace}** - Barkod ${barcode} senkronize edildi.`
-            : `✅ **${marketplace}** - ${listResult.items.length} ürün çekildi.`;
+            : `✅ **${marketplace}** - ${items.length} ürün çekildi.`;
 
         return {
             success: true,
             message,
-            data: { items: listResult.items },
+            data: { items },
         };
     }
 
@@ -192,12 +196,24 @@ export class MarketplaceHandler implements ChatHandler {
             }
 
             try {
-                const result = await provider.upsertProduct(payload);
-                results.push({
-                    marketplace: mp,
-                    status: result.status,
-                    message: result.message,
+                const result = await provider.upsertProduct({
+                    ...payload,
+                    name: product.name, // Ensure required 'name' field
                 });
+                
+                if (result.ok) {
+                    results.push({
+                        marketplace: mp,
+                        status: "ok",
+                        message: result.value.message,
+                    });
+                } else {
+                    results.push({
+                        marketplace: mp,
+                        status: "failed",
+                        message: result.error.message,
+                    });
+                }
             } catch (error) {
                 logger.error("marketplaceHandler.publish.error", { marketplace: mp, error });
                 results.push({
@@ -276,11 +292,19 @@ export class MarketplaceHandler implements ChatHandler {
                 stock,
             });
 
-            results.push({
-                marketplace: mp,
-                status: result.status,
-                message: result.message,
-            });
+            if (result.ok) {
+                results.push({
+                    marketplace: mp,
+                    status: "ok",
+                    message: result.value.message,
+                });
+            } else {
+                results.push({
+                    marketplace: mp,
+                    status: "failed",
+                    message: result.error.message,
+                });
+            }
         }
 
         // Audit log
@@ -481,6 +505,68 @@ export class MarketplaceHandler implements ChatHandler {
         }
 
         return comparison.sort((a, b) => a.price - b.price);
+    }
+
+    /**
+     * Evrensel Ürün Arama (Unified Search)
+     */
+    private async handleProductSearch(entities: ChatEntity): Promise<HandlerResult> {
+        const query = entities.productName || entities.barcode;
+        if (!query) {
+            return {
+                success: false,
+                message: "Aramak istediğiniz ürünün adını veya barkodunu belirtin.",
+            };
+        }
+
+        const { unifiedMarketplaceSearch } = await import("../../services/search/unifiedMarketplaceSearch.js");
+        const result = await unifiedMarketplaceSearch(query, entities);
+
+        if (!result.ok) {
+            return {
+                success: false,
+                message: "Ürün araması sırasında bir hata oluştu: " + result.error.message,
+            };
+        }
+
+        const foundProducts = result.value;
+        if (foundProducts.length === 0) {
+            return {
+                success: true,
+                message: `🔍 **"${query}"** için herhangi bir pazaryerinde sonuç bulunamadı.`,
+            };
+        }
+
+        // Map SearchResult to ProductCard/MarketplaceComparisonCard
+        const productCards = foundProducts.map(p => ({
+            name: p.title,
+            price: p.price,
+            currency: p.currency || "TRY",
+            imageUrl: p.image,
+            marketplace: p.site as MarketplaceName,
+            url: p.url,
+            barcode: p.barcode,
+            canImport: true // Allow importing found products to user's shop
+        }));
+
+        const comparison = foundProducts.map(p => ({
+            marketplace: p.site as MarketplaceName,
+            price: p.price,
+            stock: p.stockCount ?? (p.inStock ? 100 : 0),
+            currency: p.currency || "TRY",
+            available: p.inStock,
+            url: p.url
+        }));
+
+        let message = `🔍 **"${query}"** araması için **${foundProducts.length}** pazaryerinde sonuç bulundu:\n\n`;
+        message += "Aşağıdaki kartlardan ürün detaylarını inceleyebilir ve karşılaştırma yapabilirsiniz.";
+
+        return {
+            success: true,
+            message,
+            productCards,
+            marketplaceComparison: comparison
+        };
     }
 
     /**

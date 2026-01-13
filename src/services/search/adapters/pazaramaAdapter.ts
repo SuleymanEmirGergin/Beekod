@@ -15,8 +15,13 @@ export class PazaramaAdapter implements SearchAdapter {
 
       logger.info("pazarama_adapter.search_start", { query });
 
-      // Fetch listings via provider
-      const result = await provider.listListings();
+      // Fetch listings via provider (pass query as possible barcode for speed)
+      const isBarcode = /^\d+$/.test(query);
+      const result = await provider.listListings({ 
+        barcode: isBarcode ? query : undefined,
+        autoPaginate: true, 
+        size: 100 
+      });
       if (!result.ok) {
         logger.error("pazarama_adapter.list_listings_failed", { error: result.error });
         return [];
