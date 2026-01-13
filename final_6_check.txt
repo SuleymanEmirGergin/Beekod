@@ -1,0 +1,60 @@
+­şğ¬ Final Verification of ALL 6 API Adapters...
+
+--- N11 Adapter ---
+[32minfo[39m: n11_adapter.search_start {"query":"a","timestamp":"2026-01-12 22:09:08"}
+[32minfo[39m: n11.product_query.fetch {"timestamp":"2026-01-12 22:09:08","url":"https://api.n11.com/ms/product-query?size=200"}
+[32minfo[39m: n11_adapter.page_fetched {"fetchedCount":200,"page":0,"pageSize":200,"timestamp":"2026-01-12 22:09:09","totalProducts":200}
+[32minfo[39m: n11.product_query.fetch {"timestamp":"2026-01-12 22:09:09","url":"https://api.n11.com/ms/product-query?page=1&size=200"}
+[32minfo[39m: n11_adapter.page_fetched {"fetchedCount":200,"page":1,"pageSize":200,"timestamp":"2026-01-12 22:09:10","totalProducts":400}
+[32minfo[39m: n11.product_query.fetch {"timestamp":"2026-01-12 22:09:10","url":"https://api.n11.com/ms/product-query?page=2&size=200"}
+[32minfo[39m: n11_adapter.page_fetched {"fetchedCount":200,"page":2,"pageSize":200,"timestamp":"2026-01-12 22:09:11","totalProducts":600}
+[32minfo[39m: n11_adapter.search_success {"filteredResults":10,"query":"a","timestamp":"2026-01-12 22:09:11","totalFetched":600}
+Found: 10
+Fields: marketplace, title, price, currency, url, imageUrl, image, description, brand, barcode, stockCount, inStock, seller
+Stock: 10000
+Brand: Tegin 3D
+Barcode: Missing
+Desc: Has
+
+--- Trendyol Adapter ---
+[32minfo[39m: trendyol_adapter.search_start {"query":"a","timestamp":"2026-01-12 22:09:11"}
+[32minfo[39m: trendyol.api_request {"timestamp":"2026-01-12 22:09:11","url":"https://apigw.trendyol.com/integration/product/sellers/152771/products?page=0&size=200&approved=true"}
+[32minfo[39m: trendyol_adapter.search_success {"filtered":10,"found":200,"timestamp":"2026-01-12 22:09:11"}
+Found: 10
+Fields: marketplace, title, price, currency, url, imageUrl, image, description, stockCount, inStock, barcode
+Stock: 10000
+Brand: Missing
+Barcode: TGNMTEMKUIKRM707
+Desc: Has
+
+--- Ciceksepeti Adapter ---
+[32minfo[39m: ciceksepeti.api_request {"timestamp":"2026-01-12 22:09:11","url":"https://apis.ciceksepeti.com/api/v1/Products?pageSize=100"}
+Found: 10
+Fields: marketplace, title, price, currency, url, imageUrl, image, description, brand, stockCount, inStock, barcode, category
+Stock: 10000
+Brand: Missing
+Barcode: Missing
+Desc: Has
+
+--- Hepsiburada Adapter ---
+[32minfo[39m: hepsiburada.api_request {"timestamp":"2026-01-12 22:09:11","url":"https://listing-external.hepsiburada.com/listings/merchantid/5ebd80f7-c313-4ceb-88ce-55663516129e?offset=0&limit=50"}
+[31merror[39m: hepsiburada.api_request.failed {"error":{},"timestamp":"2026-01-12 22:09:12","url":"https://listing-external.hepsiburada.com/listings/merchantid/5ebd80f7-c313-4ceb-88ce-55663516129e?offset=0&limit=50"}
+[31merror[39m: hepsiburada_adapter.search_failed {"error":{},"timestamp":"2026-01-12 22:09:12"}
+Found: 0
+
+--- Pazarama Adapter ---
+[32minfo[39m: pazarama.listListings.request {"page":1,"timestamp":"2026-01-12 22:09:12","url":"https://isortagimapi.pazarama.com/product/products?Approved=true&Size=100&Page=1"}
+[32minfo[39m: pazarama.listListings.page_fetched {"itemsInPage":100,"page":1,"timestamp":"2026-01-12 22:09:17","totalSoFar":100}
+[32minfo[39m: marketplace.event Listed 100 products {"action":"listListings","provider":"Pazarama","status":"ok","timestamp":"2026-01-12 22:09:17"}
+Found: 10
+Fields: marketplace, title, price, currency, url, imageUrl, image, stockCount, inStock, barcode, brand, description, category
+Stock: 10000
+Brand: Trobus
+Barcode: TRBSPSRNB0366
+Desc: Missing
+
+--- PttAVM Adapter ---
+[32minfo[39m: pttavm.listListings.request {"barcode":"","page":1,"timestamp":"2026-01-12 22:09:17"}
+[32minfo[39m: marketplace.event Success {"action":"StokKontrolListesi","provider":"PttAVM","status":"ok","timestamp":"2026-01-12 22:09:17"}
+[32minfo[39m: marketplace.event Fetched 0 products {"action":"listListings","provider":"PttAVM","status":"ok","timestamp":"2026-01-12 22:09:17"}
+Found: 0

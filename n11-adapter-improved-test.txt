@@ -1,0 +1,55 @@
+============================================================
+N11 Adapter Test (API-based)
+============================================================
+
+­şöı Arama: "iphone"
+------------------------------------------------------------
+[32minfo[39m: n11_adapter.search_start {"query":"iphone","timestamp":"2026-01-12 20:28:42"}
+[32minfo[39m: n11.product_query.fetch {"timestamp":"2026-01-12 20:28:42","url":"https://api.n11.com/ms/product-query?size=200"}
+[32minfo[39m: n11_adapter.page_fetched {"fetchedCount":200,"page":0,"pageSize":200,"timestamp":"2026-01-12 20:28:43","totalProducts":200}
+[32minfo[39m: n11.product_query.fetch {"timestamp":"2026-01-12 20:28:43","url":"https://api.n11.com/ms/product-query?page=1&size=200"}
+[32minfo[39m: n11_adapter.page_fetched {"fetchedCount":200,"page":1,"pageSize":200,"timestamp":"2026-01-12 20:28:44","totalProducts":400}
+[32minfo[39m: n11.product_query.fetch {"timestamp":"2026-01-12 20:28:44","url":"https://api.n11.com/ms/product-query?page=2&size=200"}
+[32minfo[39m: n11_adapter.page_fetched {"fetchedCount":200,"page":2,"pageSize":200,"timestamp":"2026-01-12 20:28:45","totalProducts":600}
+[32minfo[39m: n11_adapter.search_success {"filteredResults":0,"query":"iphone","timestamp":"2026-01-12 20:28:45","totalFetched":600}
+   ÔÜá´©Å  Sonu├ğ bulunamad─▒
+
+­şöı Arama: "laptop"
+------------------------------------------------------------
+[32minfo[39m: n11_adapter.search_start {"query":"laptop","timestamp":"2026-01-12 20:28:45"}
+[32minfo[39m: n11.product_query.fetch {"timestamp":"2026-01-12 20:28:45","url":"https://api.n11.com/ms/product-query?size=200"}
+[32minfo[39m: n11_adapter.page_fetched {"fetchedCount":200,"page":0,"pageSize":200,"timestamp":"2026-01-12 20:28:45","totalProducts":200}
+[32minfo[39m: n11.product_query.fetch {"timestamp":"2026-01-12 20:28:45","url":"https://api.n11.com/ms/product-query?page=1&size=200"}
+[32minfo[39m: n11_adapter.page_fetched {"fetchedCount":200,"page":1,"pageSize":200,"timestamp":"2026-01-12 20:28:46","totalProducts":400}
+[32minfo[39m: n11.product_query.fetch {"timestamp":"2026-01-12 20:28:46","url":"https://api.n11.com/ms/product-query?page=2&size=200"}
+[32minfo[39m: n11_adapter.page_fetched {"fetchedCount":200,"page":2,"pageSize":200,"timestamp":"2026-01-12 20:28:47","totalProducts":600}
+[32minfo[39m: n11_adapter.search_success {"filteredResults":0,"query":"laptop","timestamp":"2026-01-12 20:28:47","totalFetched":600}
+   ÔÜá´©Å  Sonu├ğ bulunamad─▒
+
+­şöı Arama: "bagaj havuzu"
+------------------------------------------------------------
+[32minfo[39m: n11_adapter.search_start {"query":"bagaj havuzu","timestamp":"2026-01-12 20:28:47"}
+[32minfo[39m: n11.product_query.fetch {"timestamp":"2026-01-12 20:28:47","url":"https://api.n11.com/ms/product-query?size=200"}
+[32minfo[39m: n11_adapter.page_fetched {"fetchedCount":200,"page":0,"pageSize":200,"timestamp":"2026-01-12 20:28:48","totalProducts":200}
+[32minfo[39m: n11.product_query.fetch {"timestamp":"2026-01-12 20:28:48","url":"https://api.n11.com/ms/product-query?page=1&size=200"}
+[32minfo[39m: n11_adapter.page_fetched {"fetchedCount":200,"page":1,"pageSize":200,"timestamp":"2026-01-12 20:28:48","totalProducts":400}
+[32minfo[39m: n11.product_query.fetch {"timestamp":"2026-01-12 20:28:48","url":"https://api.n11.com/ms/product-query?page=2&size=200"}
+[32minfo[39m: n11_adapter.page_fetched {"fetchedCount":200,"page":2,"pageSize":200,"timestamp":"2026-01-12 20:28:49","totalProducts":600}
+[32minfo[39m: n11_adapter.search_success {"filteredResults":10,"query":"bagaj havuzu","timestamp":"2026-01-12 20:28:49","totalFetched":600}
+   Ô£à 10 sonu├ğ bulundu:
+
+   1. Bmw X5 F15 Bagaj Havuzu 2016 
+      Fiyat: 1199.9 TRY
+      URL: https://www.n11.com/urun/725103958
+
+   2. Bmw X6 Bagaj Havuzu 2012 
+      Fiyat: 1199.9 TRY
+      URL: https://www.n11.com/urun/725103964
+
+   3. Bmw X6 Bagaj Havuzu 2019 
+      Fiyat: 1199.9 TRY
+      URL: https://www.n11.com/urun/725104018
+
+============================================================
+Test Tamamland─▒
+============================================================

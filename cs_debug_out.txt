@@ -1,0 +1,16 @@
+[32minfo[39m: config.google_cse.configured {"hasCx":true,"hasKey":true,"timestamp":"2026-01-13 01:38:25"}
+[32minfo[39m: config.gemini.configured {"hasKey":true,"timestamp":"2026-01-13 01:38:25"}
+[32minfo[39m: config.marketplace_mode {"mode":"live","timestamp":"2026-01-13 01:38:25"}
+[32minfo[39m: config.rate_limit_store {"hasRedisUrl":false,"store":"db","timestamp":"2026-01-13 01:38:25"}
+=== Testing Ciceksepeti Integration ===
+
+Ciceksepeti: Found 20 items.
+┌─────────┬───────────────┬────────────────┬─────────────────────────────────────────────────────────────────────┬────────┬───────┬──────────┬────────┬───────┬─────────────────────┬─────────────┬──────────┬────────┬────────────┬──────────┐
+│ (index) │ marketplace   │ barcode        │ title                                                               │ price  │ stock │ currency │ active │ brand │ category            │ description │ imageUrl │ images │ attributes │ variants │
+├─────────┼───────────────┼────────────────┼─────────────────────────────────────────────────────────────────────┼────────┼───────┼──────────┼────────┼───────┼─────────────────────┼─────────────┼──────────┼────────┼────────────┼──────────┤
+│ 0       │ 'Ciceksepeti' │ '6OLUKLUTS-37' │ '6 Oluklu Kanallı Tavanlı Araçlara Uyumlu Sepet Tipi Port Bagaj Es' │ 4000.9 │ 10000 │ 'TRY'    │ true   │ ''    │ 'Bagaj Düzenleyici' │ ''          │ ''       │ []     │ [Object]   │ []       │
+│ 1       │ 'Ciceksepeti' │ '6OLUKLUTS-27' │ 'Dacia 1300 / 1310 1971-2004 Uyumlu 6 Oluklu Tavan Sepeti - Sedan'  │ 4000.9 │ 10000 │ 'TRY'    │ true   │ ''    │ 'Bagaj Düzenleyici' │ ''          │ ''       │ []     │ [Object]   │ []       │
+│ 2       │ 'Ciceksepeti' │ '6OLUKLUTS-35' │ 'Bmw 3 Serisi E30 1982-1994 Uyumlu 6 Oluklu Tavan Sepeti - Sedan /' │ 4000.9 │ 10000 │ 'TRY'    │ true   │ ''    │ 'Bagaj Düzenleyici' │ ''          │ ''       │ []     │ [Object]   │ []       │
+│ 3       │ 'Ciceksepeti' │ '6OLUKLUTS-28' │ 'Dacia 1310 Break 1973-1998 Uyumlu 6 Oluklu Tavan Sepeti - Station' │ 4000.9 │ 10000 │ 'TRY'    │ true   │ ''    │ 'Bagaj Düzenleyici' │ ''          │ ''       │ []     │ [Object]   │ []       │
+│ 4       │ 'Ciceksepeti' │ '6OLUKLUTS-13' │ 'Fiat Ducato 1985-2006 Uyumlu 6 Oluklu Tavan Sepeti - Panelvan / M' │ 4000.9 │ 10000 │ 'TRY'    │ true   │ ''    │ 'Bagaj Düzenleyici' │ ''          │ ''       │ []     │ [Object]   │ []       │
+└─────────┴───────────────┴────────────────┴─────────────────────────────────────────────────────────────────────┴────────┴───────┴──────────┴────────┴───────┴─────────────────────┴─────────────┴──────────┴────────┴────────────┴──────────┘

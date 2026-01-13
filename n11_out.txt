@@ -1,0 +1,27 @@
+[32minfo[39m: config.google_cse.configured {"hasCx":true,"hasKey":true,"timestamp":"2026-01-13 01:27:56"}
+[32minfo[39m: config.gemini.configured {"hasKey":true,"timestamp":"2026-01-13 01:27:56"}
+[32minfo[39m: config.marketplace_mode {"mode":"live","timestamp":"2026-01-13 01:27:56"}
+[32minfo[39m: config.rate_limit_store {"hasRedisUrl":false,"store":"db","timestamp":"2026-01-13 01:27:56"}
+=== Listing N11 Products ===
+
+[32minfo[39m: marketplace.N11.config_check {"configured":true,"missing":[],"mode":"live","timestamp":"2026-01-13 01:27:56"}
+Configured: true
+[32minfo[39m: marketplace.N11.config_check {"configured":true,"missing":[],"mode":"live","timestamp":"2026-01-13 01:27:56"}
+[32minfo[39m: marketplace.N11.config_check {"configured":true,"missing":[],"mode":"live","timestamp":"2026-01-13 01:27:56"}
+Success! Found 100 products.
+
+Sample Products:
+┌─────────┬────────────────┬──────────────────────────────────────────────────────────┬───────┬───────┬──────────┐
+│ (index) │ Barcode        │ Title                                                    │ Price │ Stock │ Category │
+├─────────┼────────────────┼──────────────────────────────────────────────────────────┼───────┼───────┼──────────┤
+│ 0       │ 'BGAJHAV-4328' │ 'Volvo S60 2011-2018 Bagaj Havuzu'                       │ 0     │ 10000 │ ''       │
+│ 1       │ 'BGAJHAV-4245' │ 'Volkswagen Tiguan Stepneli Üst Bagaj 2018 Bagaj Havuzu' │ 0     │ 10000 │ ''       │
+│ 2       │ 'BGAJHAV-4214' │ 'Volkswagen Polo Üst Bagaj 2020 Bagaj Havuzu'            │ 0     │ 10000 │ ''       │
+│ 3       │ 'BGAJHAV-4172' │ 'Volkswagen Passat Cc 2011 Bagaj Havuzu'                 │ 0     │ 10000 │ ''       │
+│ 4       │ 'BGAJHAV-4175' │ 'Volkswagen Passat Cc 2013 Bagaj Havuzu'                 │ 0     │ 10000 │ ''       │
+│ 5       │ 'BGAJHAV-4170' │ 'Volkswagen Passat Cc 2009 Bagaj Havuzu'                 │ 0     │ 10000 │ ''       │
+│ 6       │ 'BGAJHAV-4073' │ 'Volkswagen Golf 7 Alt Bagaj 2018 Bagaj Havuzu'          │ 0     │ 10000 │ ''       │
+│ 7       │ 'BGAJHAV-4173' │ 'Volkswagen Passat Cc 2012 Bagaj Havuzu'                 │ 0     │ 10000 │ ''       │
+│ 8       │ 'BGAJHAV-4112' │ 'Volkswagen Jetta 2017 Bagaj Havuzu'                     │ 0     │ 10000 │ ''       │
+│ 9       │ 'BGAJHAV-3973' │ 'Toyota Raw 4 2008 Bagaj Havuzu'                         │ 0     │ 10000 │ ''       │
+└─────────┴────────────────┴──────────────────────────────────────────────────────────┴───────┴───────┴──────────┘

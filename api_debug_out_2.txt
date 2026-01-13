@@ -1,0 +1,19 @@
+[32minfo[39m: config.google_cse.configured {"hasCx":true,"hasKey":true,"timestamp":"2026-01-13 01:03:46"}
+[32minfo[39m: config.gemini.configured {"hasKey":true,"timestamp":"2026-01-13 01:03:46"}
+[32minfo[39m: config.marketplace_mode {"mode":"live","timestamp":"2026-01-13 01:03:46"}
+[32minfo[39m: config.rate_limit_store {"hasRedisUrl":false,"store":"db","timestamp":"2026-01-13 01:03:46"}
+=== Detailed API Debug ===
+
+--- Hepsiburada ---
+Configured: true
+[31merror[39m: marketplace.http_request_exception {"error":{},"timestamp":"2026-01-13 01:03:47","url":"https://mpop-gateway.hepsiburada.com/listings/merchantid/5ebd80f7-c313-4ceb-88ce-55663516129e?limit=10&offset=0"}
+[32minfo[39m: marketplace.Hepsiburada.request_error fetch failed {"path":"/listings/merchantid/5ebd80f7-c313-4ceb-88ce-55663516129e?limit=10&offset=0","status":"failed","timestamp":"2026-01-13 01:03:47"}
+HB Success! Listings status: Success
+Items count: 0
+
+--- PttAVM ---
+Configured: true
+[32minfo[39m: pttavm.listListings.request {"barcode":"","page":1,"timestamp":"2026-01-13 01:03:47"}
+[32minfo[39m: marketplace.PttAVM.StokKontrolListesi Success {"status":"ok","timestamp":"2026-01-13 01:03:51"}
+[32minfo[39m: marketplace.PttAVM.listListings Fetched 1000 products {"status":"ok","timestamp":"2026-01-13 01:03:52"}
+PttAVM Status: Success | Items: 1000

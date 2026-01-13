@@ -1,0 +1,29 @@
+============================================================
+N11 SOAP SearchCatalog Test
+============================================================
+
+1. Kategori A─şac─▒n─▒ Al:
+[32minfo[39m: n11.category_tree.fetch {"timestamp":"2026-01-12 20:36:22","url":"https://api.n11.com/cdn/categories"}
+[32minfo[39m: n11.category_tree.success {"count":79,"timestamp":"2026-01-12 20:36:23"}
+   Telefon Kategorisi: Telefon & Aksesuarlar─▒ (ID: 1000472)
+   Bilgisayar Kategorisi: Bilgisayar (ID: 1000210)
+
+2. SOAP Arama (title="iphone", categoryId=1000472):
+[32minfo[39m: n11.search_catalog.fetch {"endpoint":"https://api.n11.com/ws/CatalogService/","params":{"categoryId":1000472,"title":"iphone"},"timestamp":"2026-01-12 20:36:23"}
+[32minfo[39m: n11.search_catalog.response {"timestamp":"2026-01-12 20:36:23","xmlPreview":"<SOAP-ENV:Envelope xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\"><SOAP-ENV:Header/><SOAP-ENV:Body><ns3:SearchCatalogResponse xmlns:ns3=\"http://www.n11.com/ws/schemas\"><result><status>failure</status><errorCode>SELLER_API.searchCatalogNoEntry</errorCode><errorMessage>Herhangi bir de─şer girilmeden arama yap─▒lamamaktad─▒r. ├£r├╝n ad─▒ giri┼şlerinde en az 10 karakter giri┼ş yap─▒lmal─▒d─▒r.</errorMessage><errorCategory>SELLER_API</errorCategory></result></ns3:SearchCatalogResponse></SOAP-ENV:Bod"}
+[32minfo[39m: n11.search_catalog.success {"resultCount":0,"timestamp":"2026-01-12 20:36:23"}
+   Ô£à 0 ├╝r├╝n bulundu
+
+3. SOAP Arama (sadece categoryId=1000472):
+[32minfo[39m: n11.search_catalog.fetch {"endpoint":"https://api.n11.com/ws/CatalogService/","params":{"categoryId":1000472},"timestamp":"2026-01-12 20:36:23"}
+[32minfo[39m: n11.search_catalog.response {"timestamp":"2026-01-12 20:36:23","xmlPreview":"<SOAP-ENV:Envelope xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\"><SOAP-ENV:Header/><SOAP-ENV:Body><ns3:SearchCatalogResponse xmlns:ns3=\"http://www.n11.com/ws/schemas\"><result><status>failure</status><errorCode>SELLER_API.searchCatalogNoEntry</errorCode><errorMessage>Herhangi bir de─şer girilmeden arama yap─▒lamamaktad─▒r. ├£r├╝n ad─▒ giri┼şlerinde en az 10 karakter giri┼ş yap─▒lmal─▒d─▒r.</errorMessage><errorCategory>SELLER_API</errorCategory></result></ns3:SearchCatalogResponse></SOAP-ENV:Bod"}
+[32minfo[39m: n11.search_catalog.success {"resultCount":0,"timestamp":"2026-01-12 20:36:23"}
+   Ô£à 0 ├╝r├╝n bulundu
+
+4. SOAP Arama (sadece title="iphone"):
+[32minfo[39m: n11.search_catalog.fetch {"endpoint":"https://api.n11.com/ws/CatalogService/","params":{"title":"iphone"},"timestamp":"2026-01-12 20:36:23"}
+[32minfo[39m: n11.search_catalog.response {"timestamp":"2026-01-12 20:36:23","xmlPreview":"<SOAP-ENV:Envelope xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\"><SOAP-ENV:Header/><SOAP-ENV:Body><ns3:SearchCatalogResponse xmlns:ns3=\"http://www.n11.com/ws/schemas\"><result><status>failure</status><errorCode>SELLER_API.searchCatalogNoEntry</errorCode><errorMessage>Herhangi bir de─şer girilmeden arama yap─▒lamamaktad─▒r. ├£r├╝n ad─▒ giri┼şlerinde en az 10 karakter giri┼ş yap─▒lmal─▒d─▒r.</errorMessage><errorCategory>SELLER_API</errorCategory></result></ns3:SearchCatalogResponse></SOAP-ENV:Bod"}
+[32minfo[39m: n11.search_catalog.success {"resultCount":0,"timestamp":"2026-01-12 20:36:23"}
+   Ô£à 0 ├╝r├╝n bulundu
+
+============================================================

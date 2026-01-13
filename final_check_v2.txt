@@ -1,0 +1,39 @@
+­şğ¬ Verifying API Adapters...
+
+--- N11 Adapter ---
+[32minfo[39m: n11_adapter.search_start {"query":"kalem","timestamp":"2026-01-12 21:03:23"}
+[32minfo[39m: n11.product_query.fetch {"timestamp":"2026-01-12 21:03:23","url":"https://api.n11.com/ms/product-query?size=200"}
+[32minfo[39m: n11_adapter.page_fetched {"fetchedCount":200,"page":0,"pageSize":200,"timestamp":"2026-01-12 21:03:24","totalProducts":200}
+[32minfo[39m: n11.product_query.fetch {"timestamp":"2026-01-12 21:03:24","url":"https://api.n11.com/ms/product-query?page=1&size=200"}
+[32minfo[39m: n11_adapter.page_fetched {"fetchedCount":200,"page":1,"pageSize":200,"timestamp":"2026-01-12 21:03:25","totalProducts":400}
+[32minfo[39m: n11.product_query.fetch {"timestamp":"2026-01-12 21:03:25","url":"https://api.n11.com/ms/product-query?page=2&size=200"}
+[32minfo[39m: n11_adapter.page_fetched {"fetchedCount":200,"page":2,"pageSize":200,"timestamp":"2026-01-12 21:03:26","totalProducts":600}
+[32minfo[39m: n11_adapter.search_success {"filteredResults":0,"query":"kalem","timestamp":"2026-01-12 21:03:26","totalFetched":600}
+[32minfo[39m: n11_adapter.trying_soap_search {"query":"kalem","timestamp":"2026-01-12 21:03:26"}
+[32minfo[39m: n11.search_catalog.fetch {"endpoint":"https://api.n11.com/ws/CatalogService/","params":{"title":"kalem"},"timestamp":"2026-01-12 21:03:26"}
+[32minfo[39m: n11.search_catalog.response {"timestamp":"2026-01-12 21:03:26","xmlPreview":"<SOAP-ENV:Envelope xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\"><SOAP-ENV:Header/><SOAP-ENV:Body><ns3:SearchCatalogResponse xmlns:ns3=\"http://www.n11.com/ws/schemas\"><result><status>failure</status><errorCode>SELLER_API.searchCatalogNoEntry</errorCode><errorMessage>Herhangi bir de─şer girilmeden arama yap─▒lamamaktad─▒r. ├£r├╝n ad─▒ giri┼şlerinde en az 10 karakter giri┼ş yap─▒lmal─▒d─▒r.</errorMessage><errorCategory>SELLER_API</errorCategory></result></ns3:SearchCatalogResponse></SOAP-ENV:Bod"}
+[32minfo[39m: n11.search_catalog.success {"resultCount":0,"timestamp":"2026-01-12 21:03:26"}
+Found: 0
+
+--- Trendyol Adapter ---
+[32minfo[39m: trendyol_adapter.search_start {"query":"a","timestamp":"2026-01-12 21:03:26"}
+[32minfo[39m: trendyol.api_request {"timestamp":"2026-01-12 21:03:26","url":"https://apigw.trendyol.com/integration/product/sellers/152771/products?page=0&size=200&approved=true"}
+[32minfo[39m: trendyol_adapter.search_success {"filtered":10,"found":200,"timestamp":"2026-01-12 21:03:26"}
+Found: 10
+Fields: marketplace, title, price, currency, url, imageUrl, image, description, brand, stockCount, inStock, barcode
+Brand: undefined
+Stock: 10000
+Desc: Has
+
+--- Ciceksepeti Adapter ---
+[32minfo[39m: ciceksepeti.api_request {"timestamp":"2026-01-12 21:03:26","url":"https://apis.ciceksepeti.com/api/v1/Products?pageSize=100"}
+Found: 10
+Fields: marketplace, title, price, currency, url, imageUrl, image, description, brand, stockCount, inStock, barcode, category
+Brand: Missing
+Desc: Has
+
+--- Hepsiburada Adapter ---
+[32minfo[39m: hepsiburada.api_request {"timestamp":"2026-01-12 21:03:26","url":"https://listing-external-sit.hepsiburada.com/listings/merchantid/5ebd80f7-c313-4ceb-88ce-55663516129e?offset=0&limit=50"}
+[31merror[39m: hepsiburada.api_request.failed {"error":{},"timestamp":"2026-01-12 21:03:27","url":"https://listing-external-sit.hepsiburada.com/listings/merchantid/5ebd80f7-c313-4ceb-88ce-55663516129e?offset=0&limit=50"}
+[31merror[39m: hepsiburada_adapter.search_failed {"error":{},"timestamp":"2026-01-12 21:03:27"}
+Found: 0

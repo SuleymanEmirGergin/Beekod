@@ -149,6 +149,30 @@
             }
           }
         }
+      },
+      "ConsolidatedInventoryDetail": {
+        "type": "object",
+        "properties": {
+          "marketplace": { "type": "string" },
+          "price": { "type": "number" },
+          "stock": { "type": "integer" },
+          "active": { "type": "boolean" }
+        }
+      },
+      "ConsolidatedInventoryItem": {
+        "type": "object",
+        "properties": {
+          "barcode": { "type": "string" },
+          "title": { "type": "string" },
+          "marketplaces": { "type": "array", "items": { "type": "string" } },
+          "details": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ConsolidatedInventoryDetail" }
+          },
+          "minPrice": { "type": "number" },
+          "maxPrice": { "type": "number" },
+          "totalStock": { "type": "integer" }
+        }
       }
     }
   },
@@ -161,6 +185,43 @@
             "description": "OK",
             "content": {
               "application/json": { "schema": { "$ref": "#/components/schemas/HealthResponse" } }
+            }
+          }
+        }
+      }
+    },
+    "/ai/chat": {
+      "post": {
+        "summary": "Send message to AI Assistant",
+        "security": [{ "AdminKeyAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": { "type": "string" },
+                  "locale": { "type": "string", "example": "tr" }
+                },
+                "required": ["message"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "AI response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "reply": { "type": "string" },
+                    "plan": { "type": "object" }
+                  }
+                }
+              }
             }
           }
         }
@@ -507,6 +568,25 @@
         "security": [{ "AdminKeyAuth": [] }],
         "responses": {
           "200": { "description": "Metrics" }
+        }
+      }
+    },
+    "/inventory/consolidated": {
+      "get": {
+        "summary": "Get representative marketplace inventory data (consolidated)",
+        "security": [{ "AdminKeyAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Consolidated inventory list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/ConsolidatedInventoryItem" }
+                }
+              }
+            }
+          }
         }
       }
     },

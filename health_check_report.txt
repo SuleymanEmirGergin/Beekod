@@ -1,0 +1,17 @@
+[32minfo[39m: config.google_cse.configured {"hasCx":true,"hasKey":true,"timestamp":"2026-01-13 01:31:58"}
+[32minfo[39m: config.gemini.configured {"hasKey":true,"timestamp":"2026-01-13 01:31:58"}
+[32minfo[39m: config.marketplace_mode {"mode":"live","timestamp":"2026-01-13 01:31:58"}
+[32minfo[39m: config.rate_limit_store {"hasRedisUrl":false,"store":"db","timestamp":"2026-01-13 01:31:58"}
+[32minfo[39m: db.connect {"host":"127.0.0.1","name":"beekod","port":3306,"timestamp":"2026-01-13 01:31:58","user":"root"}
+=== Testing AI Health Check Job ===
+
+Job enqueued: fe47daad-8155-45b6-9cb1-402149baf497
+Processing queue...
+[32minfo[39m: marketplace.N11.config_check {"configured":false,"missing":["N11_API_KEY","N11_API_SECRET"],"mode":"live","timestamp":"2026-01-13 01:32:00"}
+[32minfo[39m: marketplace.N11.config_check {"configured":false,"missing":["N11_API_KEY","N11_API_SECRET"],"mode":"live","timestamp":"2026-01-13 01:32:00"}
+[32minfo[39m: marketplace.N11.config_check {"configured":false,"missing":["N11_API_KEY","N11_API_SECRET"],"mode":"live","timestamp":"2026-01-13 01:32:00"}
+[32minfo[39m: marketplace.N11.config_check {"configured":false,"missing":["N11_API_KEY","N11_API_SECRET"],"mode":"live","timestamp":"2026-01-13 01:32:00"}
+[32minfo[39m: marketplace.N11.config_check {"configured":false,"missing":["N11_API_KEY","N11_API_SECRET"],"mode":"live","timestamp":"2026-01-13 01:32:00"}
+[32minfo[39m: marketplace.N11.config_check {"configured":false,"missing":["N11_API_KEY","N11_API_SECRET"],"mode":"live","timestamp":"2026-01-13 01:32:00"}
+
+Timeout waiting for job completion.
