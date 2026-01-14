@@ -47,15 +47,16 @@ export type Product = {
   product_type?: 'standard' | 'packet' | 'digital';
 };
 
-export type ProductPrice = {
+export interface ProductPrice {
   id: number;
   barcode: string;
   price: number;
-  currency: string;
+  price_type: 'standard' | 'campaign' | 'discount';
   start_date?: Date;
   end_date?: Date;
-  price_type: 'STANDARD' | 'SALE' | 'VIP' | 'WHOLESALE';
   priority: number;
+  campaign_id?: string;
+  platform?: string;
   created_at?: Date;
 };
 
