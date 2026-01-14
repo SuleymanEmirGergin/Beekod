@@ -224,7 +224,7 @@ export class PazaramaProvider extends BaseMarketplaceProvider {
 
     try {
       const approved = params?.approved ?? (params?.status === "inactive" ? false : true);
-      const size = params?.size || 100;
+      const size = params?.size || 200; // Pazarama supports up to 200 per page
       const autoPaginate = params?.autoPaginate ?? false;
 
       let allItems: any[] = [];
