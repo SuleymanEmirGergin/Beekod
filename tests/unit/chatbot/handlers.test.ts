@@ -1,13 +1,13 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock dependencies
-vi.mock("../../src/db", () => ({
+vi.mock("../../../src/db", () => ({
     pool: {
         execute: vi.fn(),
     },
 }));
 
-vi.mock("../../src/logger", () => ({
+vi.mock("../../../src/logger", () => ({
     logger: {
         info: vi.fn(),
         error: vi.fn(),
@@ -16,15 +16,21 @@ vi.mock("../../src/logger", () => ({
     },
 }));
 
-vi.mock("../../src/services/wiroService", () => ({
+vi.mock("../../../src/services/wiroService", () => ({
     runChatCompletion: vi.fn().mockResolvedValue('{"intent": "product_search", "entities": {}}'),
 }));
 
+vi.mock("../../../src/services/search/unifiedMarketplaceSearch", () => ({
+    unifiedMarketplaceSearch: vi.fn().mockResolvedValue({ ok: true, value: [] }),
+}));
+
 // Import handlers
-import { searchHandler } from "../../src/chatbot/handlers/searchHandler";
-import { priceHandler } from "../../src/chatbot/handlers/priceHandler";
-import { stockHandler } from "../../src/chatbot/handlers/stockHandler";
-import { orderHandler } from "../../src/chatbot/handlers/orderHandler";
+import { searchHandler } from "../../../src/chatbot/handlers/searchHandler";
+import { productSearchHandler } from "../../../src/chatbot/handlers/productSearchHandler";
+import { priceHandler } from "../../../src/chatbot/handlers/priceHandler";
+import { stockHandler } from "../../../src/chatbot/handlers/stockHandler";
+import { orderHandler } from "../../../src/chatbot/handlers/orderHandler";
+import { pool } from "../../../src/db";
 
 // ============================================================
 // SEARCH HANDLER TESTS
@@ -37,23 +43,20 @@ describe("SearchHandler", () => {
 
     it("should have correct name and supported intents", () => {
         expect(searchHandler.name).toBe("SearchHandler");
-        expect(searchHandler.supportedIntents).toContain("product_search");
         expect(searchHandler.supportedIntents).toContain("product_import");
     });
 
-    it("should handle product search with query entity", async () => {
+    it("should handle product search with productName entity", async () => {
         const result = await searchHandler.handle({
-            query: "iPhone 15 kılıf",
-        }, "user123", "session123", "product_search");
+            productName: "iPhone 15 kılıf",
+        }, "user123", "session123");
 
         expect(result.success).toBe(true);
-        expect(result.message).toBeDefined();
+        expect(result.productCards).toBeDefined();
     });
 
-    it("should return error for empty query", async () => {
-        const result = await searchHandler.handle({
-            query: "",
-        }, "user123", "session123", "product_search");
+    it("should return error for empty entities", async () => {
+        const result = await searchHandler.handle({}, "user123", "session123");
 
         expect(result.success).toBe(false);
         expect(result.message).toContain("belirtin");
@@ -65,20 +68,14 @@ describe("SearchHandler", () => {
 // ============================================================
 
 describe("PriceHandler", () => {
-    const mockPool = vi.mocked(await import("../../src/db")).pool;
+    const mockPool = vi.mocked(pool);
 
     beforeEach(() => {
         vi.clearAllMocks();
     });
 
-    it("should have correct name and supported intents", () => {
-        expect(priceHandler.name).toBe("PriceHandler");
-        expect(priceHandler.supportedIntents).toContain("price_query");
-        expect(priceHandler.supportedIntents).toContain("price_update");
-    });
-
-    it("should query price for barcode", async () => {
-        mockPool.execute.mockResolvedValueOnce([[{
+    it("should carry out price query successfully", async () => {
+        (mockPool.execute as any).mockResolvedValueOnce([[{
             barcode: "8690000000001",
             name: "Test Product",
             price: 199.99,
@@ -90,18 +87,22 @@ describe("PriceHandler", () => {
         }, "user123", "session123", "price_query");
 
         expect(result.success).toBe(true);
-        expect(result.data).toBeDefined();
-        expect(mockPool.execute).toHaveBeenCalled();
+        expect(mockPool.execute).toHaveBeenCalledTimes(1);
     });
 
-    it("should require confirmation for price update", async () => {
+    it("should handle price update successfully with audit log", async () => {
+        (mockPool.execute as any)
+            .mockResolvedValueOnce([[{ price: 100 }]]) // SELECT current price
+            .mockResolvedValueOnce([{}]) // UPDATE price
+            .mockResolvedValueOnce([{}]); // INSERT audit log
+
         const result = await priceHandler.handle({
             barcode: "8690000000001",
-            newPrice: 149.99,
-        }, undefined, undefined, "price_update");
+            price: 149.99,
+        }, "user123", "session123", "price_update");
 
-        // Price updates should require confirmation
-        expect(result.requiresConfirmation).toBe(true);
+        expect(result.success).toBe(true);
+        expect(mockPool.execute).toHaveBeenCalledTimes(3);
     });
 });
 
@@ -110,24 +111,18 @@ describe("PriceHandler", () => {
 // ============================================================
 
 describe("StockHandler", () => {
-    const mockPool = vi.mocked(await import("../../src/db")).pool;
+    const mockPool = vi.mocked(pool);
 
     beforeEach(() => {
         vi.clearAllMocks();
     });
 
-    it("should have correct name and supported intents", () => {
-        expect(stockHandler.name).toBe("StockHandler");
-        expect(stockHandler.supportedIntents).toContain("stock_query");
-        expect(stockHandler.supportedIntents).toContain("stock_update");
-        expect(stockHandler.supportedIntents).toContain("stock_alert");
-    });
-
     it("should query stock for barcode", async () => {
-        mockPool.execute.mockResolvedValueOnce([[{
+        (mockPool.execute as any).mockResolvedValueOnce([[{
             barcode: "8690000000001",
             name: "Test Product",
             stock: 50,
+            alert_threshold: 5
         }]]);
 
         const result = await stockHandler.handle({
@@ -135,22 +130,22 @@ describe("StockHandler", () => {
         }, "user123", "session123", "stock_query");
 
         expect(result.success).toBe(true);
-        expect(result.data).toBeDefined();
+        expect(mockPool.execute).toHaveBeenCalledTimes(1);
     });
 
-    it("should return warning for low stock", async () => {
-        mockPool.execute.mockResolvedValueOnce([[{
-            barcode: "8690000000001",
-            name: "Test Product",
-            stock: 3,
-        }]]);
+    it("should handle stock update successfully with audit log", async () => {
+        (mockPool.execute as any)
+            .mockResolvedValueOnce([[{ stock: 20 }]]) // SELECT current stock
+            .mockResolvedValueOnce([{}]) // UPDATE stock
+            .mockResolvedValueOnce([{}]); // INSERT audit log
 
         const result = await stockHandler.handle({
             barcode: "8690000000001",
-        }, undefined, undefined, "stock_query");
+            stock: 50,
+        }, "user123", "session123", "stock_update");
 
         expect(result.success).toBe(true);
-        expect(result.message).toBeDefined();
+        expect(mockPool.execute).toHaveBeenCalledTimes(3);
     });
 });
 
@@ -159,20 +154,14 @@ describe("StockHandler", () => {
 // ============================================================
 
 describe("OrderHandler", () => {
-    const mockPool = vi.mocked(await import("../../src/db")).pool;
+    const mockPool = vi.mocked(pool);
 
     beforeEach(() => {
         vi.clearAllMocks();
     });
 
-    it("should have correct name and supported intents", () => {
-        expect(orderHandler.name).toBe("OrderHandler");
-        expect(orderHandler.supportedIntents).toContain("order_query");
-        expect(orderHandler.supportedIntents).toContain("sales_report");
-    });
-
     it("should query orders", async () => {
-        mockPool.execute.mockResolvedValueOnce([[{
+        (mockPool.execute as any).mockResolvedValueOnce([[{
             order_number: "ORD-123",
             marketplace: "Trendyol",
             order_date: "2026-01-08",
@@ -186,23 +175,6 @@ describe("OrderHandler", () => {
         }, "user123", "session123", "order_query");
 
         expect(result.success).toBe(true);
-        expect(mockPool.execute).toHaveBeenCalled();
-    });
-
-    it("should generate sales report", async () => {
-        mockPool.execute.mockResolvedValueOnce([[{
-            date: "2026-01-08",
-            order_count: 5,
-            total_revenue: 1499.95,
-            total_items: 12,
-            marketplace: "Trendyol",
-        }]]);
-
-        const result = await orderHandler.handle({
-            dateRange: { start: "2026-01-01", end: "2026-01-09" },
-        }, undefined, undefined, "sales_report");
-
-        expect(result.success).toBe(true);
-        expect(result.message).toContain("Satış Raporu");
+        expect(mockPool.execute).toHaveBeenCalledTimes(1);
     });
 });

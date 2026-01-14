@@ -9,7 +9,6 @@ import {
   MarketplaceOrderResult,
   MarketplaceProductPayload,
   MarketplaceReviewResult,
-  ProductReview,
   MarketplaceTokenStatus,
   MarketplaceUpdatePayload,
 } from "../types.js";
@@ -98,7 +97,7 @@ export class HepsiburadaProvider extends BaseMarketplaceProvider {
         body: JSON.stringify([productData]), // API expects array
       });
 
-      const responseData = await response.json() as { trackingId?: string; errors?: any[] };
+      const responseData = (await response.json()) as { trackingId?: string; errors?: unknown[] };
       
       if (!response.ok) {
         return fail(new Error(`HB API Error: ${response.status} - ${JSON.stringify(responseData)}`));
@@ -180,12 +179,12 @@ export class HepsiburadaProvider extends BaseMarketplaceProvider {
         payload.barcode,
       );
       return ok(result);
-    } catch (error: any) {
-      return fail(error);
+    } catch (error: unknown) {
+      return fail(error instanceof Error ? error : new Error(String(error)));
     }
   }
 
-  async listListings(params?: { status?: "active" | "inactive"; barcode?: string; size?: number }): Promise<Result<MarketplaceListResult>> {
+  async listListings(params?: { status?: "active" | "inactive"; barcode?: string; deep?: boolean; page?: number; pageSize?: number }): Promise<Result<MarketplaceListResult>> {
     if (!this.isConfigured()) {
       const nc = this.notConfigured("listListings");
       return ok({ status: nc.status, message: nc.message, items: [] });
@@ -194,7 +193,7 @@ export class HepsiburadaProvider extends BaseMarketplaceProvider {
 
     const merchantId = process.env.HEPSIBURADA_MERCHANT_ID;
     const allItems: MarketplaceListing[] = [];
-    const pageSize = params?.size ?? 100;
+    const pageSize = params?.pageSize ?? 100;
     const maxPages = 100; // 100 * 100 = 10,000 products
     let offset = 0;
     let hasMore = true;
@@ -210,21 +209,21 @@ export class HepsiburadaProvider extends BaseMarketplaceProvider {
           break;
         }
 
-        const data = response.data as any;
+        const data = response.data as { listings?: Record<string, unknown>[]; totalElements?: number };
         const rawList = data?.listings || [];
         totalElements = data?.totalElements || 0;
 
-        const pageItems = rawList
-          .map((item: any) => ({
+        const pageItems: MarketplaceListing[] = rawList
+          .map((item) => ({
             marketplace: this.name,
-            barcode: item.merchantItemId || item.sku,
-            title: item.productName || item.sku,
-            price: Number(item.price),
-            stock: Number(item.availableStock),
+            barcode: String(item.merchantItemId || item.sku || ""),
+            title: String(item.productName || item.sku || ""),
+            price: Number(item.price || 0),
+            stock: Number(item.availableStock || 0),
             currency: "TRY",
-            active: item.isSalable,
+            active: Boolean(item.isSalable),
           }))
-          .filter((item: any) => {
+          .filter((item) => {
             if (params?.barcode && item.barcode !== params.barcode) return false;
             return true;
           });
@@ -235,13 +234,75 @@ export class HepsiburadaProvider extends BaseMarketplaceProvider {
       }
 
       return ok({ status: "ok", message: `Fetched ${allItems.length} products`, items: allItems });
-    } catch (error: any) {
-      return fail(error);
+    } catch (error: unknown) {
+      return fail(error instanceof Error ? error : new Error(String(error)));
+    }
+  }
+
+  /**
+   * Get price competition data for given barcodes
+   * Merchant SKU based price analysis across sellers
+   */
+  async getPriceCompetition(barcodes: string[]): Promise<Result<{ barcode: string; lowestPrice: number; winningSeller?: string; competitorCount?: number }[]>> {
+    if (!this.isConfigured()) return fail(new Error("Not configured"));
+    if (!barcodes || barcodes.length === 0) return ok([]);
+
+    const merchantId = process.env.HEPSIBURADA_MERCHANT_ID;
+    if (!merchantId) return fail(new Error("Missing merchant ID"));
+
+    try {
+      const results: { barcode: string; lowestPrice: number; winningSeller?: string; competitorCount?: number }[] = [];
+
+      for (const barcode of barcodes) {
+        // Query listings for this SKU
+        const path = `/listings/merchantid/${merchantId}?sku=${encodeURIComponent(barcode)}&size=20`;
+        const response = await this.requestRaw("GET", path);
+
+        if (!response.ok || !response.data) {
+          results.push({ barcode, lowestPrice: 0, competitorCount: 0 });
+          continue;
+        }
+
+        const data = response.data as { listings?: Array<{ price?: number; merchantId?: string }> };
+        const listings = data.listings || [];
+
+        if (listings.length === 0) {
+          results.push({ barcode, lowestPrice: 0, competitorCount: 0 });
+          continue;
+        }
+
+        const prices = listings
+          .map(l => l.price || 0)
+          .filter(p => p > 0);
+
+        const lowestPrice = prices.length > 0 ? Math.min(...prices) : 0;
+        const winningListing = listings.find(l => l.price === lowestPrice);
+
+        results.push({
+          barcode,
+          lowestPrice,
+          winningSeller: winningListing?.merchantId,
+          competitorCount: listings.length
+        });
+      }
+
+      logMarketplaceEvent(this.name, "getPriceCompetition", {
+        status: "ok",
+        message: `Analyzed ${barcodes.length} products`
+      });
+
+      return ok(results);
+    } catch (error: unknown) {
+      return fail(error instanceof Error ? error : new Error(String(error)));
     }
   }
 
   async getProductReviews(barcode: string): Promise<Result<MarketplaceReviewResult>> {
     if (!this.isConfigured()) return fail(new Error("Not configured"));
+    if (!barcode) return fail(new Error("Barcode required"));
+
+    const merchantId = process.env.HEPSIBURADA_MERCHANT_ID;
+    if (!merchantId) return fail(new Error("Missing merchant ID"));
 
     if (isMarketplaceDryRun()) {
        return ok({
@@ -249,24 +310,60 @@ export class HepsiburadaProvider extends BaseMarketplaceProvider {
         message: "dry_run",
         reviews: [
           {
+            id: "dry_hb_1",
             reviewerName: "Buse Y.",
             rating: 5,
             comment: "Hepsiburada farkı, paketleme harikaydı.",
             date: new Date().toISOString(),
+            platform: this.name
+          },
+          {
+            id: "dry_hb_2",
+            reviewerName: "Mehmet K.",
+            rating: 4,
+            comment: "Ürün güzel ama kargo biraz yavaştı.",
+            date: new Date(Date.now() - 86400000).toISOString(),
             platform: this.name
           }
         ]
       });
     }
 
-    return ok({
-      status: "ok",
-      message: "Syncing reviews from marketplace...",
-      reviews: []
-    });
+    try {
+      // First, get the product listing to find the Hepsiburada product  ID
+      const listPath = `/listings/merchantid/${merchantId}?sku=${encodeURIComponent(barcode)}&size=1`;
+      const listResponse = await this.requestRaw("GET", listPath);
+
+      if (!listResponse.ok || !listResponse.data) {
+        return ok({ status: "failed", message: "Product not found", reviews: [] });
+      }
+
+      const listData = listResponse.data as { listings?: Array<{ hbSKU?: string; productId?: string }> };
+      const product = listData.listings?.[0];
+      const productId = product?.hbSKU || product?.productId;
+
+      if (!productId) {
+        return ok({ status: "failed", message: "Product ID not found", reviews: [] });
+      }
+
+      // Attempt to fetch reviews (Note: Hepsiburada doesn't provide a direct review API for sellers)
+      // This is a placeholder for when/if the API becomes available
+      logMarketplaceEvent(this.name, "getProductReviews", {
+        status: "ok",
+        message: `Review API not available for product ${barcode}`
+      });
+
+      return ok({
+        status: "ok",
+        message: "Hepsiburada yorum API'si seller hesaplar için mevcut değil",
+        reviews: []
+      });
+    } catch (error: unknown) {
+      return fail(error instanceof Error ? error : new Error(String(error)));
+    }
   }
 
-  async getNewOrders(params?: { startDate?: string; endDate?: string }): Promise<Result<MarketplaceOrderResult>> {
+  async getNewOrders(_params?: { startDate?: string; endDate?: string }): Promise<Result<MarketplaceOrderResult>> {
     if (!this.isConfigured()) {
       const nc = this.notConfigured("getNewOrders");
       return ok({ status: nc.status, message: nc.message, orders: [] });
@@ -279,42 +376,40 @@ export class HepsiburadaProvider extends BaseMarketplaceProvider {
       const response = await this.requestRaw("GET", path + "?status=Open");
       if (!response.ok) return ok({ status: "failed", message: response.message, orders: [] });
 
-      const rawList = (response.data as any) || [];
-      const packages = Array.isArray(rawList) ? rawList : (rawList.packages || []);
+      const rawData = response.data;
+      const packages = Array.isArray(rawData) ? rawData : (rawData && typeof rawData === "object" && "packages" in rawData ? (rawData as { packages: Record<string, unknown>[] }).packages : []);
 
-      const orders: MarketplaceOrder[] = packages.map((pkg: any) => ({
+      const orders: MarketplaceOrder[] = (packages as any[]).map((pkg) => ({
         marketplace: this.name,
-        orderNumber: pkg.orderNumber,
-        customerName: pkg.customerName,
+        orderNumber: String(pkg.orderNumber),
+        customerName: String(pkg.customerName || ""),
         customerEmail: "",
         customerPhone: "",
         customerAddress: [pkg.deliveryAddress?.address, pkg.deliveryAddress?.city].filter(Boolean).join(", "),
-        items: (pkg.lines || []).map((line: any) => ({
-          barcode: line.barcode,
-          name: line.productName,
+        items: ((pkg.lines || []) as any[]).map((line) => ({
+          barcode: String(line.barcode),
+          name: String(line.productName),
           price: Number(line.price?.amount || 0),
-          quantity: line.quantity,
+          quantity: Number(line.quantity),
         })),
         totalAmount: Number(pkg.totalPrice?.amount || 0),
-        currency: pkg.totalPrice?.currency || "TRY",
+        currency: String(pkg.totalPrice?.currency || "TRY"),
         orderDate: new Date(pkg.orderDate).toISOString(),
-        status: pkg.status,
+        status: String(pkg.status),
       }));
 
       return ok({ status: "ok", message: `Synced ${orders.length} orders`, orders });
-    } catch (error: any) {
-      return fail(error);
+    } catch (error: unknown) {
+      return fail(error instanceof Error ? error : new Error(String(error)));
     }
   }
 
-  private notConfigured(action: string): MarketplaceActionResult {
+  protected notConfigured(op: string): MarketplaceActionResult {
     const result = {
       status: "not_configured",
-      message: `${this.name} provider not configured for ${action}.`,
+      message: `${this.name} provider is not configured for ${op}. Missing ${this.getConfigStatus().missing?.join(", ")}`,
     } satisfies MarketplaceActionResult;
-    logMarketplaceEvent({
-      provider: this.name,
-      action,
+    logMarketplaceEvent(this.name, op, {
       status: result.status,
       message: result.message,
     });
@@ -326,9 +421,7 @@ export class HepsiburadaProvider extends BaseMarketplaceProvider {
       status: "failed",
       message: `${this.name} provider action not supported: ${action}.`,
     };
-    logMarketplaceEvent({
-      provider: this.name,
-      action,
+    logMarketplaceEvent(this.name, action, {
       status: result.status,
       message: result.message,
     });
@@ -364,7 +457,7 @@ export class HepsiburadaProvider extends BaseMarketplaceProvider {
   }> {
     const apiKey = process.env.HEPSIBURADA_API_KEY;
     const merchantId = process.env.HEPSIBURADA_MERCHANT_ID;
-    const baseUrl = process.env.HEPSIBURADA_BASE_URL || "https://listing-external.hepsiburada.com";
+    const baseUrl = process.env.HEPSIBURADA_API_BASE || process.env.HEPSIBURADA_BASE_URL || "https://listing-external.hepsiburada.com";
     const endpoint = `${baseUrl}${path}`;
 
     if (!apiKey || !merchantId) {
@@ -378,24 +471,25 @@ export class HepsiburadaProvider extends BaseMarketplaceProvider {
     if (isMarketplaceDryRun()) return { ok: true, status: "ok", message: "dry_run", data: { dryRun: true } };
 
     try {
-      const responseData = await requestJson<any>(endpoint, {
+      const responseData = await requestJson<Record<string, unknown>>(endpoint, {
         method,
         headers: {
-          "Authorization": `Basic ${Buffer.from(merchantId + ":" + apiKey).toString("base64")}`,
+          Authorization: `Basic ${Buffer.from(merchantId + ":" + apiKey).toString("base64")}`,
           "Content-Type": "application/json",
-          "Accept": "application/json"
+          Accept: "application/json",
         },
         body: body && method !== "GET" ? JSON.stringify(body) : undefined,
       });
 
       return { ok: true, status: "ok", message: "ok", data: responseData };
-    } catch (error: any) {
-      const errorMsg = error.response?.data?.message || error.message || String(error);
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } }; message?: string };
+      const errorMsg = err.response?.data?.message || err.message || String(error);
       logMarketplaceEvent(this.name, "request_error", {
         status: "failed",
         message: errorMsg,
         barcode,
-        path
+        path,
       });
       return { ok: false, status: "failed", message: errorMsg };
     }

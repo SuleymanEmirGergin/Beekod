@@ -5,4 +5,4 @@
 
 // Re-export cargo services
 export * from "../../services/cargo/cargoService.js";
-export * from "../../services/shippingService.js";
+export * from "../../services/order/shippingService.js";

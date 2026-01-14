@@ -247,10 +247,7 @@ router.post("/import-url", requireAdminKey, requireJsonBody, async (req, res) =>
   }
 
   try {
-<<<<<<< HEAD
-=======
-    const { importProductFromUrl } = await import("../services/productImportService.js");
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
+
     const result = await importProductFromUrl(url);
 
     if (!result.success) {

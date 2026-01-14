@@ -4,7 +4,7 @@
  */
 
 // Services
-export * from "../../services/searchService.js";
+export * from "../../services/search/searchService.js";
 export * from "../../services/semanticSearchService.js";
 export * from "../../services/search/searchAggregator.js";
 

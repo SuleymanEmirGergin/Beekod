@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { AITool, ToolContext, ToolResult } from "./interfaces.js";
-import { getOrderById, getAllOrders } from "../../services/orderService.js";
+import { getOrderById, getAllOrders } from "../../services/order/orderService.js";
 
 const GetOrderByIdSchema = z.object({
   orderId: z.string().describe("The order ID to lookup, e.g., #BK-1234"),
@@ -21,13 +21,13 @@ export const getOrderByIdTool: AITool<z.infer<typeof GetOrderByIdSchema>> = {
   name: "getOrderById",
   description: "Get details of a specific order by its ID (Request ID).",
   schema: GetOrderByIdSchema,
-  execute: async (args, context: ToolContext): Promise<ToolResult> => {
+  execute: async (args, _context: ToolContext): Promise<ToolResult> => {
     try {
-      const order = await getOrderById(args.orderId);
-      if (!order) {
-        return { success: false, error: "Order not found" };
+      const result = await getOrderById(args.orderId);
+      if (!result.ok) {
+        return { success: false, error: result.error.message };
       }
-      return { success: true, data: order };
+      return { success: true, data: result.value };
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
     }
@@ -38,9 +38,13 @@ export const listRecentOrdersTool: AITool<z.infer<typeof ListRecentOrdersSchema>
   name: "listRecentOrders",
   description: "List the most recent orders, optionally filtered by status.",
   schema: ListRecentOrdersSchema,
-  execute: async (args, context: ToolContext): Promise<ToolResult> => {
+  execute: async (args, _context: ToolContext): Promise<ToolResult> => {
     try {
-      const allOrders = await getAllOrders();
+      const result = await getAllOrders();
+      if (!result.ok) {
+        return { success: false, error: result.error.message };
+      }
+      const allOrders = result.value;
       let filtered = allOrders;
 
       if (args.status) {
@@ -71,10 +75,11 @@ export const draftCustomerReplyTool: AITool<z.infer<typeof DraftCustomerReplySch
   schema: DraftCustomerReplySchema,
   execute: async (args, context: ToolContext): Promise<ToolResult> => {
     try {
-      const order = await getOrderById(args.orderId);
-      if (!order) {
+      const result = await getOrderById(args.orderId);
+      if (!result.ok) {
         return { success: false, error: "Order not found" };
       }
+      const order = result.value;
 
       return {
         success: true,
@@ -83,7 +88,7 @@ export const draftCustomerReplyTool: AITool<z.infer<typeof DraftCustomerReplySch
             id: order.requestId,
             customer: order.customer.name,
             status: order.status.label,
-            items: order.items.map((i) => i.product_name).join(", "),
+            items: order.items.map((i: { product_name: string }) => i.product_name).join(", "),
             total: order.total,
             shipping: order.shipping 
           },

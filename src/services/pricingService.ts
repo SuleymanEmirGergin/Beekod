@@ -1,10 +1,5 @@
-<<<<<<< HEAD
 import { getProductByBarcode } from "./product/productService.js";
 import { generateGeminiReply } from "./ai/geminiClient.js";
-=======
-import { getProductByBarcode } from "./productService.js";
-import { generateGeminiReply } from "./geminiClient.js";
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 import { logger } from "../logger.js";
 
 export interface CompetitorPrice {
@@ -24,11 +19,7 @@ export interface PriceSuggestion {
   aiInsight?: string;
 }
 
-<<<<<<< HEAD
 import { unifiedMarketplaceSearch } from "./search/unifiedMarketplaceSearch.js";
-=======
-import { unifiedMarketplaceSearch } from "./unifiedMarketplaceSearch.js";
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 
 /**
  * Fetches real competitor prices using unified marketplace search.
@@ -40,22 +31,16 @@ export async function getCompetitorPrices(barcode: string): Promise<CompetitorPr
 
   try {
     // We search by product name to find competitors
-<<<<<<< HEAD
     const searchResult = await unifiedMarketplaceSearch(product.name);
     if (!searchResult.ok) return [];
 
     const searchResults = searchResult.value;
-
-=======
-    const searchResults = await unifiedMarketplaceSearch(product.name);
-
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
     // Filter and map to CompetitorPrice format
     // We only take results that aren't the source URL itself (if possible)
     return searchResults
       .slice(0, 5) // Top 5 competitors
       .map(r => ({
-        platform: r.site.charAt(0).toUpperCase() + r.site.slice(1),
+        platform: r.marketplace.charAt(0).toUpperCase() + r.marketplace.slice(1),
         price: r.price,
         currency: r.currency || 'TRY',
         url: r.url

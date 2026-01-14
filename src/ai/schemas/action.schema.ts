@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const ResponseStyleSchema = z.enum(["short", "normal", "detailed"]);
+const ResponseStyleSchema = z.enum(["concise", "detailed", "friendly", "professional", "normal", "short"]);
 
 export const ToolCallSchema = z
   .object({
@@ -9,15 +9,19 @@ export const ToolCallSchema = z
   })
   .strict();
 
+export const responseStyleSchema = ResponseStyleSchema;
+
 export const actionPlanSchema = z
   .object({
     intent: z.string().min(1).max(100),
     toolCalls: z.array(ToolCallSchema).default([]),
-    responseStyle: ResponseStyleSchema.default("normal"),
+    responseStyle: ResponseStyleSchema.default("friendly"),
+    confidence: z.number().min(0).max(1).default(1.0),
   })
   .strict();
 
-// Backward-compatible alias
+// Backward-compatible aliases
+export const toolCallSchema = ToolCallSchema;
 export const AIActionSchema = actionPlanSchema;
 
 export type AIAction = z.infer<typeof actionPlanSchema>;

@@ -22,7 +22,7 @@ router.post("/pricing/run", requireAdminKey, async (req, res) => {
       return res.json({ success, message: success ? "İşlem başarılı" : "İşlem başarısız veya rakip bulunamadı" });
     } else {
       const stats = await autonomousPricingService.processAllProducts();
-      return res.json({ success: true, ...stats });
+      return res.json({ success: true, stats });
     }
   } catch (error) {
     logger.error("automation.pricing_run_failed", { err: error });

@@ -1,4 +1,4 @@
-import { runChatCompletion } from "../services/wiroService.js";
+import { runChatCompletion } from "../services/geminiService.js";
 import { logger } from "../logger.js";
 import {
     ChatIntent,
@@ -11,7 +11,7 @@ import {
 
 /**
  * Intent Recognition Engine
- * Gemini 2.0 Flash (via Wiro AI) ile intent detection ve entity extraction
+ * Gemini 2.0 Flash ile intent detection ve entity extraction
  */
 export class IntentEngine {
     /**
@@ -110,6 +110,8 @@ export class IntentEngine {
             "listing_update",
             "batch_operation",
             "analytics_query",
+            "competitor_analysis",
+            "review_query",
         ];
 
         const toptanciIntents = [
@@ -218,13 +220,24 @@ CEVAP FORMATI (JSON):
             intent = "order_query";
         } else if (lowerMsg.includes("kimde var") || lowerMsg.includes("toptancı")) {
             intent = "stock_holders_query";
-<<<<<<< HEAD
-=======
         } else if (lowerMsg.includes("karlılık") || lowerMsg.includes("analiz")) {
             intent = "analytics_query";
         } else if (lowerMsg.includes("satış") && lowerMsg.includes("rapor")) {
             intent = "sales_report";
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
+        } else if (
+            lowerMsg.includes("rakip") ||
+            lowerMsg.includes("buybox") ||
+            lowerMsg.includes("diğer satıcı") ||
+            lowerMsg.includes("kimler satıyor")
+        ) {
+            intent = "competitor_analysis";
+        } else if (
+            lowerMsg.includes("yorum") ||
+            lowerMsg.includes("değerlendirme") ||
+            lowerMsg.includes("puan") ||
+            lowerMsg.includes("review")
+        ) {
+            intent = "review_query";
         }
 
         // Extract barcode (basit regex)

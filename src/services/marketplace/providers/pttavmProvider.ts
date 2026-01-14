@@ -6,6 +6,7 @@ import {
   MarketplaceOrder,
   MarketplaceOrderResult,
   MarketplaceProductPayload,
+  MarketplaceReviewResult,
   MarketplaceTokenStatus,
   MarketplaceUpdatePayload,
 } from "../types.js";
@@ -22,7 +23,6 @@ import * as nodeCrypto from "node:crypto";
 
 export class PttavmProvider extends BaseMarketplaceProvider {
   name = "PttAVM" as const;
-  private credentials?: Record<string, string>;
   private xmlParser: XMLParser;
 
   constructor() {
@@ -66,9 +66,10 @@ export class PttavmProvider extends BaseMarketplaceProvider {
   async listListings(params?: {
     status?: "active" | "inactive";
     barcode?: string;
+    deep?: boolean;
     page?: number;
+    pageSize?: number;
     shopId?: number;
-    size?: number;
   }): Promise<Result<MarketplaceListResult>> {
     if (!this.isConfigured()) {
       const nc = this.notConfigured("listListings");
@@ -78,7 +79,7 @@ export class PttavmProvider extends BaseMarketplaceProvider {
     try {
       const barcode = params?.barcode || "";
       const shopId = params?.shopId || 0;
-      const maxPages = 100; // Safety limit - PttAVM pages can have 1000 items so 100 pages = 100k max
+      const maxPages = 100; // Safety limit
       const allItems: MarketplaceListing[] = [];
       let currentPage = params?.page || 1;
       let hasMore = true;
@@ -107,7 +108,6 @@ export class PttavmProvider extends BaseMarketplaceProvider {
         const pageItems = this.parseListingsFromResponse(result.data as string);
         allItems.push(...pageItems);
 
-        // Log progress for large fetches
         if (currentPage % 10 === 0) {
           logger.info("pttavm.listListings.progress", { 
             page: currentPage, 
@@ -116,7 +116,6 @@ export class PttavmProvider extends BaseMarketplaceProvider {
         }
 
         currentPage++;
-        // PttAVM returns ~1000 items per page
         hasMore = pageItems.length >= 900;
       }
 
@@ -138,32 +137,19 @@ export class PttavmProvider extends BaseMarketplaceProvider {
     }
   }
 
-  /**
-   * Parse listings from SOAP XML response
-   */
-  private parseListingsFromResponse(xmlData: string): any[] {
+  private parseListingsFromResponse(xmlData: string): MarketplaceListing[] {
     try {
-      const parsed = this.xmlParser.parse(xmlData);
+      const parsed = this.xmlParser.parse(xmlData) as Record<string, any>;
       
       const envelope = parsed.Envelope || parsed;
       const body = envelope.Body || envelope;
       const response = body.StokKontrolListesiResponse;
       const result = response?.StokKontrolListesiResult;
 
-      logger.debug("pttavm.parseListings.structure", { 
-        hasEnvelope: !!parsed.Envelope,
-        hasBody: !!body,
-        hasResponse: !!response,
-        hasResult: !!result,
-        resultKeys: result ? Object.keys(result) : []
-      });
-
       if (!result) {
-        logger.debug("pttavm.parseListings.no_result", { xmlSnippet: xmlData.substring(0, 500) });
         return [];
       }
 
-      // Products are under StokKontrolDetay
       let urunler = result.StokKontrolDetay || result.StokKontrolData || result.Urunler || [];
       if (!Array.isArray(urunler)) urunler = [urunler];
 
@@ -176,14 +162,12 @@ export class PttavmProvider extends BaseMarketplaceProvider {
 
         return {
           barcode: String(u.Barkod || ""),
-          sku: String(u.UrunKodu || u.Barkod || ""),
-          name: String(u.UrunAdi || ""),
+          title: String(u.UrunAdi || ""),
           price,
           stock: parseInt(u.Miktar) || 0,
           currency: "TRY",
-          isActive: String(u.Aktif).toLowerCase() === "true" || u.Durum === "Mevcut",
-          marketplace: "PttAVM",
-          /* Rich Data */
+          active: String(u.Aktif).toLowerCase() === "true" || u.Durum === "Mevcut",
+          marketplace: this.name,
           brand: String(u.Marka || ""),
           category: String(u.AltKategoriAdi || u.TedarikciAltKategoriAdi || ""),
           description: String(u.UzunAciklama || u.Aciklama || ""),
@@ -198,16 +182,13 @@ export class PttavmProvider extends BaseMarketplaceProvider {
           },
           variants: []
         };
-      }).filter((p: any) => p.barcode || p.title);
+      }).filter((p: MarketplaceListing) => p.barcode || p.title);
     } catch (e: unknown) {
-      logger.error("pttavm.parseListings.error", { error: e });
+      logger.error("pttavm.parseListings.error", { error: String(e) });
       return [];
     }
   }
 
-  // ============================================================
-  // getNewOrders() - SOAP SiparisKontrolListesiV2
-  // ============================================================
   async getNewOrders(params?: {
     startDate?: string;
     endDate?: string;
@@ -222,31 +203,17 @@ export class PttavmProvider extends BaseMarketplaceProvider {
     }
 
     try {
-      // Default date range: last 30 days (max allowed)
       const endDate = params?.endDate || this.formatDate(new Date());
       const startDate = params?.startDate || this.formatDate(this.getDateDaysAgo(30));
-
-      // AktifSiparisler: 1 = kargo bekleyenler, 0 = tüm siparişler
       const aktifSiparisler = params?.activeOnly ? 1 : 0;
-
-      // Use V2 by default (more features)
       const useV2 = params?.useV2 ?? true;
       const orderId = params?.orderId ?? 0;
       const urunKirilim = params?.urunKirilim ? 1 : 0;
-
-      logger.info("pttavm.getNewOrders.request", {
-        startDate,
-        endDate,
-        aktifSiparisler,
-        useV2,
-        orderId
-      });
 
       let soapBody: string;
       let soapAction: string;
 
       if (useV2) {
-        // SiparisKontrolListesiV2
         soapAction = "http://tempuri.org/IService/SiparisKontrolListesiV2";
         soapBody = `
           <tem:SiparisKontrolListesiV2>
@@ -258,7 +225,6 @@ export class PttavmProvider extends BaseMarketplaceProvider {
           </tem:SiparisKontrolListesiV2>
         `;
       } else {
-        // SiparisKontrolListesi (V1)
         soapAction = "http://tempuri.org/IService/SiparisKontrolListesi";
         soapBody = `
           <tem:SiparisKontrolListesi>
@@ -275,7 +241,6 @@ export class PttavmProvider extends BaseMarketplaceProvider {
         return ok({ status: "failed", orders: [], message: result.message });
       }
 
-      // Parse XML response
       const orders = this.parseOrdersFromResponse(result.data as string, useV2);
 
       logMarketplaceEvent(this.name, "getNewOrders", {
@@ -290,20 +255,15 @@ export class PttavmProvider extends BaseMarketplaceProvider {
       });
 
     } catch (e: unknown) {
-      logger.error("pttavm.getNewOrders.exception", { error: e });
+      logger.error("pttavm.getNewOrders.exception", { error: String(e) });
       return fail(e instanceof Error ? e : new Error(String(e)));
     }
   }
 
-  /**
-   * Parse orders from SOAP XML response
-   */
   private parseOrdersFromResponse(xmlData: string, isV2: boolean): MarketplaceOrder[] {
     try {
-      const parsed = this.xmlParser.parse(xmlData);
+      const parsed = this.xmlParser.parse(xmlData) as Record<string, any>;
 
-      // Navigate to result - structure varies but typically:
-      // Envelope > Body > SiparisKontrolListesiResponse > SiparisKontrolListesiResult
       const envelope = parsed?.Envelope || parsed;
       const body = envelope?.Body || envelope;
 
@@ -314,20 +274,13 @@ export class PttavmProvider extends BaseMarketplaceProvider {
       const result = response?.[resultKey];
 
       if (!result) {
-        logger.warn("pttavm.parseOrders.no_result", {
-          hasEnvelope: !!envelope,
-          hasBody: !!body,
-          hasResponse: !!response
-        });
         return [];
       }
 
-      // Result could be an array of orders or contain Siparisler array
       let siparisler = result?.Siparisler || result?.Siparis || result;
 
       if (!siparisler) return [];
 
-      // Ensure array
       if (!Array.isArray(siparisler)) {
         siparisler = [siparisler];
       }
@@ -335,76 +288,62 @@ export class PttavmProvider extends BaseMarketplaceProvider {
       return siparisler.map((s: unknown) => this.normalizeOrder(s as Record<string, any>));
 
     } catch (e: unknown) {
-      logger.error("pttavm.parseOrders.error", { error: e });
+      logger.error("pttavm.parseOrders.error", { error: String(e) });
       return [];
     }
   }
 
-  /**
-   * Normalize PttAVM order to standard format
-   */
-  private normalizeOrder(s: any): MarketplaceOrder {
-    // Extract items from Urunler or UrunListesi
+  private normalizeOrder(s: Record<string, any>): MarketplaceOrder {
     const urunler = s.Urunler || s.UrunListesi || s.Urun || [];
     const items = (Array.isArray(urunler) ? urunler : [urunler])
-      .filter((u: any) => u)
-      .map((u: any) => ({
-        barcode: u.Barkod || u.UrunKodu,
-        sku: u.StokKodu || u.Barkod,
-        name: u.UrunAdi,
+      .filter((u: Record<string, any> | undefined) => u)
+      .map((u: Record<string, any>) => ({
+        barcode: String(u.Barkod || u.UrunKodu || ""),
+        sku: String(u.StokKodu || u.Barkod || ""),
+        name: String(u.UrunAdi || ""),
         quantity: parseInt(u.Adet) || 1,
         unitPrice: parseFloat(u.BirimFiyat) || 0,
-        totalPrice: parseFloat(u.ToplamFiyat) || parseFloat(u.BirimFiyat) * parseInt(u.Adet) || 0,
-        status: u.Durum || "Beklemede",
+        totalPrice: parseFloat(u.ToplamFiyat) || parseFloat(u.BirimFiyat) * (parseInt(u.Adet) || 1) || 0,
+        status: String(u.Durum || "Beklemede"),
       }));
 
     return {
-      orderNumber: s.SiparisNo || s.SiparisId?.toString(),
-      orderId: s.SiparisId?.toString() || s.SiparisNo,
-      marketplace: "PttAVM",
-      orderDate: s.SiparisTarihi || s.Tarih,
-      totalAmount: parseFloat(s.ToplamTutar) || items.reduce((sum: number, i: any) => sum + i.totalPrice, 0),
+      orderNumber: String(s.SiparisNo || s.SiparisId || ""),
+      orderId: String(s.SiparisId || s.SiparisNo || ""),
+      marketplace: this.name,
+      orderDate: String(s.SiparisTarihi || s.Tarih || ""),
+      totalAmount: parseFloat(s.ToplamTutar) || items.reduce((sum: number, i) => sum + i.totalPrice, 0),
       currency: "TRY",
-      status: s.SiparisDurumu || s.Durum || "Beklemede",
+      status: String(s.SiparisDurumu || s.Durum || "Beklemede"),
       statusCode: s.DurumKodu,
       customer: {
-        name: s.MusteriAdi || `${s.Ad || ""} ${s.Soyad || ""}`.trim(),
+        name: String(s.MusteriAdi || `${s.Ad || ""} ${s.Soyad || ""}`).trim(),
         email: s.Email,
         phone: s.Telefon || s.CepTelefon,
       },
       shippingAddress: {
-        fullAddress: s.Adres || s.TeslimatAdresi,
-        city: s.Il || s.Sehir,
-        district: s.Ilce,
-        postalCode: s.PostaKodu,
+        fullAddress: String(s.Adres || s.TeslimatAdresi || ""),
+        city: String(s.Il || s.Sehir || ""),
+        district: String(s.Ilce || ""),
+        postalCode: String(s.PostaKodu || ""),
       },
       cargoInfo: {
         cargoCompany: s.KargoFirma,
         trackingNumber: s.KargoTakipNo,
       },
-      items: (items as any[]),
+      items,
     };
   }
 
-  /**
-   * Format date as YYYY-MM-DD
-   */
   private formatDate(date: Date): string {
     return date.toISOString().split('T')[0];
   }
 
-  /**
-   * Get date N days ago
-   */
   private getDateDaysAgo(days: number): Date {
     const date = new Date();
     date.setDate(date.getDate() - days);
     return date;
   }
-
-  // ============================================================
-  // EXISTING METHODS
-  // ============================================================
 
   async upsertProduct(payload: MarketplaceProductPayload): Promise<Result<MarketplaceActionResult>> {
     if (!this.isConfigured()) return ok(this.notConfigured("upsertProduct"));
@@ -426,8 +365,8 @@ export class PttavmProvider extends BaseMarketplaceProvider {
     try {
       const result = await this.soapRequest("http://tempuri.org/IService/UrunKayit", `<tem:UrunKayit>${body}</tem:UrunKayit>`);
       return ok(result);
-    } catch (e: any) {
-      return fail(e);
+    } catch (e: unknown) {
+      return fail(e instanceof Error ? e : new Error(String(e)));
     }
   }
 
@@ -445,8 +384,8 @@ export class PttavmProvider extends BaseMarketplaceProvider {
     try {
       const result = await this.soapRequest("http://tempuri.org/IService/StokFiyatGuncelle", `<tem:StokFiyatGuncelle>${body}</tem:StokFiyatGuncelle>`);
       return ok(result);
-    } catch (e: any) {
-      return fail(e);
+    } catch (e: unknown) {
+      return fail(e instanceof Error ? e : new Error(String(e)));
     }
   }
 
@@ -454,9 +393,6 @@ export class PttavmProvider extends BaseMarketplaceProvider {
     return this.upsertProduct(payload);
   }
 
-  /**
-   * Escape XML special characters
-   */
   private escapeXml(str: string): string {
     return str
       .replace(/&/g, "&amp;")
@@ -466,23 +402,11 @@ export class PttavmProvider extends BaseMarketplaceProvider {
       .replace(/'/g, "&apos;");
   }
 
-  /**
-   * Make SOAP request with WS-Security headers
-   */
   private async soapRequest(soapAction: string, contentXml: string): Promise<MarketplaceActionResult> {
     const auth = this.getAuth();
     if (!auth) return { status: "not_configured", message: "Missing auth" };
 
     const url = "https://ws.pttavm.com:93/service.svc";
-     const created = new Date().toISOString();
-    const nonce = nodeCrypto.randomBytes(16).toString("base64");
-
-    // WS-Security Password Digest
-    const sha1 = nodeCrypto.createHash("sha1");
-    sha1.update(Buffer.from(nonce, "base64"));
-    sha1.update(Buffer.from(created, "utf8"));
-    // sha1.update(Buffer.from(auth.password, "utf8"));
-    // const passwordDigest = sha1.digest("base64");
 
     const soapEnvelope = `<?xml version="1.0" encoding="UTF-8"?>
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tem="http://tempuri.org/" xmlns:ptt="http://schemas.datacontract.org/2004/07/PttAVM.Services.DTO">
@@ -500,8 +424,6 @@ export class PttavmProvider extends BaseMarketplaceProvider {
 </soapenv:Envelope>`;
 
     try {
-      logger.debug("pttavm.soapRequest", { soapAction, url });
-
       const res = await fetch(url, {
         method: "POST",
         headers: {
@@ -518,10 +440,6 @@ export class PttavmProvider extends BaseMarketplaceProvider {
         message: res.ok ? "Success" : `HTTP ${res.status}`
       });
 
-      if (!res.ok) {
-        logger.error("pttavm.soapRequest.http_error", { status: res.status, body: text.substring(0, 500) });
-      }
-
       return {
         status: res.ok ? "ok" : "failed",
         message: res.ok ? "Success" : `HTTP ${res.status}`,
@@ -529,8 +447,80 @@ export class PttavmProvider extends BaseMarketplaceProvider {
       };
 
     } catch (err: unknown) {
-      logger.error("pttavm.soapRequest.exception", { error: err });
+      logger.error("pttavm.soapRequest.exception", { error: String(err) });
       return { status: "failed", message: String(err) };
     }
+  }
+
+  protected notConfigured(op: string): MarketplaceActionResult {
+    const result = {
+      status: "not_configured",
+      message: `${this.name} provider is not configured for ${op}. Missing ${this.getConfigStatus().missing?.join(", ")}`,
+    } satisfies MarketplaceActionResult;
+    logMarketplaceEvent(this.name, op, {
+      status: result.status,
+      message: result.message,
+    });
+    return result;
+  }
+
+  /**
+   * Get price competition data
+   * Note: PttAVM SOAP API doesn't provide a direct competitor pricing endpoint
+   */
+  async getPriceCompetition(barcodes: string[]): Promise<Result<{ barcode: string; lowestPrice: number; winningSeller?: string; competitorCount?: number }[]>> {
+    if (!this.isConfigured()) return fail(new Error("Not configured"));
+    if (!barcodes || barcodes.length === 0) return ok([]);
+
+    try {
+      const results: { barcode: string; lowestPrice: number; winningSeller?: string; competitorCount?: number }[] = [];
+
+      for (const barcode of barcodes) {
+        // We use our own listing data as fallback
+        const listResult = await this.listListings({ barcode });
+        
+        if (!listResult.ok || listResult.value.items.length === 0) {
+          results.push({ barcode, lowestPrice: 0, competitorCount: 0 });
+          continue;
+        }
+
+        const ourListing = listResult.value.items[0];
+        
+        results.push({
+          barcode,
+          lowestPrice: ourListing.price,
+          winningSeller: "CurrentSeller",
+          competitorCount: 1
+        });
+      }
+
+      logMarketplaceEvent(this.name, "getPriceCompetition", {
+        status: "ok",
+        message: `Analyzed ${barcodes.length} products`
+      });
+
+      return ok(results);
+    } catch (error: unknown) {
+      return fail(error instanceof Error ? error : new Error(String(error)));
+    }
+  }
+
+  /**
+   * Get product reviews
+   */
+  async getProductReviews(barcode: string): Promise<Result<MarketplaceReviewResult>> {
+    if (!this.isConfigured()) return fail(new Error("Not configured"));
+    if (!barcode) return fail(new Error("Barcode required"));
+
+    logMarketplaceEvent(this.name, "getProductReviews", {
+      status: "ok",
+      message: `Reviews not directly accessible via SOAP API for ${barcode}`
+    });
+
+    return ok({
+      status: "ok",
+      message: "PttAVM yorum API'si SOAP üzerinden erişilebilir değil",
+      reviews: []
+    });
   }
 }

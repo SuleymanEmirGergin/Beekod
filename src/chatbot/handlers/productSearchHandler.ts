@@ -1,7 +1,8 @@
 
 import { ChatHandler } from "./baseHandler.js";
-import { productSearchService } from "../../services/productSearchService.js";
-import { ChatEntity, ChatIntent, HandlerResult } from "../types.js";
+import { ChatEntity, ChatIntent, HandlerResult, ProductCard } from "../types.js";
+import { MarketplaceName } from "../../services/marketplace/types.js";
+import { logger } from "../../logger.js";
 
 export class ProductSearchHandler implements ChatHandler {
     name = "productSearchHandler";
@@ -9,43 +10,90 @@ export class ProductSearchHandler implements ChatHandler {
 
     async handle(
         entities: ChatEntity,
-        userId: string | undefined,
-        sessionId: string,
-        intent: ChatIntent,
+        _userId: string | undefined,
+        _sessionId: string,
+        _intent: ChatIntent,
         message?: string
     ): Promise<HandlerResult> {
         let query = entities.productName || entities.barcode;
 
-        // If NLU failed to extract product name, try to grab the whole message or regex from it
+        // If NLU failed to extract product name, try to grab the whole message
         if (!query && message) {
-            query = message;
+            // Clean common prefixes
+            query = message
+                .replace(/^(ara|bul|getir|göster)\s+/i, "")
+                .replace(/\s+(ara|bul)$/i, "")
+                .trim();
         }
 
-        query = query || "iphone"; // Ultimate fallback
-
-        const products = await productSearchService.searchProducts(query);
-
-        if (products.length > 0) {
-            console.log("ProductSearchHandler returning:", JSON.stringify(products, null, 2));
-
-            let message = `Bulduğum "${query}" sonuçları aşağıdadır. İstediğiniz ürünü "Mağazama Ekle" butonuna tıklayarak envanterinize ekleyebilirsiniz.`;
-
-            // Smart response for the "iPhone 17" demo scenario
-            if (query.toLowerCase().includes("17")) {
-                message = `⚠️ **iPhone 17 henüz satışa sunulmadı.**\n\nTalep ettiğiniz **"Gerçek Veri"** prensibine uygun olarak, şu an piyasadaki en güncel model olan **iPhone 15** için anlık gerçek mağaza fiyatlarını ve stoklarını getirdim.`;
-            }
-
+        if (!query) {
             return {
-                success: true,
-                message: message,
-                productCards: products
+                success: false,
+                message: "Aramak istediğiniz ürünün adını belirtin.\n\nÖrnek: `iPhone 15 ara`",
             };
         }
 
-        return {
-            success: true,
-            message: `"${query}" için şu an herhangi bir sonuç bulamadım. Başka bir ürün aramak ister misiniz?`
-        };
+        logger.info("productSearchHandler.searching", { query });
+
+        try {
+            // Use real marketplace scraping
+            const { unifiedMarketplaceSearch } = await import(
+                "../../services/search/unifiedMarketplaceSearch.js"
+            );
+
+            const result = await unifiedMarketplaceSearch(query, entities);
+
+            if (!result.ok) {
+                return {
+                    success: false,
+                    message: `Arama sırasında hata oluştu: ${result.error.message}`,
+                };
+            }
+
+            const foundProducts = result.value;
+
+            if (foundProducts.length === 0) {
+                return {
+                    success: true,
+                    message: `🔍 **"${query}"** için pazaryerlerinde sonuç bulunamadı.\n\nFarklı bir arama terimi deneyin.`,
+                };
+            }
+
+            // Convert to ProductCard format with real images
+            const productCards: ProductCard[] = foundProducts.map((p) => ({
+                barcode: p.barcode,
+                name: p.title,
+                price: p.price,
+                currency: p.currency || "TRY",
+                stock: p.stockCount,
+                image: p.image,       // Real marketplace image URL
+                imageUrl: p.image,    // Fallback field
+                marketplace: p.marketplace as MarketplaceName,
+                url: p.url,
+                canImport: true,
+            }));
+
+            // Build response message
+            let responseMessage = `🔍 **"${query}"** için **${foundProducts.length}** sonuç bulundu:\n\n`;
+            responseMessage += "Kartlardan ürün detaylarını inceleyebilir, beğendiğinizi **Mağazama Ekle** ile ekleyebilirsiniz.";
+
+            logger.info("productSearchHandler.success", {
+                query,
+                resultCount: foundProducts.length,
+            });
+
+            return {
+                success: true,
+                message: responseMessage,
+                productCards,
+            };
+        } catch (error) {
+            logger.error("productSearchHandler.error", { query, error });
+            return {
+                success: false,
+                message: "Pazaryeri araması sırasında bir hata oluştu. Lütfen tekrar deneyin.",
+            };
+        }
     }
 }
 

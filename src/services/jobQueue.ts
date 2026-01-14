@@ -12,7 +12,9 @@ export type JobType =
   | "ai.inventory_audit" 
   | "ai.auto_pricing"
   | "ai.health_check"
-  | "ai.price_comparison";
+  | "ai.price_comparison"
+  | "ai.high_priority_sync"
+  | "ai.low_priority_sync";
 export type JobStatus = "queued" | "running" | "done" | "failed";
 
 export type JobRecord = {
@@ -231,9 +233,17 @@ async function runJob(job: JobRow) {
   try {
     let result: unknown = null;
     if (job.type === "cache.refresh") {
-      result = refreshCaches();
+      const refreshResult = refreshCaches();
+      if (!refreshResult.ok) {
+        throw new Error("cache_refresh_failed");
+      }
+      result = refreshResult;
     } else if (job.type === "marketplace.sync_all") {
-      result = await syncAllMarketplaceListings();
+      const syncResult = await syncAllMarketplaceListings();
+      if (!syncResult.ok) {
+        throw new Error(syncResult.reason || "sync_all_failed");
+      }
+      result = syncResult;
     } else if (job.type === "marketplace.live_update") {
       const payload = parseJson(job.payload) as LiveUpdatePayload | undefined;
       if (!payload || typeof payload !== "object") {
@@ -316,8 +326,20 @@ async function runJob(job: JobRow) {
       result = { summary: "Health check completed", results: healthResults };
     } else if (job.type === "ai.price_comparison") {
       const { runPriceComparison } = await import("./marketplace/priceComparisonService.js");
-      const comparisonResult = await runPriceComparison();
-      result = { summary: "Price comparison completed", ...comparisonResult };
+      const comparisonRes = await runPriceComparison();
+      if (comparisonRes.ok) {
+        result = { jobStatus: "Price comparison completed", ...comparisonRes.value };
+      } else {
+        throw comparisonRes.error;
+      }
+    } else if (job.type === "ai.high_priority_sync") {
+      // Sync low stock or critical items frequently
+      const syncResult = await syncAllMarketplaceListings({ onlyCritical: true });
+      result = { jobStatus: "High priority sync completed", ...syncResult };
+    } else if (job.type === "ai.low_priority_sync") {
+      // Sync high stock items less frequently
+      const syncResult = await syncAllMarketplaceListings({ minStock: 6 });
+      result = { jobStatus: "Low priority sync completed", ...syncResult };
     }
     await updateJobSuccess(job.id, result);
   } catch (error) {

@@ -1,10 +1,5 @@
-<<<<<<< HEAD
 import { analyzeImage } from "./ai/geminiClient.js";
 import { searchProductsByName } from "./product/productService.js";
-=======
-import { analyzeImage } from "./geminiClient.js";
-import { searchProductsByName } from "./productService.js";
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 import { Product } from "../types.js";
 import { logger } from "../logger.js";
 

@@ -22,11 +22,7 @@ export interface ChatHandler {
         entities: ChatEntity,
         userId?: string,
         sessionId?: string,
-<<<<<<< HEAD
-        intent?: string
-=======
         intent?: string,
         message?: string
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
     ): Promise<HandlerResult>;
 }

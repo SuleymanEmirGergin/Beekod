@@ -1,0 +1,4 @@
+src/logger.ts(1,8): error TS1259: Module '"C:/Users/emirg/Desktop/Beekod/Beekod/node_modules/winston/index"' can only be default-imported using the 'esModuleInterop' flag
+src/logger.ts(2,8): error TS1259: Module '"path"' can only be default-imported using the 'esModuleInterop' flag
+src/services/marketplace/providers/trendyolProvider.ts(1,8): error TS1192: Module '"fs/promises"' has no default export.
+src/services/marketplace/providers/trendyolProvider.ts(696,35): error TS2802: Type 'MapIterator<[string, Record<string, unknown>[]]>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.

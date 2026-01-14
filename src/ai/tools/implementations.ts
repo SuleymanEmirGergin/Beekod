@@ -101,12 +101,12 @@ type AnalyticsQueryType =
   | "order_stats"
   | "stock_alerts";
 
-function resolveAnalyticsQuery(nl: string): {
+function resolveAnalyticsQuery(nl: string = ""): {
   queryType: AnalyticsQueryType;
   days: number;
   limit: number;
 } {
-  const lower = nl.toLowerCase();
+  const lower = (nl || "").toLowerCase();
   const days = inferDays(lower);
   const limit = inferLimit(lower);
 

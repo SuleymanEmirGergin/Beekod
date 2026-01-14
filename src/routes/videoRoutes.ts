@@ -1,6 +1,5 @@
 import express from "express";
 import { generateVideoScript, generateVideoMedia, generateAIDrivenVideo, generateTryOnVideo } from "../services/videoService.js";
-import { getTaskDetail } from "../services/wiroService.js";
 import { videoQueue } from "../queue/index.js";
 import { logger } from "../logger.js";
 
@@ -50,8 +49,9 @@ router.post("/generate-ai-media", async (req, res) => {
       return res.status(400).json({ success: false, error: "Product ID (barcode) and Vibe are required" });
     }
 
-    const taskInfo = await generateAIDrivenVideo(productId, vibe, customPrompt);
-    res.json({ success: true, data: taskInfo });
+    // Fal.ai returns result directly (no polling needed)
+    const result = await generateAIDrivenVideo(productId, vibe, customPrompt);
+    res.json({ success: true, data: { videoUrl: result.videoUrl, status: "complete" } });
   } catch (error: any) {
     logger.error("video.ai_media_route_failed", { err: error });
     res.status(500).json({ success: false, error: error.message });
@@ -60,8 +60,7 @@ router.post("/generate-ai-media", async (req, res) => {
 
 /**
  * POST /api/video/generate-try-on-video
- * Generate video using virtual try-on workflow
- * Body: { productId: string, gender?: 'male'|'female'|'neutral', vibe?: string }
+ * Generate video using virtual try-on workflow (Fal.ai - synchronous)
  */
 router.post("/generate-try-on-video", async (req, res) => {
   try {
@@ -81,7 +80,7 @@ router.post("/generate-try-on-video", async (req, res) => {
     res.json({
       success: true,
       videoUrl: result.videoUrl,
-      taskToken: result.taskToken
+      status: "complete"
     });
   } catch (error: any) {
     logger.error("video.try_on_video_route_failed", { err: error });
@@ -93,37 +92,14 @@ router.post("/generate-try-on-video", async (req, res) => {
   }
 });
 
+// GET /api/video/task-status/:token
+// Deprecated: Fal.ai is synchronous, no polling needed
 router.get("/task-status/:token", async (req, res) => {
-  try {
-    const { token } = req.params;
-    const detail = await getTaskDetail(token);
-
-    // Wiro returns tasklist. We look for status and outputs.
-    // status "task_postprocess_end" usually means done.
-    const task = detail.tasklist && detail.tasklist[0];
-
-    if (!task) {
-      return res.status(404).json({ success: false, error: "Task not found" });
-    }
-
-    let url = null;
-    if (task.status === "task_postprocess_end" && task.outputs && task.outputs.length > 0) {
-      // Find the video file or just take the first output
-      url = task.outputs[0].url || `https://api.wiro.ai/v1/File/Download/${task.outputs[0].id}`;
-      // Note: The download URL might need a key or different structure, 
-      // but task.outputs[0].url is usually present if hosted.
-    }
-
-    res.json({
-      success: true,
-      status: task.status,
-      url: url,
-      progress: task.status === "task_postprocess_end" ? 100 : 50 // simplistic progress
-    });
-  } catch (error: any) {
-    logger.error("video.task_status_failed", { err: error });
-    res.status(500).json({ success: false, error: error.message });
-  }
+  res.status(410).json({
+    success: false,
+    error: "Deprecated",
+    message: "Fal.ai is synchronous. Status polling is no longer needed. Video generation endpoints now return results directly."
+  });
 });
 
 // ============================================

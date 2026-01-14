@@ -5,6 +5,7 @@ import {
   MarketplaceListing,
   MarketplaceOrderResult,
   MarketplaceProductPayload,
+  MarketplaceReviewResult,
   MarketplaceTokenStatus,
   MarketplaceUpdatePayload,
 } from "../types.js";
@@ -13,6 +14,7 @@ import { ok, fail, Result } from "../../../utils/result.js";
 import { XMLParser } from "fast-xml-parser";
 
 import { BaseMarketplaceProvider } from "./baseProvider.js";
+import { n11Service } from "../n11Service.js";
 
 export class N11Provider extends BaseMarketplaceProvider {
   name = "N11" as const;
@@ -81,9 +83,10 @@ export class N11Provider extends BaseMarketplaceProvider {
 
     const soapBody = this.buildProductSaveRequest({
       barcode: payload.barcode,
-      title: payload.name,
+      name: payload.name,
       price: payload.price,
       stock: payload.stock,
+      currency: payload.currency || "TRY",
       categoryId: parseInt(String(this.pickCred(["N11_CATEGORY_ID", "categoryId"]) || "0"), 10),
       brandId: parseInt(String(this.pickCred(["N11_BRAND_ID", "brandId"]) || "0"), 10),
     });
@@ -117,17 +120,17 @@ export class N11Provider extends BaseMarketplaceProvider {
     return this.upsertProduct(payload);
   }
 
-  async listListings(_params?: { status?: "active" | "inactive"; barcode?: string; size?: number }): Promise<Result<MarketplaceListResult>> {
+  async listListings(_params?: { status?: "active" | "inactive"; barcode?: string; deep?: boolean; page?: number; pageSize?: number }): Promise<Result<MarketplaceListResult>> {
     if (!this.isConfigured()) {
       const nc = this.notConfigured("listListings");
       return ok({ status: nc.status, message: nc.message, items: [] });
     }
     
     const auth = this.getAuth();
-    const pageSize = _params?.size ?? 100;
-    const maxPages = 50; // Safety limit
+    const pageSize = _params?.pageSize ?? 100;
+    const maxPages = 50; 
     const allItems: MarketplaceListing[] = [];
-    let currentPage = 0;
+    let currentPage = _params?.page ?? 0;
     let hasMore = true;
 
     while (hasMore && currentPage < maxPages) {
@@ -156,7 +159,7 @@ export class N11Provider extends BaseMarketplaceProvider {
       const xml = (response as { data: string })?.data;
       const doc = this.parseSoapXml(xml);
       const body = this.getSoapBody(doc);
-      const resp = this.pickFirst<Record<string, any>>(body, ["GetProductListResponse", "getProductListResponse"]);
+      const resp = this.pickFirst<any>(body, ["GetProductListResponse", "getProductListResponse"]);
       const products = this.asArray<Record<string, any>>(resp?.products?.product ?? resp?.products?.products?.product);
 
       const currency = (process.env.N11_CURRENCY || "TRY");
@@ -164,43 +167,90 @@ export class N11Provider extends BaseMarketplaceProvider {
         const rawPrice = p.displayPrice || p.price || p.salePrice || 0;
         const price = typeof rawPrice === "number" ? rawPrice : this.toNumber(rawPrice) || 0;
         
-        const rawStock = p.stockItems?.stockItem?.quantity || 0;
-        const stock = typeof rawStock === "number" ? rawStock : this.toNumber(rawStock) || 0;
+        const stockItems = this.asArray<Record<string, any>>(p.stockItems?.stockItem);
+        const totalStock = stockItems.reduce((acc, si) => acc + (this.toNumber(si.quantity) || 0), 0);
+
+        const variants = stockItems.length > 1 ? stockItems.map(si => ({
+          barcode: String(si.sellerStockCode || si.gtin || p.productSellerCode || ""),
+          title: String(p.title || ""),
+          price: this.toNumber(si.displayPrice || si.optionPrice) || price,
+          stock: this.toNumber(si.quantity) || 0,
+          attributes: this.asArray<Record<string, any>>(si.attributes?.attribute).reduce((acc: Record<string, string>, attr) => {
+            if (attr.name) acc[attr.name] = String(attr.value || "");
+            return acc;
+          }, {})
+        })) : [];
+
+        let brandName = p.brand?.name || p.brand || "";
+        if (!brandName && p.title) {
+            brandName = String(p.title).split(" ")[0];
+        }
+        
+        let categoryName = p.category?.name || p.category || "";
+        const catId = Number(p.categoryId || p.n11CatalogGroupId);
+        if (!categoryName && catId) {
+            const cat = n11Service.getCategoryById(catId);
+            if (cat) categoryName = cat.name;
+        }
+        
+        if (!categoryName && p.title?.toLowerCase().includes("bagaj havuzu")) {
+            categoryName = "Oto Aksesuar > Bagaj Havuzu";
+        }
 
         return {
           marketplace: this.name,
-          barcode: p.productSellerCode || p.sellerStockCode,
-          title: p.title || "",
+          barcode: String(p.productSellerCode || p.sellerStockCode || ""),
+          title: String(p.title || ""),
           price,
-          stock,
+          stock: totalStock,
           active: String(p.saleStatus) === "2",
           currency,
-          brand: p.brand?.name || "",
-          category: p.category?.name || "",
+          brand: String(brandName),
+          category: String(categoryName),
           attributes: {
-            brand: p.brand?.name || "",
-            category: p.category?.name || "",
-            approvalStatus: String(p.approvalStatus || "")
+            brand: String(brandName),
+            category: String(categoryName),
+            approvalStatus: String(p.approvalStatus || ""),
+            n11CatalogGroupId: String(p.n11CatalogGroupId || ""),
+            categoryId: String(p.categoryId || "")
           },
-          variants: []
+          variants
         };
       }).filter(x => !!x.barcode);
 
+      if (_params?.deep) {
+        for (const item of pageItems) {
+          try {
+            const detailRes = await this.getProductDetail(item.barcode);
+            if (detailRes.ok && detailRes.value) {
+              const detail = detailRes.value;
+              const imagesData = (detail.images as Record<string, unknown>)?.image;
+              const images = this.asArray<{ url: string }>(imagesData).map((img) => img.url).filter(Boolean);
+              if (images.length > 0) {
+                item.images = images;
+                item.imageUrl = images[0];
+              }
+              if (detail.description) item.description = String(detail.description);
+            }
+          } catch {
+            // Silently fail for individual items
+          }
+        }
+      }
+
       allItems.push(...pageItems);
 
-      // Check pagination info
-      const pagingData = resp?.pagingData;
-      const totalCount = Number(pagingData?.totalCount || 0);
+      const pagingData = resp?.pagingData as Record<string, unknown> | undefined;
       const pageCount = Number(pagingData?.pageCount || 1);
       
       currentPage++;
       hasMore = pageItems.length === pageSize && currentPage < pageCount;
     }
 
-    return ok({ status: "ok", items: allItems, message: `${allItems.length} ürün (${currentPage} sayfa)` });
+    return ok({ status: "ok", items: allItems, message: `${allItems.length} ürün listelendi` });
   }
 
-  async getNewOrders(_params?: { startDate?: string; endDate?: string }): Promise<Result<MarketplaceOrderResult>> {
+  async getNewOrders(_params?: { startDate?: string; endDate?: string; status?: string }): Promise<Result<MarketplaceOrderResult>> {
     if (!this.isConfigured()) {
       const nc = this.notConfigured("getNewOrders");
       return ok({ status: nc.status, message: nc.message, orders: [] });
@@ -208,13 +258,6 @@ export class N11Provider extends BaseMarketplaceProvider {
 
     const auth = this.getAuth();
     if (!auth) return ok({ status: "not_configured", orders: [], message: "Missing N11 credentials" });
-
-    // Standard SOAP Request for N11 DetailedOrderList
-    // We typically ask for "New" (Paid) or "Approved" orders.
-    // Status strings: "New", "Approved", "Rejected", "Shipped", "Delivered", "Completed"
-    // We'll ask for 'Approved' (Paid orders waiting for shipment)
-    
-    // Date Filtering? usually standard N11 allows search by status primarily for fulfillment.
     
     const soapBody = `<?xml version="1.0" encoding="UTF-8"?>
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:sch="http://www.n11.com/ws/schemas">
@@ -226,7 +269,7 @@ export class N11Provider extends BaseMarketplaceProvider {
             <appSecret>${this.escapeXml(auth.appSecret)}</appSecret>
          </auth>
          <searchData>
-            <status>Approved</status> 
+            <status>${_params?.status || "Approved"}</status> 
          </searchData>
          <pagingData>
             <currentPage>0</currentPage>
@@ -236,51 +279,174 @@ export class N11Provider extends BaseMarketplaceProvider {
    </soapenv:Body>
 </soapenv:Envelope>`;
 
-    const response = await this.soapRequest("DetailedOrderList", soapBody);
-    if (response.status !== "ok" || !response.data) {
-         return ok({ status: "failed", message: response.message || "Failed to fetch N11 orders", orders: [] });
-    }
-
     try {
-        const xml = response.data as string;
-        const doc = this.parseSoapXml(xml);
-        const body = this.getSoapBody(doc);
-        const resp = this.pickFirst<any>(body, ["DetailedOrderListResponse", "detailedOrderListResponse"]);
-        
-        let orderList = this.asArray<any>(resp?.orderList?.order);
-        
-        const orders = orderList.map((o: Record<string, any>) => {
-             const items = this.asArray<Record<string, any>>(o.itemList?.item).map((item: Record<string, any>) => ({
-                 sku: item.sellerStockCode || item.productId,
-                 barcode: item.productSellerCode || item.sellerStockCode,
-                 name: item.productName,
-                 price: Number(item.price || 0),
-                 quantity: Number(item.quantity || 1)
-             }));
+      const response = await this.soapRequest("DetailedOrderList", soapBody);
+      if (response.status !== "ok" || !response.data) {
+           return ok({ status: "failed", message: response.message || "Failed to fetch N11 orders", orders: [] });
+      }
 
-             return {
-                 marketplace: this.name,
-                 orderNumber: o.orderNumber,
-                 customerName: o.buyer?.fullName,
-                 customerEmail: o.buyer?.email,
-                 customerPhone: o.buyer?.gsmNumber, // N11 specific
-                 customerAddress: o.billingAddress?.address || o.shippingAddress?.address,
-                 items,
-                 totalAmount: Number(o.billingTemplate?.originalPrice || 0), // Typically total
-                 currency: "TRY",
-                 orderDate: o.createDate, // e.g. "20/12/2023 10:00"
-                 status: o.status // "Approved"
-             };
-        });
+      const xml = response.data as string;
+      const doc = this.parseSoapXml(xml);
+      const body = this.getSoapBody(doc);
+      const resp = this.pickFirst<any>(body, ["DetailedOrderListResponse", "detailedOrderListResponse"]);
+      
+      const orderList = this.asArray<Record<string, any>>(resp?.orderList?.order);
+      
+      const orders = orderList.map((o: Record<string, any>) => {
+           const items = this.asArray<Record<string, any>>(o.itemList?.item).map((item: Record<string, any>) => ({
+               sku: String(item.sellerStockCode || item.productId || ""),
+               barcode: String(item.productSellerCode || item.sellerStockCode || ""),
+               name: String(item.productName || ""),
+               price: Number(item.price || 0),
+               quantity: Number(item.quantity || 1)
+           }));
 
-        return ok({ status: "ok", message: "ok", orders });
+           return {
+               marketplace: this.name,
+               orderNumber: String(o.orderNumber || ""),
+               customerName: String(o.buyer?.fullName || ""),
+               customerEmail: String(o.buyer?.email || ""),
+               customerPhone: String(o.buyer?.gsmNumber || ""),
+               customerAddress: String(o.billingAddress?.address || o.shippingAddress?.address || ""),
+               items,
+               totalAmount: Number(o.billingTemplate?.originalPrice || 0),
+               currency: "TRY",
+               orderDate: String(o.createDate || ""),
+               status: String(o.status || "Approved")
+           };
+      });
 
-    } catch (e: any) {
-        return ok({ status: "failed", message: "Parse error: " + e.message, orders: [] });
+      return ok({ status: "ok", message: "ok", orders });
+
+    } catch (e: unknown) {
+        return ok({ status: "failed", message: "Parse error: " + (e instanceof Error ? e.message : String(e)), orders: [] });
     }
   }
 
-  private buildProductSaveRequest(p: any) {
+  async getOrderDetail(orderNumber: string): Promise<Result<Record<string, any>>> {
+    if (!this.isConfigured()) return ok(this.notConfigured("getOrderDetail"));
+    const auth = this.getAuth();
+
+    const soapBody = `<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:sch="http://www.n11.com/ws/schemas">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <sch:OrderDetailRequest>
+         <auth>
+            <appKey>${this.escapeXml(auth!.appKey)}</appKey>
+            <appSecret>${this.escapeXml(auth!.appSecret)}</appSecret>
+         </auth>
+         <orderNumber>${this.escapeXml(orderNumber)}</orderNumber>
+      </sch:OrderDetailRequest>
+   </soapenv:Body>
+</soapenv:Envelope>`;
+
+    try {
+      const response = await this.soapRequest("OrderDetail", soapBody);
+      if (response.status !== "ok" || !response.data) {
+          return fail(new Error(response.message || "Failed to fetch N11 order detail"));
+      }
+
+      const doc = this.parseSoapXml(response.data as string);
+      const body = this.getSoapBody(doc);
+      const resp = this.pickFirst<Record<string, any>>(body, ["OrderDetailResponse", "orderDetailResponse"]);
+      return ok(resp?.order || {});
+    } catch (e: unknown) {
+        return fail(new Error("Parse error: " + (e instanceof Error ? e.message : String(e))));
+    }
+  }
+
+  async approveOrder(orderItemId: string): Promise<Result<MarketplaceActionResult>> {
+    if (!this.isConfigured()) return ok(this.notConfigured("approveOrder"));
+    const auth = this.getAuth();
+
+    const soapBody = `<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:sch="http://www.n11.com/ws/schemas">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <sch:OrderItemAcceptRequest>
+         <auth>
+            <appKey>${this.escapeXml(auth!.appKey)}</appKey>
+            <appSecret>${this.escapeXml(auth!.appSecret)}</appSecret>
+         </auth>
+         <orderItem>
+            <id>${this.escapeXml(orderItemId)}</id>
+         </orderItem>
+      </sch:OrderItemAcceptRequest>
+   </soapenv:Body>
+</soapenv:Envelope>`;
+
+    try {
+      const resp = await this.soapRequest("OrderItemAccept", soapBody);
+      return ok(resp);
+    } catch (e: unknown) {
+      return fail(e instanceof Error ? e : new Error(String(e)));
+    }
+  }
+
+  async rejectOrder(orderItemId: string, reason: string): Promise<Result<MarketplaceActionResult>> {
+    if (!this.isConfigured()) return ok(this.notConfigured("rejectOrder"));
+    const auth = this.getAuth();
+
+    const soapBody = `<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:sch="http://www.n11.com/ws/schemas">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <sch:OrderItemRejectRequest>
+         <auth>
+            <appKey>${this.escapeXml(auth!.appKey)}</appKey>
+            <appSecret>${this.escapeXml(auth!.appSecret)}</appSecret>
+         </auth>
+         <orderItem>
+            <id>${this.escapeXml(orderItemId)}</id>
+         </orderItem>
+         <rejectReason>${this.escapeXml(reason)}</rejectReason>
+      </sch:OrderItemRejectRequest>
+   </soapenv:Body>
+</soapenv:Envelope>`;
+
+    try {
+      const resp = await this.soapRequest("OrderItemReject", soapBody);
+      return ok(resp);
+    } catch (e: unknown) {
+      return fail(e instanceof Error ? e : new Error(String(e)));
+    }
+  }
+
+  async getProductDetail(sellerCode: string): Promise<Result<Record<string, any>>> {
+    if (!this.isConfigured()) return ok(this.notConfigured("getProductDetail"));
+    const auth = this.getAuth();
+
+    const soapBody = `<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:sch="http://www.n11.com/ws/schemas">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <sch:GetProductBySellerCodeRequest>
+         <auth>
+            <appKey>${this.escapeXml(auth!.appKey)}</appKey>
+            <appSecret>${this.escapeXml(auth!.appSecret)}</appSecret>
+         </auth>
+         <sellerCode>${this.escapeXml(sellerCode)}</sellerCode>
+      </sch:GetProductBySellerCodeRequest>
+   </soapenv:Body>
+</soapenv:Envelope>`;
+
+    try {
+      const response = await this.soapRequest("GetProductBySellerCode", soapBody);
+      if (response.status !== "ok" || !response.data) {
+          return fail(new Error(response.message || "Failed to fetch N11 product detail"));
+      }
+
+      const doc = this.parseSoapXml(response.data as string);
+      const body = this.getSoapBody(doc);
+      const resp = this.pickFirst<Record<string, unknown>>(body, ["GetProductBySellerCodeResponse", "getProductBySellerCodeResponse"]);
+      return ok(resp?.product || {});
+    } catch (e: unknown) {
+      return fail(new Error("Parse error: " + (e instanceof Error ? e.message : String(e))));
+    }
+  }
+
+  private buildProductSaveRequest(p: MarketplaceProductPayload & { categoryId: number; brandId: number }) {
     const auth = this.getAuth();
     return `<?xml version="1.0" encoding="UTF-8"?>
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:sch="http://www.n11.com/ws/schemas">
@@ -293,7 +459,7 @@ export class N11Provider extends BaseMarketplaceProvider {
       </auth>
       <product>
         <productSellerCode>${this.escapeXml(p.barcode)}</productSellerCode>
-        <title>${this.escapeXml(p.title)}</title>
+        <title>${this.escapeXml(p.name)}</title>
         <category><id>${p.categoryId}</id></category>
         <salePrice>${p.price}</salePrice>
         <brand><id>${p.brandId}</id></brand>
@@ -304,7 +470,7 @@ export class N11Provider extends BaseMarketplaceProvider {
 </soapenv:Envelope>`;
   }
 
-  private buildPriceStockUpdateRequest(p: any) {
+  private buildPriceStockUpdateRequest(p: { productId: string; price?: number; stock?: number }) {
     const auth = this.getAuth();
     return `<?xml version="1.0" encoding="UTF-8"?>
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:sch="http://www.n11.com/ws/schemas">
@@ -336,7 +502,7 @@ export class N11Provider extends BaseMarketplaceProvider {
         body
       });
       const raw = await res.text();
-      return { status: res.ok ? "ok" : "failed", message: res.ok ? "ok" : raw, data: raw } as any;
+      return { status: res.ok ? "ok" : "failed", message: res.ok ? "ok" : raw, data: raw };
     } catch (e: unknown) {
       return { status: "failed", message: e instanceof Error ? e.message : String(e) };
     }
@@ -349,28 +515,39 @@ export class N11Provider extends BaseMarketplaceProvider {
   }
 
   private escapeXml(str: string): string {
-    return String(str || "").replace(/[<>&"']/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&apos;" }[c] || c));
+    const map = { "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&apos;" };
+    return String(str || "").replace(/[<>&"']/g, c => map[c as keyof typeof map] || c);
   }
 
   private parseSoapXml(xml: string): Record<string, any> {
-    return new XMLParser({ ignoreAttributes: false, removeNSPrefix: true, trimValues: true }).parse(xml);
+    return new XMLParser({ ignoreAttributes: false, removeNSPrefix: true, trimValues: true }).parse(xml) as Record<string, any>;
   }
 
-  private getSoapBody(doc: Record<string, any>): any { return doc?.Envelope?.Body ?? doc?.Body ?? doc; }
+  private getSoapBody(doc: Record<string, any>): Record<string, any> { return doc?.Envelope?.Body ?? doc?.Body ?? doc; }
 
-  private asArray<T>(v: any): T[] { return v ? (Array.isArray(v) ? v : [v]) : []; }
+  private asArray<T>(v: unknown): T[] { return v ? (Array.isArray(v) ? v : [v] as unknown as T[]) : []; }
 
-  private pickFirst<T>(obj: any, keys: string[]): T | undefined {
-    for (const k of keys) { if (obj && obj[k] != null) return obj[k]; }
+  private pickFirst<T>(obj: Record<string, any>, keys: string[]): T | undefined {
+    for (const k of keys) { if (obj && obj[k] != null) return obj[k] as T; }
     return undefined;
   }
 
-  private toNumber(v: any): number | undefined {
+  private toNumber(v: unknown): number | undefined {
     const n = parseFloat(String(v).replace(/\./g, "").replace(",", "."));
     return isNaN(n) ? undefined : n;
   }
 
-  // Removed private notConfigured as it's already protected in BaseMarketplaceProvider
+  protected notConfigured(op: string): MarketplaceActionResult {
+    const result = {
+      status: "not_configured",
+      message: `${this.name} provider is not configured for ${op}. Missing ${this.getConfigStatus().missing?.join(", ")}`,
+    } satisfies MarketplaceActionResult;
+    logMarketplaceEvent(this.name, op, {
+      status: result.status,
+      message: result.message,
+    });
+    return result;
+  }
 
   async createProductTask(payload: MarketplaceProductPayload): Promise<MarketplaceActionResult> {
     const auth = this.getAuth();
@@ -391,9 +568,9 @@ export class N11Provider extends BaseMarketplaceProvider {
         headers: { "Content-Type": "application/json", "appKey": auth.appKey, "appSecret": auth.appSecret },
         body: JSON.stringify(body)
       });
-      const data = await res.json();
+      const data = await res.json() as { taskId?: string; result?: { taskId?: string } };
       return { status: "ok", message: "Task created", data: { taskId: data.taskId || data.result?.taskId } };
-    } catch (e: any) { return { status: "failed", message: e.message }; }
+    } catch (e: unknown) { return { status: "failed", message: e instanceof Error ? e.message : String(e) }; }
   }
 
   async checkTaskStatus(taskId: string): Promise<MarketplaceActionResult> {
@@ -404,7 +581,94 @@ export class N11Provider extends BaseMarketplaceProvider {
         method: "GET",
         headers: { "appKey": auth.appKey, "appSecret": auth.appSecret }
       });
-      return { status: "ok", message: "Task status retrieved", data: await res.json() };
-    } catch (e: any) { return { status: "failed", message: e.message }; }
+      const data = await res.json() as { totalCount?: number };
+      const totalCount = data.totalCount || 0;
+      const message = `Task status retrieved. Total items: ${totalCount}`;
+      return { status: "ok", message, data };
+    } catch (e: unknown) { return { status: "failed", message: e instanceof Error ? e.message : String(e) }; }
+  }
+
+  /**
+   * Get price competition using SOAP ProductService
+   */
+  async getPriceCompetition(barcodes: string[]): Promise<Result<{ barcode: string; lowestPrice: number; winningSeller?: string; competitorCount?: number }[]>> {
+    if (!this.isConfigured()) return fail(new Error("Not configured"));
+    if (!barcodes || barcodes.length === 0) return ok([]);
+
+    const auth = this.getAuth();
+    if (!auth) return fail(new Error("Missing auth"));
+
+    try {
+      const results: { barcode: string; lowestPrice: number; winningSeller?: string; competitorCount?: number }[] = [];
+
+      for (const barcode of barcodes) {
+        const soapBody = `
+          <tem:GetProductBySellerCode>
+            <tem:auth>
+              <n11:appKey>${this.escapeXml(auth.appKey)}</n11:appKey>
+              <n11:appSecret>${this.escapeXml(auth.appSecret)}</n11:appSecret>
+            </tem:auth>
+            <tem:sellerCode>${this.escapeXml(barcode)}</tem:sellerCode>
+          </tem:GetProductBySellerCode>
+        `;
+
+        const response = await this.soapRequest("GetProductBySellerCode", soapBody);
+        
+        if (response.status !== "ok" || !response.data) {
+          results.push({ barcode, lowestPrice: 0, competitorCount: 0 });
+          continue;
+        }
+
+        const xml = response.data as string;
+        const doc = this.parseSoapXml(xml);
+        const body = this.getSoapBody(doc);
+        const resp = this.pickFirst<any>(body, ["GetProductBySellerCodeResponse", "getProductBySellerCodeResponse"]);
+        const product = resp?.product || resp?.Product;
+
+        if (!product) {
+          results.push({ barcode, lowestPrice: 0, competitorCount: 0 });
+          continue;
+        }
+
+        const price = this.toNumber(product.displayPrice || product.price || product.salePrice) || 0;
+        
+        results.push({
+          barcode,
+          lowestPrice: price,
+          winningSeller: "CurrentSeller",
+          competitorCount: 1 // N11 SOAP API doesn't provide competitor data
+        });
+      }
+
+      logMarketplaceEvent(this.name, "getPriceCompetition", {
+        status: "ok",
+        message: `Analyzed ${barcodes.length} products via SOAP`
+      });
+
+      return ok(results);
+    } catch (error: unknown) {
+      return fail(error instanceof Error ? error : new Error(String(error)));
+    }
+  }
+
+  /**
+   * Get product reviews using SOAP
+   * Note: N11 SOAP API has limited review support
+   */
+  async getProductReviews(barcode: string): Promise<Result<MarketplaceReviewResult>> {
+    if (!this.isConfigured()) return fail(new Error("Not configured"));
+    if (!barcode) return fail(new Error("Barcode required"));
+
+    // N11 SOAP API doesn't provide a standard reviews endpoint
+    logMarketplaceEvent(this.name, "getProductReviews", {
+      status: "ok",
+      message: `Reviews not available in N11 SOAP API for ${barcode}`
+    });
+
+    return ok({
+      status: "ok",
+      message: "N11 SOAP API'si üzerinden yorum verisi mevcut değil",
+      reviews: []
+    });
   }
 }

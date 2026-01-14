@@ -1,14 +1,7 @@
-<<<<<<< HEAD:src/services/order/revenueService.ts
 import { pool } from "../../db.js";
 import { logger } from "../../logger.js";
 import { generateGeminiReply } from "../ai/geminiClient.js";
 import { Locale } from "../../types.js";
-=======
-import { pool } from "../db.js";
-import { logger } from "../logger.js";
-import { generateGeminiReply } from "./geminiClient.js";
-import { Locale } from "../types.js";
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e:src/services/revenueService.ts
 
 export interface BundleSuggestion {
   products: string[];

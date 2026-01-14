@@ -101,8 +101,10 @@ describe('Tool Registry', () => {
       
       for (const queryType of validTypes) {
         const result = await executeTool('analyticsQuery', { queryType }, mockContext);
-        // Should not fail validation (may fail on DB)
-        expect(result.error).not.toContain('Bilinmeyen sorgu tipi');
+        if (result.error) {
+          expect(result.error).not.toContain('Bilinmeyen sorgu tipi');
+        }
+        expect(result.success).toBe(true);
       }
     });
 

@@ -1,4 +1,4 @@
-import { listMarketplaceProviders } from "./index.js";
+import { getMarketplaceProviders } from "./index.js";
 import { credentialService } from "../credentialService.js";
 import { logger } from "../../logger.js";
 import { notificationService } from "../notificationService.js";
@@ -17,14 +17,14 @@ export class HealthCheckService {
      * Executes health checks for all registered marketplace providers.
      */
     async runAllChecks(): Promise<HealthCheckResult[]> {
-        const providers = listMarketplaceProviders();
+        const providers = getMarketplaceProviders();
         const results: HealthCheckResult[] = [];
 
         for (const provider of providers) {
             const result: HealthCheckResult = {
                 marketplace: provider.name,
                 configured: provider.isConfigured(),
-                tokenStatus: provider.token.status,
+                tokenStatus: provider.getTokenStatus().status,
                 connectivity: "untested",
                 critical: false
             };
@@ -88,11 +88,10 @@ export class HealthCheckService {
         const summary = failures.map(f => `${f.marketplace}: ${f.message}`).join("\n");
         logger.error("marketplace.health_check.critical_failures", { failures });
         
-        await notificationService.sendSystemNotification({
-            type: "alert",
+        await notificationService.notify({
+            type: "system",
             title: "Marketplace API Critical Failure",
-            message: `One or more marketplace APIs are down or misconfigured:\n${summary}`,
-            level: "high"
+            message: `One or more marketplace APIs are down or misconfigured:\n${summary}`
         });
     }
 }

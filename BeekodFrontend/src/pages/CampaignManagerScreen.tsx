@@ -13,7 +13,7 @@ import {
 import { useState, useEffect } from 'react';
 import { SidebarV2 } from '../layouts/SidebarV2';
 import { getCampaigns, createCampaign, getCampaignStats, launchCampaign, Campaign } from '../services/campaigns';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 
 interface StatCardProps {
   title: string;

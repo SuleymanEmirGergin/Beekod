@@ -15,8 +15,7 @@ import { FalImageProvider } from './image/FalImageProvider.js';
 export { FalImageProvider };
 
 import { FalTryOnProvider } from './tryon/FalTryOnProvider.js';
-import { WiroTryOnProvider, getWiroTryOnProvider } from './tryon/WiroTryOnProvider.js';
-export { FalTryOnProvider, WiroTryOnProvider, getWiroTryOnProvider };
+export { FalTryOnProvider };
 
 // Video Providers
 import { FalVideoProvider } from './video/FalVideoProvider.js';

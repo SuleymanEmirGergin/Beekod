@@ -25,7 +25,10 @@ const envSchema = z.object({
   // API Keys
   GEMINI_API_KEY: z.string().min(1, "GEMINI_API_KEY is required for AI features"),
   GEMINI_MODEL: z.string().default("gemini-1.5-flash"),
+  GOOGLE_AI_API_KEY: z.string().optional(),
+  FAL_KEY: z.string().optional(),
   WIRO_API_KEY: z.string().optional(),
+  WIRO_API_SECRET: z.string().optional(),
 
   // Marketplace Credentials (Optional - validated per provider)
   TRENDYOL_API_KEY: z.string().optional(),

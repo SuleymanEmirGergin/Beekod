@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 import { MarketplaceName } from "../services/marketplace/types.js";
-=======
-import { MarketplaceName } from "../marketplaces/types.js";
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 
 // ============================================================
 // INTENT TAXONOMY (PROMPTtaki şemaya göre)
@@ -25,7 +21,9 @@ export type BeekodIntent =
     | "product_import"        // Ürün mağazaya ekle
     | "listing_update"        // Listing güncelle
     | "batch_operation"       // Toplu işlem
-    | "analytics_query";      // Analitik sorgusu
+    | "analytics_query"       // Analitik sorgusu
+    | "competitor_analysis"   // Rakip fiyat/satıcı analizi (BuyBox)
+    | "review_query";         // Ürün yorumları sorgula
 
 /**
  * TOPTANCI Mode Intents - Toptancı ağı operasyonları
@@ -146,10 +144,7 @@ export interface ProductCard {
     currency: string;
     stock?: number;
     imageUrl?: string;
-<<<<<<< HEAD
-=======
     image?: string; // Frontend ChatWidget compatibility
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
     marketplace?: MarketplaceName;
     url?: string;
     canImport?: boolean; // Mağazama Ekle butonu

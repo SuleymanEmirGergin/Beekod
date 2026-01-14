@@ -8,6 +8,7 @@ import {
   MarketplaceOrder,
   MarketplaceOrderResult,
   MarketplaceProductPayload,
+  MarketplaceReviewResult,
   MarketplaceTokenStatus,
   MarketplaceUpdatePayload,
 } from "../types.js";
@@ -22,32 +23,13 @@ interface CiceksepetiProduct {
   salesPrice: number;
   stockQuantity: number;
   productStatus?: number;
-  // ... add other fields as needed
+  brandName?: string;
+  categoryName?: string;
 }
 
 interface CiceksepetiProductListResponse {
-  products: CiceksepetiProduct[];
-  // pageCount etc.
-}
-
-interface CiceksepetiOrder {
-  orderNumber: string;
-  customerName: string;
-  orderDate: string;
-  status: string;
-  totalPrice: number;
-  currency: string;
-  orderItems: Array<{
-    stockCode: string;
-    productName: string;
-    quantity: number;
-    salesPrice: number;
-  }>;
-  // ...
-}
-
-interface CiceksepetiOrderListResponse {
-  orders: CiceksepetiOrder[];
+  products?: CiceksepetiProduct[];
+  response?: { products?: CiceksepetiProduct[] };
 }
 
 /** JSON array veya CSV şeklinde gelen image listesini parse eder */
@@ -106,13 +88,6 @@ export class CiceksepetiProvider extends BaseMarketplaceProvider {
     return fail(new Error("Ciceksepeti uses API key. Token refresh is not supported."));
   }
 
-  /**
-   * Ürün yükleme: POST {base}/Products
-   * Body: { products: [...] }
-   *
-   * Not: Çiçeksepeti ürün oluşturma payload'ı kategoriye göre genişleyebiliyor.
-   * Biz minimum “genelde gereken” alanları env ile destekliyoruz.
-   */
   async upsertProduct(payload: MarketplaceProductPayload): Promise<Result<MarketplaceActionResult>> {
     if (!this.isConfigured()) return ok(this.notConfigured("upsertProduct"));
 
@@ -126,7 +101,6 @@ export class CiceksepetiProvider extends BaseMarketplaceProvider {
     const deliveryMessageType = num(process.env.CICEKSEPETI_DELIVERY_MESSAGE_TYPE);
     const images = parseImages(process.env.CICEKSEPETI_IMAGES);
 
-    // Ürün yükleme için pratik minimum set (senin modelin bazı alanları taşımıyor)
     if (!categoryId || !deliveryType || !deliveryMessageType || images.length === 0) {
       return ok({
         status: "not_configured",
@@ -136,36 +110,25 @@ export class CiceksepetiProvider extends BaseMarketplaceProvider {
     }
 
     const description = process.env.CICEKSEPETI_DEFAULT_DESCRIPTION?.trim() || payload.name;
-
     const listPriceFromEnv = num(process.env.CICEKSEPETI_DEFAULT_LIST_PRICE);
 
     const body = {
       products: [
         {
           productName: payload.name,
-          // Çiçeksepeti tarafında bunlar “tedarikçi kodları”; sende barcode ile gidiyoruz.
           mainProductCode: payload.barcode,
           stockCode: payload.barcode,
-
           categoryId,
           description,
-
           supplierDescription: process.env.CICEKSEPETI_SUPPLIER_DESCRIPTION || "",
           mediaLink: process.env.CICEKSEPETI_MEDIA_LINK || "",
-
           deliveryMessageType,
           deliveryType,
-
           stockQuantity: payload.stock ?? 0,
           salesPrice: payload.price ?? 0,
-
           ...(listPriceFromEnv ? { listPrice: listPriceFromEnv } : {}),
-
           barcode: payload.barcode,
           images,
-
-          // İleri seviye: attributes / operatorContacts / safetyInfo vb.
-          // Gerekirse bunları da env veya payload genişletmesiyle ekleriz.
         },
       ],
     };
@@ -173,10 +136,6 @@ export class CiceksepetiProvider extends BaseMarketplaceProvider {
     return this.request("POST", `${base}/Products`, body, payload.barcode);
   }
 
-  /**
-   * Stok/Fiyat: PUT {base}/Products/price-and-stock
-   * Body: { items: [{ stockCode, StockQuantity?, salesPrice?, listPrice? }] }
-   */
   async updateListing(payload: MarketplaceUpdatePayload): Promise<Result<MarketplaceActionResult>> {
     if (!this.isConfigured()) return ok(this.notConfigured("updateListing"));
     if (!payload.barcode) return ok({ status: "failed", message: "barcode_required" });
@@ -190,17 +149,13 @@ export class CiceksepetiProvider extends BaseMarketplaceProvider {
       return ok({ status: "failed", message: "price_or_stock_required" });
     }
 
-    const item: Record<string, any> = {
+    const item: Record<string, unknown> = {
       stockCode: payload.barcode,
     };
 
-    // Doküman örneklerinde StockQuantity bu şekilde geçiyor.
     if (payload.stock !== undefined) item.StockQuantity = payload.stock;
-
-    // salesPrice alanı genelde küçük harf ile kullanılıyor
     if (payload.price !== undefined) item.salesPrice = payload.price;
 
-    // listPrice göndereceksen salesPrice ile birlikte gönder (biz de öyle yapıyoruz)
     const listPriceFromEnv = num(process.env.CICEKSEPETI_DEFAULT_LIST_PRICE);
     if (listPriceFromEnv && payload.price !== undefined) item.listPrice = listPriceFromEnv;
 
@@ -219,11 +174,7 @@ export class CiceksepetiProvider extends BaseMarketplaceProvider {
     });
   }
 
-  /**
-   * Listeleme: GET {base}/Products
-   * Şimdilik sadece StockCode filtresi ekliyoruz (barcode ile).
-   */
-  async listListings(params?: { status?: "active" | "inactive"; barcode?: string; size?: number }): Promise<Result<MarketplaceListResult>> {
+  async listListings(params?: { status?: "active" | "inactive"; barcode?: string; deep?: boolean; page?: number; pageSize?: number }): Promise<Result<MarketplaceListResult>> {
     if (!this.isConfigured()) {
       const nc = this.notConfigured("listListings");
       return ok({ status: nc.status, message: nc.message, items: [] });
@@ -238,8 +189,8 @@ export class CiceksepetiProvider extends BaseMarketplaceProvider {
       return ok({ status: "ok", message: "dry_run", items: [] });
     }
 
-    const pageSize = params?.size ?? 100;
-    const maxPages = 50; // Safety limit
+    const pageSize = params?.pageSize ?? 100;
+    const maxPages = 50; 
     const allItems: MarketplaceListing[] = [];
     let currentPage = 1;
     let hasMore = true;
@@ -258,8 +209,9 @@ export class CiceksepetiProvider extends BaseMarketplaceProvider {
           headers: { "x-api-key": apiKey, accept: "application/json" },
         });
 
-        const rawProducts = responseData?.products || [];
-        const pageItems = rawProducts.map((p: any) => ({
+        const resp = responseData as any;
+        const rawProducts = resp?.products || resp?.response?.products || (Array.isArray(resp) ? resp : []);
+        const pageItems: MarketplaceListing[] = rawProducts.map((p: CiceksepetiProduct) => ({
           marketplace: this.name,
           barcode: p.stockCode,
           title: p.productName,
@@ -281,15 +233,13 @@ export class CiceksepetiProvider extends BaseMarketplaceProvider {
         }));
 
         allItems.push(...pageItems);
-
-        // Check if more pages exist
         currentPage++;
         hasMore = pageItems.length === pageSize;
       }
 
-      return ok({ status: "ok", message: `${allItems.length} ürün (${currentPage - 1} sayfa)`, items: allItems });
-    } catch (error: any) {
-      return fail(error);
+      return ok({ status: "ok", message: `${allItems.length} ürün`, items: allItems });
+    } catch (error: unknown) {
+      return fail(error instanceof Error ? error : new Error(String(error)));
     }
   }
 
@@ -303,7 +253,6 @@ export class CiceksepetiProvider extends BaseMarketplaceProvider {
     if (!apiKey) return ok({ status: "not_configured", message: "CICEKSEPETI_API_KEY missing", orders: [] });
 
     const base = normalizeBaseUrl(process.env.CICEKSEPETI_API_ENDPOINT || "https://apis.ciceksepeti.com/api/v1");
-
     const path = process.env.CICEKSEPETI_ORDERS_PATH || "/Order/GetOrders";
     const url = path.startsWith("http") ? path : `${base}${path.startsWith("/") ? "" : "/"}${path}`;
 
@@ -311,7 +260,7 @@ export class CiceksepetiProvider extends BaseMarketplaceProvider {
     const page = num(process.env.CICEKSEPETI_ORDERS_PAGE) ?? 0;
     const statusId = num(process.env.CICEKSEPETI_ORDERS_STATUS_ID);
 
-    const body: Record<string, any> = {
+    const body: Record<string, unknown> = {
       startDate: _params?.startDate,
       endDate: _params?.endDate,
       pageSize,
@@ -332,7 +281,7 @@ export class CiceksepetiProvider extends BaseMarketplaceProvider {
 
       const rawOrders = responseData?.orders ?? responseData?.items ?? responseData?.data ?? responseData ?? [];
 
-      const orders = asArray(rawOrders)
+      const orders: MarketplaceOrder[] = asArray(rawOrders)
         .map((order: any) => {
           const itemsRaw = order?.items ?? order?.products ?? order?.orderItems ?? [];
           const items = asArray(itemsRaw).map((item: any) => ({
@@ -341,7 +290,6 @@ export class CiceksepetiProvider extends BaseMarketplaceProvider {
             name: String(item?.name ?? item?.productName ?? item?.title ?? ""),
             price: Number(item?.price ?? item?.salePrice ?? item?.unitPrice ?? 0),
             quantity: Number(item?.quantity ?? item?.amount ?? 0),
-            image: item?.image ?? item?.imageUrl,
           }));
 
           const address =
@@ -355,8 +303,8 @@ export class CiceksepetiProvider extends BaseMarketplaceProvider {
             marketplace: this.name,
             orderNumber: String(order?.orderNumber ?? order?.orderId ?? order?.id ?? ""),
             customerName: String(order?.customerName ?? order?.recipientName ?? order?.fullName ?? ""),
-            customerEmail: order?.customerEmail ?? order?.email,
-            customerPhone: order?.customerPhone ?? order?.phone,
+            customerEmail: String(order?.customerEmail ?? (order?.email || "")),
+            customerPhone: String(order?.customerPhone ?? (order?.phone || "")),
             customerAddress: String(address || ""),
             items,
             totalAmount: Number(order?.totalAmount ?? order?.totalPrice ?? order?.amount ?? 0),
@@ -365,11 +313,11 @@ export class CiceksepetiProvider extends BaseMarketplaceProvider {
             status: String(order?.status ?? order?.state ?? "unknown"),
           };
         })
-        .filter((order: any) => order.orderNumber);
+        .filter((order: MarketplaceOrder) => order.orderNumber);
 
       return ok({ status: "ok", message: `ok (${orders.length})`, orders });
-    } catch (error: any) {
-      return fail(error);
+    } catch (error: unknown) {
+      return fail(error instanceof Error ? error : new Error(String(error)));
     }
   }
 
@@ -392,8 +340,6 @@ export class CiceksepetiProvider extends BaseMarketplaceProvider {
       return ok({ status: "ok", message: "dry_run", requestId });
     }
 
-    logger.info("[Ciceksepeti] request", { method, url });
-
     try {
       await requestJson<any>(url, {
         method,
@@ -412,13 +358,88 @@ export class CiceksepetiProvider extends BaseMarketplaceProvider {
       });
 
       return ok({ status: "ok", message: "ok" });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      const errorMsg = err.message || String(error);
       logMarketplaceEvent(this.name, method, {
         status: "failed",
-        message: error.message,
+        message: errorMsg,
         barcode,
       });
-      return ok({ status: "failed", message: error.message });
+      return ok({ status: "failed", message: errorMsg });
     }
+  }
+
+  protected notConfigured(op: string): MarketplaceActionResult {
+    const result = {
+      status: "not_configured",
+      message: `${this.name} provider is not configured for ${op}. Missing ${this.getConfigStatus().missing?.join(", ")}`,
+    } satisfies MarketplaceActionResult;
+    logMarketplaceEvent(this.name, op, {
+      status: result.status,
+      message: result.message,
+    });
+    return result;
+  }
+
+  /**
+   * Get price competition data
+   * Note: Ciceksepeti API doesn't provide a direct competitor pricing endpoint
+   */
+  async getPriceCompetition(barcodes: string[]): Promise<Result<{ barcode: string; lowestPrice: number; winningSeller?: string; competitorCount?: number }[]>> {
+    if (!this.isConfigured()) return fail(new Error("Not configured"));
+    if (!barcodes || barcodes.length === 0) return ok([]);
+
+    try {
+      const results: { barcode: string; lowestPrice: number; winningSeller?: string; competitorCount?: number }[] = [];
+
+      for (const barcode of barcodes) {
+        // We use our own listing data as a fallback since competition API is not clearly defined in their public SDK
+        const listResult = await this.listListings({ barcode });
+        
+        if (!listResult.ok || listResult.value.items.length === 0) {
+          results.push({ barcode, lowestPrice: 0, competitorCount: 0 });
+          continue;
+        }
+
+        const ourListing = listResult.value.items[0];
+        
+        results.push({
+          barcode,
+          lowestPrice: ourListing.price,
+          winningSeller: "CurrentSeller",
+          competitorCount: 1
+        });
+      }
+
+      logMarketplaceEvent(this.name, "getPriceCompetition", {
+        status: "ok",
+        message: `Analyzed ${barcodes.length} products`
+      });
+
+      return ok(results);
+    } catch (error: unknown) {
+      return fail(error instanceof Error ? error : new Error(String(error)));
+    }
+  }
+
+  /**
+   * Get product reviews
+   * Note: Ciceksepeti API has limited public support for fetching reviews via seller API
+   */
+  async getProductReviews(barcode: string): Promise<Result<MarketplaceReviewResult>> {
+    if (!this.isConfigured()) return fail(new Error("Not configured"));
+    if (!barcode) return fail(new Error("Barcode required"));
+
+    logMarketplaceEvent(this.name, "getProductReviews", {
+      status: "ok",
+      message: `Reviews not directly accessible via API for ${barcode}`
+    });
+
+    return ok({
+      status: "ok",
+      message: "Çiçeksepeti yorum API'si satıcılar için sınırlı erişime sahip",
+      reviews: []
+    });
   }
 }

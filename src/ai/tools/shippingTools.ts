@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { AITool, ToolContext, ToolResult } from "./interfaces.js";
 import { cargoService, CargoProviderType } from "../../services/cargo/cargoService.js";
-import { getOrderById, updateOrderShipping } from "../../services/orderService.js";
+import { getOrderById, updateOrderShipping } from "../../services/order/orderService.js";
 
 const CreateShipmentSchema = z.object({
   orderId: z.string().describe("The order ID (Request ID) to ship, e.g. #BK-1234"),
@@ -12,13 +12,14 @@ export const createShipmentTool: AITool<z.infer<typeof CreateShipmentSchema>> = 
   name: "createShipment",
   description: "Create a shipping label/tracking number for an order using a cargo provider.",
   schema: CreateShipmentSchema,
-  execute: async (args, context: ToolContext): Promise<ToolResult> => {
+  execute: async (args, _context: ToolContext): Promise<ToolResult> => {
     try {
       // 1. Get Order Details
-      const order = await getOrderById(args.orderId);
-      if (!order) {
+      const result = await getOrderById(args.orderId);
+      if (!result.ok) {
         return { success: false, error: "Order not found" };
       }
+      const order = result.value;
 
       // 2. Prepare Shipment Request
       // Mapping order details to cargo shipping request
@@ -35,26 +36,25 @@ export const createShipmentTool: AITool<z.infer<typeof CreateShipmentSchema>> = 
       };
 
       // 3. Call Cargo Service
-      const result = await cargoService.createShipment(shipmentRequest);
-
-      if (!result.success) {
-        return { success: false, error: result.error || "Shipment creation failed" };
+      const cargoResult = await cargoService.createShipment(shipmentRequest);
+      if (!cargoResult.success) {
+        return { success: false, error: cargoResult.error || "Shipment creation failed" };
       }
 
       // 4. Update Order with tracking info
-      if (result.trackingNumber) {
+      if (cargoResult.trackingNumber) {
         await updateOrderShipping(order.requestId, {
             provider: args.carrier,
-            trackingNumber: result.trackingNumber,
-            labelUrl: "" // No label URL from mock service usually
+            trackingNumber: cargoResult.trackingNumber,
+            labelUrl: "" 
         });
       }
 
       return { 
         success: true, 
         data: { 
-            trackingNumber: result.trackingNumber, 
-            provider: result.provider,
+            trackingNumber: cargoResult.trackingNumber, 
+            provider: cargoResult.provider,
             status: "Created"
         } 
       };

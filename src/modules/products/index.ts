@@ -28,7 +28,7 @@ export {
   addProductPrice,
   getProductPrices,
   deleteProductPrice,
-} from "../../services/productService.js";
+} from "../../services/product/productService.js";
 
 // Routes (re-export from existing location)
 export { productRouter } from "../../routes/productRoutes.js";

@@ -25,7 +25,8 @@ export type GetOrderByIdArgs = z.infer<typeof getOrderByIdArgsSchema>;
  * listRecentOrders arguments
  */
 export const listRecentOrdersArgsSchema = z.object({
-  days: z.number().int().min(1).max(365).default(7),
+  days: z.number().int().min(1).max(31).default(7),
+  limit: z.number().int().min(1).max(100).default(20),
 });
 
 export type ListRecentOrdersArgs = z.infer<typeof listRecentOrdersArgsSchema>;
@@ -64,7 +65,8 @@ export type CreateShipmentArgs = z.infer<typeof createShipmentArgsSchema>;
  * analyticsQuery arguments - SAFE allowlisted queries only
  */
 export const analyticsQueryArgsSchema = z.object({
-  nl: z.string().min(1).max(500),
+  nl: z.string().min(1).max(500).optional(),
+  queryType: z.enum(['daily_sales', 'top_products', 'revenue_trend', 'order_stats', 'stock_alerts']).optional(),
 });
 
 export type AnalyticsQueryArgs = z.infer<typeof analyticsQueryArgsSchema>;

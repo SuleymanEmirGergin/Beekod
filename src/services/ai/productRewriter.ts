@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 import { getClient } from "./geminiClient.js";
-=======
-import { getClient } from "../geminiClient.js";
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 import { logger } from "../../logger.js";
 import { ScrapedProduct } from "../productScraper.js";
 

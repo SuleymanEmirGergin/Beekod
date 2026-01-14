@@ -20,8 +20,10 @@ export async function runOptimizedSearchList(
 
   // 2. Single Execution (unifiedMarketplaceSearch already handles 3-pronged Google strategy)
   try {
-    const rawResults = await unifiedMarketplaceSearch(cleanQuery);
+    const result = await unifiedMarketplaceSearch(cleanQuery);
+    if (!result.ok) throw result.error;
 
+    const rawResults = result.value;
     const plan = optimize(cleanQuery);
     const seenUrls = new Set<string>();
     const allItems: ScoredResult[] = [];
@@ -31,13 +33,13 @@ export async function runOptimizedSearchList(
       url: r.url,
       priceText: `${r.price} ${r.currency}`,
       price: r.price,
-      site: r.site.toLowerCase() as TargetSite,
-      image: r.image,
+      site: r.marketplace.toLowerCase() as TargetSite,
+      image: r.image || r.imageUrl,
       barcode: r.barcode,
       brand: r.brand,
       description: r.description,
       stockCount: r.stockCount,
-      inStock: r.inStock
+      inStock: r.inStock || false
     }));
 
     // Score and deduplicate

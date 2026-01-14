@@ -12,6 +12,7 @@ import * as path from "path";
 import { getMarketplaceProviders } from "./index.js";
 import { logger } from "../../logger.js";
 import { MarketplaceListing } from "./types.js";
+import { Result, ok, fail } from "../../utils/result.js";
 
 interface ProductData {
     barcode: string;
@@ -139,7 +140,8 @@ function compareProducts(products: ProductData[]): PriceComparison[] {
 /**
  * Generate and save price comparison report
  */
-export async function runPriceComparison(): Promise<PriceComparisonReport> {
+export async function runPriceComparison(): Promise<Result<PriceComparisonReport>> {
+    try {
     logger.info("priceComparison.starting");
 
     const products = await fetchAllMarketplaces();
@@ -182,5 +184,8 @@ export async function runPriceComparison(): Promise<PriceComparisonReport> {
         reportPath,
     });
 
-    return report;
+    return ok(report);
+    } catch (e: unknown) {
+        return fail(e instanceof Error ? e : new Error(String(e)));
+    }
 }

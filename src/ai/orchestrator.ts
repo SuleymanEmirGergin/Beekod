@@ -137,7 +137,7 @@ export class AIOrchestrator {
       const planParse = actionPlanSchema.safeParse(planResponse.plan);
       const plan = planParse.success
         ? planParse.data
-        : { intent: "unknown", toolCalls: [] as { tool: string; args: Record<string, unknown> }[], responseStyle: "normal" as const };
+        : { intent: "unknown", toolCalls: [] as { tool: string; args: Record<string, unknown> }[], responseStyle: "normal" as "short" | "normal" | "detailed" };
 
       const planLatencyMs = Date.now() - planStartTime;
 

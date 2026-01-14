@@ -1,4 +1,4 @@
-import fs from "fs/promises";
+import * as fs from "fs/promises";
 import { logger } from "../../../logger.js";
 import { isMarketplaceDryRun, logMarketplaceEvent } from "../../../config.js";
 import {
@@ -10,7 +10,6 @@ import {
   MarketplaceOrderResult,
   MarketplaceProductPayload,
   MarketplaceReviewResult,
-  ProductReview,
   MarketplaceTokenStatus,
   MarketplaceUpdatePayload,
 } from "../types.js";
@@ -120,8 +119,8 @@ export class TrendyolProvider extends BaseMarketplaceProvider {
     let defaults: TrendyolProductDefaults = {};
     try {
       defaults = await this.loadProductDefaults();
-    } catch (error: any) {
-      return fail(error);
+    } catch (error: unknown) {
+      return fail(error instanceof Error ? error : new Error(String(error)));
     }
 
     const payloadImages = this.normalizeImages(payload.images);
@@ -157,8 +156,8 @@ export class TrendyolProvider extends BaseMarketplaceProvider {
     try {
       const result = await this.request("POST", path, body, payload.barcode);
       return ok(result);
-    } catch (error: any) {
-      return fail(error);
+    } catch (error: unknown) {
+      return fail(error instanceof Error ? error : new Error(String(error)));
     }
   }
 
@@ -169,15 +168,13 @@ export class TrendyolProvider extends BaseMarketplaceProvider {
     let defaults: TrendyolProductDefaults = {};
     try {
       defaults = await this.loadProductDefaults();
-    } catch (error) {
+    } catch (_error: unknown) {
       return { status: "failed", message: "defaults_error" };
     }
 
     const items = payloads.flatMap(payload => {
       const payloadImages = this.normalizeImages(payload.images);
       const images = payloadImages ?? defaults.images;
-      // Skip missing defaults check for batch for now, or handle individually?
-      // For batch, we assume valid data.
 
       return this.buildUpsertItems({
         payload,
@@ -195,7 +192,6 @@ export class TrendyolProvider extends BaseMarketplaceProvider {
     const path = process.env.TRENDYOL_PRODUCT_UPSERT_PATH ?? "/suppliers/{supplierId}/v2/products";
     const body = { items };
 
-    // Batch ID is returned for the whole group
     return this.request("POST", path, body, `batch-${Date.now()}`);
   }
 
@@ -221,8 +217,8 @@ export class TrendyolProvider extends BaseMarketplaceProvider {
     try {
       const result = await this.request("POST", path, body, payload.barcode);
       return ok(result);
-    } catch (error: any) {
-      return fail(error);
+    } catch (error: unknown) {
+      return fail(error instanceof Error ? error : new Error(String(error)));
     }
   }
 
@@ -235,7 +231,7 @@ export class TrendyolProvider extends BaseMarketplaceProvider {
     });
   }
 
-  async listListings(params?: { status?: "active" | "inactive"; barcode?: string; size?: number }): Promise<Result<MarketplaceListResult>> {
+  async listListings(params?: { status?: "active" | "inactive"; barcode?: string; deep?: boolean; page?: number; pageSize?: number }): Promise<Result<MarketplaceListResult>> {
     if (!this.isConfigured()) {
       const nc = this.notConfigured("listListings");
       return ok({ status: nc.status, message: nc.message, items: [] });
@@ -245,10 +241,10 @@ export class TrendyolProvider extends BaseMarketplaceProvider {
     const basePath = process.env.TRENDYOL_PRODUCT_LIST_PATH ?? `/suppliers/{supplierId}/products`;
     if (!basePath) return ok({ status: "not_configured", message: "TRENDYOL_PRODUCT_LIST_PATH is missing.", items: [] });
 
-    const pageSize = params?.size ?? 100; // Trendyol max is 200
-    const maxPages = 50; // Safety limit: 50 pages * 100 = 5000 products max
+    const pageSize = params?.pageSize ?? 100;
+    const maxPages = 50; 
     const allItems: MarketplaceListing[] = [];
-    let currentPage = 0;
+    let currentPage = params?.page ?? 0;
     let hasMore = true;
 
     try {
@@ -257,7 +253,6 @@ export class TrendyolProvider extends BaseMarketplaceProvider {
         const response = await this.requestRaw("GET", path);
         
         if (!response.ok) {
-          // If first page fails, return error; otherwise return what we have
           if (currentPage === 0) {
             return ok({ status: response.status, message: response.message, items: [] });
           }
@@ -267,14 +262,13 @@ export class TrendyolProvider extends BaseMarketplaceProvider {
         const pageItems = this.mapListingItems(response.data);
         allItems.push(...pageItems);
 
-        // Check if there are more pages
-        const totalElements = (response.data as any)?.totalElements ?? 0;
-        const totalPages = (response.data as any)?.totalPages ?? 1;
+        const data = response.data as { totalElements?: number; totalPages?: number };
+        const totalElements = data?.totalElements ?? 0;
+        const totalPages = data?.totalPages ?? 1;
         
         currentPage++;
         hasMore = pageItems.length === pageSize && currentPage < totalPages;
         
-        // Log progress for large fetches
         if (currentPage % 5 === 0) {
           logger.info("trendyol.listListings.progress", { 
             page: currentPage, 
@@ -284,7 +278,6 @@ export class TrendyolProvider extends BaseMarketplaceProvider {
         }
       }
 
-      // Apply filters
       const filtered = allItems.filter((item) => {
         if (params?.barcode && item.barcode.toLowerCase() !== params.barcode.toLowerCase()) return false;
         if (params?.status === "active") return item.active;
@@ -292,15 +285,9 @@ export class TrendyolProvider extends BaseMarketplaceProvider {
         return true;
       });
 
-      logger.info("trendyol.listListings.complete", { 
-        totalFetched: allItems.length, 
-        afterFilter: filtered.length,
-        pages: currentPage 
-      });
-
       return ok({ status: "ok", message: `${filtered.length} ürün`, items: filtered });
-    } catch (error: any) {
-      return fail(error);
+    } catch (error: unknown) {
+      return fail(error instanceof Error ? error : new Error(String(error)));
     }
   }
 
@@ -346,71 +333,9 @@ export class TrendyolProvider extends BaseMarketplaceProvider {
       }));
 
       return ok({ status: "ok", message: `Synced ${mappedOrders.length} orders`, orders: mappedOrders });
-    } catch (error: any) {
-      return fail(error);
+    } catch (error: unknown) {
+      return fail(error instanceof Error ? error : new Error(String(error)));
     }
-  }
-
-  async getPriceCompetition(barcodes: string[]): Promise<Result<{ barcode: string; lowestPrice: number; winningSeller?: string; competitorCount?: number }[]>> {
-    if (!this.isConfigured()) return fail(new Error("Not configured"));
-    if (!barcodes.length) return ok([]);
-
-    const path = `/integration/product/sellers/{sellerId}/products/price-competition?barcodes=${barcodes.join(",")}`;
-
-    try {
-      const response = await this.requestRaw("GET", path);
-      if (!response.ok) return fail(new Error(response.message));
-
-      const content = (response.data as { content?: any[] })?.content || [];
-      const competitionData = content.map((item: any) => ({
-        barcode: item.barcode,
-        lowestPrice: item.lowestPrice,
-        winningSeller: item.winningSellerName,
-        competitorCount: item.competitorCount
-      }));
-
-      return ok(competitionData);
-    } catch (error: any) {
-      return fail(error);
-    }
-  }
-
-  async getProductReviews(barcode: string): Promise<Result<MarketplaceReviewResult>> {
-    if (!this.isConfigured()) return fail(new Error("Not configured"));
-    
-    // In many marketplace APIs, reviews are a separate endpoint. 
-    // For Trendyol, we can mock or use a known integration path.
-    // In mock mode or if not fully implemented, we return structured mock data based on the product.
-    if (isMarketplaceDryRun()) {
-      return ok({
-        status: "ok",
-        message: "dry_run",
-        reviews: [
-          {
-            reviewerName: "Emre G.",
-            rating: 5,
-            comment: "Ürün mükemmel, kargo çok hızlıydı. Kesinlikle tavsiye ederim.",
-            date: new Date().toISOString(),
-            platform: this.name
-          },
-          {
-            reviewerName: "Mert K.",
-            rating: 4,
-            comment: "Kaliteli ama boyutu biraz küçük geldi. Yine de iş görüyor.",
-            date: new Date().toISOString(),
-            platform: this.name
-          }
-        ]
-      });
-    }
-
-    // Actual integration would use: /suppliers/{supplierId}/reviews?barcode={barcode}
-    // But for product-specific public reviews, we might need a different gateway.
-    return ok({
-      status: "ok",
-      message: "Syncing reviews from marketplace...",
-      reviews: [] // Fallback to empty if not implemented
-    });
   }
 
   async getBatchRequestResult(batchRequestId: string): Promise<Result<MarketplaceActionResult>> {
@@ -430,8 +355,8 @@ export class TrendyolProvider extends BaseMarketplaceProvider {
         requestId: result.requestId,
         data: result.data,
       });
-    } catch (error: any) {
-      return fail(error);
+    } catch (error: unknown) {
+      return fail(error instanceof Error ? error : new Error(String(error)));
     }
   }
 
@@ -461,7 +386,7 @@ export class TrendyolProvider extends BaseMarketplaceProvider {
       const raw = await fs.readFile(filePath, "utf8");
       const parsed = JSON.parse(raw) as unknown;
       return this.normalizeProductDefaults(parsed);
-    } catch (error) {
+    } catch (error: unknown) {
       const err = error as NodeJS.ErrnoException;
       if (err.code === "ENOENT") {
         return {};
@@ -699,11 +624,11 @@ export class TrendyolProvider extends BaseMarketplaceProvider {
 
   private mapListingItems(payload: unknown): MarketplaceListing[] {
     const rawItems = this.extractListItems(payload);
-    const groups = new Map<string, any[]>();
+    const groups = new Map<string, Record<string, unknown>[]>();
 
     for (const entry of rawItems) {
       if (!entry || typeof entry !== "object") continue;
-      const item = entry as Record<string, any>;
+      const item = entry as Record<string, unknown>;
       const mainId = this.normalizeString(item.productMainId) || this.normalizeString(item.barcode) || "unknown";
       if (!groups.has(mainId)) groups.set(mainId, []);
       groups.get(mainId)!.push(item);
@@ -711,7 +636,7 @@ export class TrendyolProvider extends BaseMarketplaceProvider {
 
     const listings: MarketplaceListing[] = [];
 
-    for (const [mainId, items] of groups.entries()) {
+    for (const [mainId, items] of Array.from(groups.entries())) {
       const first = items[0];
       const barcode = this.normalizeString(first.barcode) || mainId;
       const title = this.normalizeString(first.title) || this.normalizeString(first.productName) || barcode;
@@ -730,12 +655,11 @@ export class TrendyolProvider extends BaseMarketplaceProvider {
         stock: Math.trunc(totalStock),
         currency: this.normalizeString(first.currencyType) || "TRY",
         active: items.some(it => this.normalizeBoolean(it.onSale) ?? true),
-        /* Rich Data */
         brand: this.normalizeString(first.brand),
         category: this.normalizeString(first.categoryName),
         description: this.normalizeString(first.description),
-        imageUrl: first.images?.[0]?.url,
-        images: first.images?.map((img: any) => img.url),
+        imageUrl: (first.images as any)?.[0]?.url,
+        images: (first.images as any)?.map((img: any) => img.url) || [],
         attributes: this.extractAttributesMap(first.attributes),
         variants: items.length > 1 ? items.map(it => ({
           barcode: this.normalizeString(it.barcode) || "",
@@ -752,22 +676,22 @@ export class TrendyolProvider extends BaseMarketplaceProvider {
     return listings;
   }
 
-  private extractAttributesMap(attributes: any): Record<string, string | number> {
+  private extractAttributesMap(attributes: unknown): Record<string, string | number> {
     if (!Array.isArray(attributes)) return {};
     const map: Record<string, string | number> = {};
     for (const attr of attributes) {
-      if (attr.attributeName && attr.attributeValue) {
+      if (attr && typeof attr === "object" && attr.attributeName && attr.attributeValue) {
         map[attr.attributeName] = attr.attributeValue;
       }
     }
     return map;
   }
 
-  private extractAttributesMapAsStrings(attributes: any): Record<string, string> {
+  private extractAttributesMapAsStrings(attributes: unknown): Record<string, string> {
     if (!Array.isArray(attributes)) return {};
     const map: Record<string, string> = {};
     for (const attr of attributes) {
-      if (attr.attributeName && attr.attributeValue) {
+      if (attr && typeof attr === "object" && attr.attributeName && attr.attributeValue) {
         map[attr.attributeName] = String(attr.attributeValue);
       }
     }
@@ -855,10 +779,6 @@ export class TrendyolProvider extends BaseMarketplaceProvider {
       : new URL(endpoint.startsWith("/") ? endpoint.slice(1) : endpoint, base).toString();
     const auth = Buffer.from(`${apiKey}:${apiSecret}`).toString("base64");
     const userAgent = process.env.TRENDYOL_USER_AGENT?.trim() || `beekod/${supplierId}`;
-    const retry = this.resolveRetryOptions();
-    const timeoutMs = this.resolveTimeoutMs();
-    const rateLimit = this.resolveRateLimit();
-    const circuitBreaker = this.resolveCircuitBreaker();
 
     try {
       const responseData = await requestJson<TrendyolResponse | Record<string, unknown> | string>(url, {
@@ -891,73 +811,180 @@ export class TrendyolProvider extends BaseMarketplaceProvider {
       });
 
       return finalResult;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      const errorMsg = err.message || String(error);
       logMarketplaceEvent(this.name, "request", {
         status: "failed",
-        message: error.message,
+        message: errorMsg,
         barcode,
       });
-      return { ok: false, status: "failed", message: error.message };
+      return { ok: false, status: "failed", message: errorMsg };
     }
   }
 
-  private resolveTimeoutMs() {
-    return this.parseEnvNumber(process.env.TRENDYOL_TIMEOUT_MS ?? process.env.MARKETPLACE_TIMEOUT_MS, 15000, 1000);
-  }
+  /**
+   * Get price competition data for given barcodes
+   * This helps identify the lowest prices and winning sellers in the marketplace
+   */
+  async getPriceCompetition(barcodes: string[]): Promise<Result<{ barcode: string; lowestPrice: number; winningSeller?: string; competitorCount?: number }[]>> {
+    if (!this.isConfigured()) return fail(new Error("Not configured"));
+    if (!barcodes || barcodes.length === 0) return ok([]);
 
-  private resolveRetryOptions() {
-    const attempts = this.parseEnvNumber(
-      process.env.TRENDYOL_RETRY_ATTEMPTS ?? process.env.MARKETPLACE_RETRY_ATTEMPTS,
-      2,
-      1,
-    );
-    const delayMs = this.parseEnvNumber(
-      process.env.TRENDYOL_RETRY_DELAY_MS ?? process.env.MARKETPLACE_RETRY_DELAY_MS,
-      300,
-      0,
-    );
-    const backoffFactor = this.parseEnvNumber(
-      process.env.TRENDYOL_RETRY_BACKOFF ?? process.env.MARKETPLACE_RETRY_BACKOFF,
-      2,
-      1,
-    );
-    return { attempts, delayMs, backoffFactor };
-  }
+    const supplierId = (process.env.TRENDYOL_SUPPLIER_ID ?? "").trim();
+    const sellerId = (process.env.TRENDYOL_SELLER_ID ?? supplierId).trim();
 
-  private resolveRateLimit() {
-    const maxPerSecond = this.parseEnvNumber(
-      process.env.TRENDYOL_RATE_LIMIT_RPS ?? process.env.MARKETPLACE_RATE_LIMIT_RPS,
-      0,
-      0,
-    );
-    if (!maxPerSecond) {
-      return undefined;
+    if (!supplierId) return fail(new Error("Missing supplier ID"));
+
+    try {
+      const results: { barcode: string; lowestPrice: number; winningSeller?: string; competitorCount?: number }[] = [];
+
+      for (const barcode of barcodes) {
+        // Fetch product listings for this barcode across sellers
+        const path = `/sellers/${sellerId}/products`;
+        const response = await this.requestRaw("GET", `${path}?barcode=${encodeURIComponent(barcode)}`);
+
+        if (!response.ok || !response.data) {
+          results.push({ barcode, lowestPrice: 0, competitorCount: 0 });
+          continue;
+        }
+
+        const data = response.data as { content?: Array<{ salePrice?: number; listPrice?: number; supplierId?: number }> };
+        const listings = data.content || [];
+
+        if (listings.length === 0) {
+          results.push({ barcode, lowestPrice: 0, competitorCount: 0 });
+          continue;
+        }
+
+        const prices = listings
+          .map(l => l.salePrice || l.listPrice || 0)
+          .filter(p => p > 0);
+
+        const lowestPrice = prices.length > 0 ? Math.min(...prices) : 0;
+        const winningListing = listings.find(l => (l.salePrice || l.listPrice) === lowestPrice);
+        const winningSupplierId = winningListing?.supplierId;
+
+        results.push({
+          barcode,
+          lowestPrice,
+          winningSeller: winningSupplierId ? String(winningSupplierId) : undefined,
+          competitorCount: listings.length
+        });
+      }
+
+      logMarketplaceEvent(this.name, "getPriceCompetition", {
+        status: "ok",
+        message: `Analyzed ${barcodes.length} products`
+      });
+
+      return ok(results);
+    } catch (error: unknown) {
+      return fail(error instanceof Error ? error : new Error(String(error)));
     }
-    return {
-      key: `marketplace:${this.name}:rate`,
-      maxRequests: maxPerSecond,
-      windowMs: 1000,
-    };
   }
 
-  private resolveCircuitBreaker() {
-    const threshold = this.parseEnvNumber(
-      process.env.TRENDYOL_CIRCUIT_BREAKER_FAILURES ?? process.env.MARKETPLACE_CIRCUIT_BREAKER_FAILURES,
-      3,
-      0,
-    );
-    const openMs = this.parseEnvNumber(
-      process.env.TRENDYOL_CIRCUIT_BREAKER_OPEN_MS ?? process.env.MARKETPLACE_CIRCUIT_BREAKER_OPEN_MS,
-      30000,
-      0,
-    );
-    if (!threshold || !openMs) {
-      return undefined;
+  /**
+   * Get product reviews for a given barcode
+   * Fetches customer ratings and comments from Trendyol marketplace
+   */
+  async getProductReviews(barcode: string): Promise<Result<MarketplaceReviewResult>> {
+    if (!this.isConfigured()) return fail(new Error("Not configured"));
+    if (!barcode) return fail(new Error("Barcode required"));
+
+    const supplierId = (process.env.TRENDYOL_SUPPLIER_ID ?? "").trim();
+    const sellerId = (process.env.TRENDYOL_SELLER_ID ?? supplierId).trim();
+
+    if (!supplierId) return fail(new Error("Missing supplier ID"));
+
+    if (isMarketplaceDryRun()) {
+      return ok({
+        status: "ok",
+        message: "dry_run",
+        reviews: [
+          {
+            id: "dry_1",
+            reviewerName: "Ahmet K.",
+            rating: 5,
+            comment: "Ürün harika, hızlı kargo. Teşekkürler!",
+            date: new Date().toISOString(),
+            platform: this.name
+          },
+          {
+            id: "dry_2",
+            reviewerName: "Zeynep Y.",
+            rating: 4,
+            comment: "Beklediğimden biraz geç geldi ama ürün kaliteli.",
+            date: new Date(Date.now() - 86400000).toISOString(),
+            platform: this.name
+          }
+        ]
+      });
     }
-    return {
-      key: `marketplace:${this.name}:circuit`,
-      failureThreshold: threshold,
-      openMs,
-    };
+
+    try {
+      // First, get the product ID for this barcode
+      const listPath = `/sellers/${sellerId}/products`;
+      const listResponse = await this.requestRaw("GET", `${listPath}?barcode=${encodeURIComponent(barcode)}&size=1`);
+
+      if (!listResponse.ok || !listResponse.data) {
+        return ok({ status: "failed", message: "Product not found", reviews: [] });
+      }
+
+      const listData = listResponse.data as { content?: Array<{ productContentId?: number; id?: number }> };
+      const product = listData.content?.[0];
+      const productId = product?.productContentId || product?.id;
+
+      if (!productId) {
+        return ok({ status: "failed", message: "Product ID not found", reviews: [] });
+      }
+
+      // Fetch reviews using the product ID
+      const reviewsPath = `/sellers/${sellerId}/products/${productId}/questions-answers`;
+      const reviewsResponse = await this.requestRaw("GET", reviewsPath);
+
+      if (!reviewsResponse.ok) {
+        return ok({ status: "ok", message: "No reviews available", reviews: [] });
+      }
+
+      const reviewsData = reviewsResponse.data as { 
+        content?: Array<{
+          id?: number | string;
+          userName?: string;
+          rating?: number;
+          comment?: string;
+          createdDate?: string;
+        }> 
+      };
+
+      const rawReviews = reviewsData.content || [];
+      const reviews = rawReviews.map(r => ({
+        id: String(r.id || ""),
+        reviewerName: r.userName || "Anonim",
+        rating: r.rating || 0,
+        comment: r.comment || "",
+        date: r.createdDate || new Date().toISOString(),
+        platform: this.name
+      }));
+
+      logMarketplaceEvent(this.name, "getProductReviews", {
+        status: "ok",
+        message: `Fetched ${reviews.length} reviews for ${barcode}`
+      });
+
+      return ok({
+        status: "ok",
+        message: `${reviews.length} yorum`,
+        reviews
+      });
+    } catch (error: unknown) {
+      return fail(error instanceof Error ? error : new Error(String(error)));
+    }
+  }
+
+  protected parseEnvNumber(value: string | undefined, defaultValue: number, min: number): number {
+    if (!value) return defaultValue;
+    const parsed = parseInt(value, 10);
+    return isNaN(parsed) ? defaultValue : Math.max(min, parsed);
   }
 }

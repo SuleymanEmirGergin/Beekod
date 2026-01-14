@@ -4,25 +4,26 @@ import { AIModelJobData, AIModelResult } from '../queue/aiModelQueue.js';
 import { logger } from '../logger.js';
 
 // Lazy imports
+let visualIntelligenceService: any = null;
 let virtualTryOnService: any = null;
-let wiroService: any = null;
 
 async function getServices() {
-  if (!virtualTryOnService || !wiroService) {
+  if (!visualIntelligenceService || !virtualTryOnService) {
+    const viModule = await import('../services/visualIntelligenceService.js');
     const vtoModule = await import('../services/virtualTryOnService.js');
-    const wiroModule = await import('../services/wiroService.js');
+    visualIntelligenceService = viModule;
     virtualTryOnService = vtoModule;
-    wiroService = wiroModule;
   }
-  return { virtualTryOnService, wiroService };
+  return { visualIntelligenceService, virtualTryOnService };
 }
 
 /**
  * AI Model / Virtual Try-On Worker
  * 
  * Bu worker AI model işlemlerini (Virtual Try-On, vb.) işler.
- * Ayrı bir process olarak çalıştırılmalıdır:
+ * Fal.ai kullanarak senkron çalışır.
  * 
+ * Ayrı bir process olarak çalıştırılmalıdır:
  * $ node dist/workers/aiModelWorker.js
  */
 const worker = new Worker<AIModelJobData, AIModelResult>(
@@ -39,36 +40,37 @@ const worker = new Worker<AIModelJobData, AIModelResult>(
     try {
       await job.updateProgress(10);
 
-      const { virtualTryOnService, wiroService } = await getServices();
+      const { visualIntelligenceService, virtualTryOnService } = await getServices();
       const startTime = Date.now();
       
       await job.updateProgress(20);
       
       let resultImageUrl: string;
       
-      // Try Wiro service first (if available)
-      if (process.env.WIRO_API_KEY && garmentImageUrl && modelImageUrl) {
-        logger.info('ai_model_worker.using_wiro', { jobId: job.id });
+      // Use Fal.ai for Virtual Try-On
+      if (garmentImageUrl && modelImageUrl) {
+        logger.info('ai_model_worker.using_fal', { jobId: job.id });
         
-        const wiroResult = await wiroService.generateVirtualTryOn({
-          garmentImage: garmentImageUrl,
-          modelImage: modelImageUrl,
-          category: category || 'upper_body',
-        });
+        const cat = category === 'upper_body' ? 'tops' : 
+                    category === 'lower_body' ? 'bottoms' : 'tops';
         
-        resultImageUrl = wiroResult.resultUrl;
+        resultImageUrl = await visualIntelligenceService.runVirtualTryOn(
+          modelImageUrl,
+          garmentImageUrl,
+          cat
+        );
         
       } else {
-        // Fallback to Replicate or local VTO service
-        logger.info('ai_model_worker.using_fallback', { jobId: job.id });
+        // Fallback to VTO service
+        logger.info('ai_model_worker.using_vto_service', { jobId: job.id });
         
-        const vtoResult = await virtualTryOnService.applyVirtualTryOn({
-          productId,
-          barcode,
-          modelType: modelType || 'latin_female',
-        });
+        const vtoResult = await virtualTryOnService.generateVirtualTryOn(
+          modelImageUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d',
+          garmentImageUrl || productId,
+          'tops'
+        );
         
-        resultImageUrl = vtoResult.imageUrl;
+        resultImageUrl = vtoResult.imageUrl || '';
       }
 
       await job.updateProgress(100);
@@ -103,10 +105,10 @@ const worker = new Worker<AIModelJobData, AIModelResult>(
   },
   {
     connection: redisConnection,
-    concurrency: parseInt(process.env.AI_WORKER_CONCURRENCY || '2'), // 2 concurrent AI jobs
+    concurrency: parseInt(process.env.AI_WORKER_CONCURRENCY || '2'),
     limiter: {
       max: 20,
-      duration: 60000, // Max 20 AI jobs per minute
+      duration: 60000,
     },
   }
 );

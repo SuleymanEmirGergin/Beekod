@@ -36,7 +36,7 @@ export interface ActionToolCall {
 export interface ActionPlan {
   intent: string;
   toolCalls: ActionToolCall[];
-  responseStyle: 'short' | 'normal' | 'detailed';
+  responseStyle: 'short' | 'normal' | 'detailed' | 'concise' | 'friendly' | 'professional';
 }
 
 export interface PlanRequest {
@@ -62,7 +62,7 @@ export interface RespondRequest {
     result: unknown;
     error?: string;
   }>;
-  style: 'short' | 'normal' | 'detailed';
+  style: 'short' | 'normal' | 'detailed' | 'concise' | 'friendly' | 'professional';
   context?: {
     conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>;
     tenantContext?: Record<string, unknown>;

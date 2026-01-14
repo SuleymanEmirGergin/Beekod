@@ -125,7 +125,6 @@ export interface IDbRow {
   created_at?: Date;
   updated_at?: Date;
   [key: string]: string | number | boolean | Date | null | undefined | any; // Keep any as fallout for now but add common types
-<<<<<<< HEAD
 }
 
 export interface ConsolidatedInventoryDetail {
@@ -143,6 +142,4 @@ export interface ConsolidatedInventoryItem {
   minPrice: number;
   maxPrice: number;
   totalStock: number;
-=======
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 }

@@ -10,7 +10,13 @@ export type SyncAllResult = {
   reason?: string;
 };
 
-export async function syncAllMarketplaceListings(): Promise<SyncAllResult> {
+export type SyncFilter = {
+  minStock?: number;
+  maxStock?: number;
+  onlyCritical?: boolean;
+};
+
+export async function syncAllMarketplaceListings(filter?: SyncFilter): Promise<SyncAllResult> {
   if (process.env.MARKETPLACE_MODE === "live") {
     return {
       ok: false,
@@ -29,12 +35,24 @@ export async function syncAllMarketplaceListings(): Promise<SyncAllResult> {
   let changed = 0;
   let missingProduct = 0;
 
-  const updatedListings = listings.map((listing) => {
-    const product = productMap.get(listing.barcode);
-    if (!product) {
-      missingProduct += 1;
-      return listing;
-    }
+  const updatedListings = listings
+    .filter((listing) => {
+      if (!filter) return true;
+      const product = productMap.get(listing.barcode);
+      if (!product) return true; // Keep for missing report
+      
+      if (filter.onlyCritical && product.stock <= 5) return true;
+      if (filter.minStock !== undefined && product.stock < filter.minStock) return false;
+      if (filter.maxStock !== undefined && product.stock > filter.maxStock) return false;
+      
+      return filter.onlyCritical ? false : true;
+    })
+    .map((listing) => {
+      const product = productMap.get(listing.barcode);
+      if (!product) {
+        missingProduct += 1;
+        return listing;
+      }
     const next = {
       ...listing,
       price: product.price,

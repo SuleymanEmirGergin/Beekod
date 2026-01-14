@@ -19,7 +19,7 @@ export class PazaramaAdapter implements SearchAdapter {
       const isBarcode = /^\d+$/.test(query);
       const result = await provider.listListings({ 
         barcode: isBarcode ? query : undefined,
-        autoPaginate: true, 
+        autoPaginate: false, // Don't scan entire inventory for a simple search
         size: 100 
       });
       if (!result.ok) {

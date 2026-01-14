@@ -44,8 +44,9 @@ export class PricingIntelligenceService {
         : null;
 
       const isLowest = lowestComp === null || product.price <= lowestComp;
-      const margin = product.cost_price > 0 
-        ? (product.price - product.cost_price) / product.price 
+      const costPrice = product.cost_price ?? 0;
+      const margin = costPrice > 0 
+        ? (product.price - costPrice) / product.price 
         : 0;
 
       // 4. Calculate optimal price (Buy-Box warrior logic)
@@ -59,8 +60,8 @@ export class PricingIntelligenceService {
         suggestedPrice = lowestComp - 0.50;
       }
 
-      const expectedMargin = product.cost_price > 0 
-        ? (suggestedPrice - product.cost_price) / suggestedPrice 
+      const expectedMargin = costPrice > 0 
+        ? (suggestedPrice - costPrice) / suggestedPrice 
         : 0;
 
       // 5. Ask Gemini for a "Strategic" reason
@@ -95,11 +96,11 @@ export class PricingIntelligenceService {
         barcode: product.barcode,
         productName: product.name,
         myPrice: product.price,
-        costPrice: product.cost_price,
+        costPrice: costPrice,
         currentMargin: Math.round(margin * 100),
         lowestCompetitorPrice: lowestComp || 0,
         isLowest,
-        competitors: validCompetitors.slice(0, 3).map(c => ({ site: c.site, price: c.price, url: c.url })),
+        competitors: validCompetitors.slice(0, 3).map(c => ({ site: c.marketplace, price: c.price, url: c.url })),
         suggestedPrice: Number(suggestedPrice.toFixed(2)),
         expectedMargin: Math.round(expectedMargin * 100),
         strategy: isLowest ? "SKU_HARVESTING" : "BUYBOX_CHASE",

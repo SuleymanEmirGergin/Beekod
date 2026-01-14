@@ -1,53 +1,51 @@
-import { describe, it, mock } from 'node:test';
-import assert from 'node:assert';
-import { generateVirtualTryOn } from '../../src/services/virtualTryOnService.js';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { generateVirtualTryOn, pollTryOnResult } from '../../src/services/virtualTryOnService.js';
+import * as WiroService from '../../src/services/wiroService.js';
 
-// Mock fetch globally
-const originalFetch = global.fetch;
+vi.mock('../../src/services/wiroService.js', () => ({
+    runVirtualTryOn: vi.fn(),
+    getTaskDetail: vi.fn(),
+}));
 
 describe('Virtual Try-On Service', () => {
-    it('should handle API key missing error', async () => {
-        // Save original env
-        const originalGeminiKey = process.env.GEMINI_API_KEY;
-        const originalGoogleKey = process.env.GOOGLE_API_KEY;
-
-        try {
-            // Unset keys
-            delete process.env.GEMINI_API_KEY;
-            delete process.env.GOOGLE_API_KEY;
-
-            const result = await generateVirtualTryOn(
-                'http://example.com/cloth.jpg',
-                'http://example.com/model.jpg'
-            );
-
-            assert.strictEqual(result, null);
-        } finally {
-            // Restore keys
-            process.env.GEMINI_API_KEY = originalGeminiKey;
-            process.env.GOOGLE_API_KEY = originalGoogleKey;
-        }
+    beforeEach(() => {
+        vi.clearAllMocks();
     });
 
-    it('should successfully call API and return result', async (t) => {
-        // Mock fetch for image download
-        global.fetch = mock.fn(async () => ({
-            arrayBuffer: async () => Buffer.from('fake-image-data'),
-            ok: true
-        })) as any;
+    it('should successfully start a VTO task', async () => {
+        vi.mocked(WiroService.runVirtualTryOn).mockResolvedValue({
+            taskid: 'task-123',
+            socketaccesstoken: 'token-123',
+            status: 'queued'
+        });
 
-        // Mock GoogleGenAI class and method via module mock is complex in ESM
-        // Instead, we'll test the service logic with mocked dependencies if possible
-        // or just test the error handling part which is reachable.
+        const result = await generateVirtualTryOn('human.jpg', 'clothes.jpg');
 
-        // Since mocking the external module directly in ESM node:test is tricky without an external library,
-        // we will focus on the fetchImageAsBase64 internal logic if exported, or basic integration.
+        expect(result.taskId).toBe('task-123');
+        expect(result.token).toBe('token-123');
+        expect(result.status).toBe('queued');
+        expect(WiroService.runVirtualTryOn).toHaveBeenCalledWith('human.jpg', 'clothes.jpg');
+    });
 
-        // For now, let's basic test that it attempts to run with valid inputs
-        // Note: This test will actually try to hit Gemini API if we don't mock the module.
-        // In a real unit test we would inject the dependency.
+    it('should poll and return image URL when done', async () => {
+        vi.mocked(WiroService.getTaskDetail).mockResolvedValue({
+            status: 'done',
+            output: ['http://example.com/result.jpg']
+        });
 
-        // Let's rely on the previous integration test logic but adapted for unit test runner
-        assert.ok(true);
+        const result = await pollTryOnResult('token-123');
+
+        expect(result).toBe('http://example.com/result.jpg');
+        expect(WiroService.getTaskDetail).toHaveBeenCalledWith('token-123');
+    });
+
+    it('should return null when polling fails or is not done', async () => {
+        vi.mocked(WiroService.getTaskDetail).mockResolvedValue({
+            status: 'processing'
+        });
+
+        const result = await pollTryOnResult('token-123');
+
+        expect(result).toBeNull();
     });
 });

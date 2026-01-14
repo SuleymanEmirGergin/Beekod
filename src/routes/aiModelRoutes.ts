@@ -2,11 +2,8 @@ import express from "express";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { runVirtualTryOn, getTaskDetail, killTask, cancelTask, runImageToVideo, generateBaseModelWithFlux, pollFluxTaskForImage } from "../services/wiroService.js";
-<<<<<<< HEAD
+import { generateAIModel, runVirtualTryOn } from "../services/visualIntelligenceService.js";
 import { aiModelQueue } from "../queue/index.js";
-=======
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 import { logger } from "../logger.js";
 
 
@@ -18,9 +15,8 @@ const upload = multer({
     limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
 });
 
-// ... previous imports
-
 // POST /api/ai-model/generate
+// Uses Fal.ai for synchronous AI model generation
 router.post("/generate", upload.fields([
     { name: 'inputImageHuman', maxCount: 1 },
     { name: 'inputImageClothes', maxCount: 2 }
@@ -69,14 +65,14 @@ router.post("/generate", upload.fields([
             }
         }
 
-        // --- Hybrid Model Generator Logic (Flux -> Wiro) ---
+        // --- Fal.ai-based Model Generator ---
         let finalHumanImage = humanImage;
 
-        // Only generate new model if attributes are provided AND user didn't upload their own photo
+        // Generate new model if attributes are provided AND user didn't upload their own photo
         if (Object.keys(modelAttributes).length > 0 && !isUserUploadedHuman) {
             try {
                 const attrs = modelAttributes;
-                logger.info("ai-model.generate.hybrid_start", { attrs });
+                logger.info("ai-model.generate.flux_start", { attrs });
 
                 // Construct detailed prompt from granular attributes
                 const gender = attrs.gender || 'model';
@@ -88,35 +84,36 @@ router.post("/generate", upload.fields([
                 const height = attrs.height ? `${attrs.height} height, ` : '';
                 const pose = attrs.pose ? `${attrs.pose} pose` : 'standing pose';
 
-                // Prompt Engineering
-                const prompt = `${ethnicity}${gender}, ${bodyType}${hairColor}${hairLength}${eyeColor}${height}${pose}`;
+                const prompt = `Professional fashion model photo, ${ethnicity}${gender}, ${bodyType}${hairColor}${hairLength}${eyeColor}${height}${pose}, studio lighting, high quality`;
 
-                logger.info("ai-model.generate.hybrid_prompt", { prompt });
+                logger.info("ai-model.generate.flux_prompt", { prompt });
 
-                // 1. Generate Base Model via Wiro AI FLUX.2-dev
-                const fluxTask = await generateBaseModelWithFlux(prompt);
+                // Generate Base Model via Fal.ai FLUX
+                const generatedModelUrl = await generateAIModel(prompt, {
+                    appearance: attrs.appearance,
+                    mood: attrs.mood,
+                    origin: attrs.ethnicity
+                });
 
-                if (fluxTask.socketaccesstoken) {
-                    const generatedModelUrl = await pollFluxTaskForImage(fluxTask.socketaccesstoken);
-                    if (generatedModelUrl) {
-                        finalHumanImage = generatedModelUrl;
-                        logger.info("ai-model.generate.hybrid_model_created", { url: finalHumanImage });
-                    }
+                if (generatedModelUrl) {
+                    finalHumanImage = generatedModelUrl;
+                    logger.info("ai-model.generate.flux_model_created", { url: finalHumanImage });
                 }
 
             } catch (e) {
-                logger.warn("Hybrid generation failed, falling back to selected preset", { error: e });
+                logger.warn("FLUX generation failed, using provided image", { error: e });
             }
         }
 
-        logger.info("ai-model.generate.start_wiro", {
+        logger.info("ai-model.generate.start_vto", {
             human: finalHumanImage.substring(0, 50),
             clothesCount: clothesImages.length,
             category: modelAttributes.category
         });
 
-        // 2. Run Virtual Try-On (Wiro AI) using the (possibly generated) human image
-        const result = await runVirtualTryOn(finalHumanImage, clothesImages, modelAttributes.category);
+        // Run Virtual Try-On using Fal.ai IDM-VTON (synchronous)
+        const category = modelAttributes.category || "tops";
+        const resultUrl = await runVirtualTryOn(finalHumanImage, clothesImages[0], category);
 
         // Cleanup files
         if (files['inputImageHuman'] && files['inputImageHuman'][0]) {
@@ -126,7 +123,12 @@ router.post("/generate", upload.fields([
             files['inputImageClothes'].forEach(f => fs.unlink(f.path, () => { }));
         }
 
-        res.json(result);
+        // Fal.ai returns result directly (no polling needed)
+        res.json({
+            status: "complete",
+            result: resultUrl,
+            outputs: [resultUrl]
+        });
 
     } catch (error: any) {
         logger.error("ai-model.generate.error", { error: error.message });
@@ -135,97 +137,32 @@ router.post("/generate", upload.fields([
 });
 
 // GET /api/ai-model/status/:token
+// Deprecated: Fal.ai is synchronous, no polling needed
 router.get("/status/:token", async (req: any, res: any) => {
-    try {
-        const { token } = req.params;
-        const wiroResponse = await getTaskDetail(token);
-
-        // Wiro returns data in tasklist array
-        // Structure: { tasklist: [{ status, outputs: [{url: "..."}] }], result: true }
-
-        let task = wiroResponse;
-        let outputUrls: string[] = [];
-        let taskStatus = "unknown";
-
-        // Check if response has tasklist structure
-        if (wiroResponse.tasklist && Array.isArray(wiroResponse.tasklist) && wiroResponse.tasklist.length > 0) {
-            task = wiroResponse.tasklist[0];
-            taskStatus = task.status || "unknown";
-
-            // Extract URLs from outputs array - outputs contain objects with 'url' field OR direct strings
-            if (task.outputs && Array.isArray(task.outputs)) {
-                outputUrls = task.outputs
-                    .map((o: any) => {
-                        if (typeof o === 'string') return o;
-                        if (o && typeof o === 'object' && o.url) return o.url;
-                        return null;
-                    })
-                    .filter((url: string | null) => url !== null);
-            }
-        } else {
-            // Fallback for direct response structure
-            taskStatus = wiroResponse.status || wiroResponse.type || "unknown";
-            if (wiroResponse.outputs && Array.isArray(wiroResponse.outputs)) {
-                outputUrls = wiroResponse.outputs;
-            }
-        }
-
-        const normalizedResponse = {
-            id: task.id || task.taskid || token,
-            status: taskStatus,
-            result: outputUrls.length > 0 ? outputUrls[0] : null,
-            outputs: outputUrls,
-            raw: wiroResponse
-        };
-
-        logger.info("ai-model.status.mapped", {
-            token,
-            taskStatus,
-            hasOutputs: outputUrls.length > 0,
-            firstOutput: outputUrls[0] || null
-        });
-
-        if (outputUrls.length === 0) {
-            logger.warn("ai-model.status.no_outputs", {
-                token,
-                taskStatus,
-                rawTask: JSON.stringify(task),
-                rawResponse: JSON.stringify(wiroResponse).substring(0, 1000)
-            });
-        }
-
-        res.json(normalizedResponse);
-    } catch (error: any) {
-        logger.error("ai-model.status.error", { error: error.message });
-        res.status(500).json({ error: "Failed to get status" });
-    }
+    res.status(410).json({
+        error: "Deprecated",
+        message: "Fal.ai is synchronous. Status polling is no longer needed. The /generate endpoint now returns results directly."
+    });
 });
 
-// POST /api/ai-model/kill/:id
+// POST /api/ai-model/kill/:id - Deprecated
 router.post("/kill/:id", async (req: any, res: any) => {
-    try {
-        const { id } = req.params;
-        const status = await killTask(id);
-        res.json(status);
-    } catch (error: any) {
-        logger.error("ai-model.kill.error", { error: error.message });
-        res.status(500).json({ error: "Failed to kill task" });
-    }
+    res.status(410).json({
+        error: "Deprecated",
+        message: "Fal.ai is synchronous. Task management is no longer needed."
+    });
 });
 
-// POST /api/ai-model/cancel/:id
+// POST /api/ai-model/cancel/:id - Deprecated
 router.post("/cancel/:id", async (req: any, res: any) => {
-    try {
-        const { id } = req.params;
-        const status = await cancelTask(id);
-        res.json(status);
-    } catch (error: any) {
-        logger.error("ai-model.cancel.error", { error: error.message });
-        res.status(500).json({ error: "Failed to cancel task" });
-    }
+    res.status(410).json({
+        error: "Deprecated",
+        message: "Fal.ai is synchronous. Task management is no longer needed."
+    });
 });
 
 // POST /api/ai-model/animate
+// Now uses Fal.ai Kling for video generation
 router.post("/animate", async (req: any, res: any) => {
     try {
         const { imageUrl, prompt } = req.body;
@@ -236,10 +173,14 @@ router.post("/animate", async (req: any, res: any) => {
 
         logger.info("ai-model.animate.start", { imageUrl, prompt });
 
+        const { generateProductVideo } = await import("../services/visualIntelligenceService.js");
         const videoPrompt = prompt || "Bring this fashion model to life, natural movement, high quality, 4k";
-        const result = await runImageToVideo(imageUrl, videoPrompt);
+        const result = await generateProductVideo(imageUrl, videoPrompt);
 
-        res.json(result);
+        res.json({
+            status: "complete",
+            videoUrl: result.videoUrl
+        });
     } catch (error: any) {
         logger.error("ai-model.animate.error", { error: error.message });
         res.status(500).json({ error: "Animation failed", details: error.message });
@@ -253,7 +194,6 @@ router.post("/animate", async (req: any, res: any) => {
 /**
  * POST /api/ai-model/queue/virtual-try-on
  * Virtual Try-On job'ı queue'ya ekler (ASYNC)
- * Body: { productId, barcode, modelType, garmentImageUrl, modelImageUrl, category }
  */
 router.post("/queue/virtual-try-on", async (req, res) => {
     try {
@@ -277,7 +217,7 @@ router.post("/queue/virtual-try-on", async (req, res) => {
             modelImageUrl,
             category: category || 'upper_body',
         }, {
-            priority: 5, // High priority for VTO
+            priority: 5,
         });
 
         res.json({
@@ -298,7 +238,6 @@ router.post("/queue/virtual-try-on", async (req, res) => {
 
 /**
  * GET /api/ai-model/queue/status/:jobId
- * AI Model job durumunu kontrol eder
  */
 router.get("/queue/status/:jobId", async (req, res) => {
     try {
@@ -338,7 +277,6 @@ router.get("/queue/status/:jobId", async (req, res) => {
 
 /**
  * GET /api/ai-model/queue/stats
- * Queue istatistikleri
  */
 router.get("/queue/stats", async (req, res) => {
     try {

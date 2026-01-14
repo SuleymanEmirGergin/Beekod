@@ -12,8 +12,10 @@ export type { OrchestratorContext, OrchestratorRequest, OrchestratorResponse } f
 export { 
   getGeminiProvider, 
   GeminiProvider,
-  getWiroTryOnProvider,
-  WiroTryOnProvider,
+  getFalTryOnProvider,
+  FalTryOnProvider,
+  getFalVideoProvider,
+  FalVideoProvider,
   getReplicateVideoProvider,
   ReplicateVideoProvider
 } from './providers/index.js';

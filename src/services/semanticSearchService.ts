@@ -1,6 +1,6 @@
 import { pool } from "../db.js";
 import { logger } from "../logger.js";
-import { runChatCompletion } from "./wiroService.js";
+import { runChatCompletion } from "./geminiService.js";
 
 /**
  * Semantic Search Service

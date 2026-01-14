@@ -76,8 +76,8 @@ class N11Service {
     constructor() {
         this.config = {
             apiKey: process.env.N11_API_KEY || "",
-            secretKey: process.env.N11_SECRET_KEY || "",
-            baseUrl: process.env.N11_API_BASE_URL || "https://api.n11.com"
+            secretKey: process.env.N11_API_SECRET || process.env.N11_SECRET_KEY || "",
+            baseUrl: process.env.N11_API_BASE || process.env.N11_API_BASE_URL || "https://api.n11.com"
         };
     }
 

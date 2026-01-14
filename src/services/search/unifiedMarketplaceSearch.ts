@@ -2,27 +2,11 @@ import { scrapeMarketplace } from "../webScraperService.js";
 import { logger } from "../../logger.js";
 import { ChatEntity } from "../../chatbot/types.js";
 import { ok, fail, Result } from "../../utils/result.js";
+import { SearchResultItem } from "./types.js";
+import { MarketplaceName } from "../marketplace/types.js";
 
-export type SearchResult = {
-  title: string;
-  price: number;
-  currency: string;
-  url: string;
-  image?: string;
-  site: string;
+export type SearchResult = SearchResultItem & {
   source: "api" | "scraper" | "adapter";
-  inStock: boolean;
-  brand?: string;
-  description?: string;
-  barcode?: string;
-  stockCount?: number;
-  attributes?: Record<string, any>;
-  variants?: any[];
-  /* Competitive Data (Phase 3) */
-  buyBoxPrice?: number;
-  isWinningBuyBox?: boolean;
-  competitorCount?: number;
-  marketPosition?: "lowest" | "average" | "highest" | "competitive";
   winningSeller?: string;
 };
 
@@ -37,7 +21,9 @@ const CACHE_TTL = 15 * 60 * 1000; // 15 minutes
 export async function unifiedMarketplaceSearch(
   query: string,
   entities?: ChatEntity,
+  options: { deep?: boolean } = {},
 ): Promise<Result<SearchResult[]>> {
+  const { deep = false } = options;
   try {
     const sanitizedQuery = sanitizeQuery(query);
 
@@ -71,8 +57,7 @@ export async function unifiedMarketplaceSearch(
           price: r.price,
           currency: r.currency || "TL",
           url: r.url,
-          image: r.imageUrl || r.image,
-          site: r.marketplace,
+          marketplace: r.marketplace as MarketplaceName,
           source: "adapter" as const,
           inStock: r.inStock ?? true,
           brand: r.brand,
@@ -81,6 +66,7 @@ export async function unifiedMarketplaceSearch(
           stockCount: r.stockCount,
           attributes: r.attributes,
           variants: r.variants,
+          image: r.imageUrl || r.image,
         })),
       );
     } catch (e) {
@@ -102,50 +88,42 @@ export async function unifiedMarketplaceSearch(
 
             // Targeted search: "query site:domain"
             const siteQuery = `${processedQuery} site:${mp.site}`;
-            // Pass false to avoid appending global ALLOWED_SITES filter again
             const candidates = await googleSearchService.findProduct(siteQuery, false);
 
-            let results: SearchResult[] = [];
+            let googleResults: SearchResult[] = [];
             if (candidates.length > 0) {
-              // Debug log to check image presence
-              if (!candidates[0].image && candidates[0].title) {
-                logger.debug("unified_search.first_candidate_missing_image", {
-                  site: mp.name,
-                  title: candidates[0].title.substring(0, 30),
-                });
-              }
-
-              results = candidates.map((c) => ({
+              googleResults = candidates.map((c) => ({
                 title: c.title,
                 price: c.price ?? 0,
                 currency: c.currency ?? "TL",
                 url: c.link,
                 image: c.image || "",
-                site: mp.name,
+                marketplace: mp.name as MarketplaceName,
                 source: "api" as const,
                 inStock: true,
               }));
             }
 
-            // Fallback to scraper if Google fails OR returns a price of 0 OR has no image
-            const hasValidPrice = results.some((r) => r.price > 0);
-            const hasImage = results.some((r) => !!r.image);
-
-            if (!hasValidPrice || !hasImage) {
+            // Aggressive Scraping: If we have few results or missing images, always scrape
+            const needsMore = googleResults.length < 3 || googleResults.some(r => r.price === 0 || !r.image);
+            
+            if (needsMore) {
               const scrapeRes = await scrapeMarketplace(mp.name, processedQuery, {
-                maxResults: 1,
-                timeout: 15000, // Increased timeout for better success rate
+                maxResults: 10,
+                timeout: 20000, 
               }).catch(() => []);
 
               if (scrapeRes.length > 0) {
-                return scrapeRes.map((r: any) => ({
+                const scraperMapped = scrapeRes.map((r: any) => ({
                   ...r,
-                  site: mp.name,
+                  marketplace: mp.name as MarketplaceName,
                   source: "scraper" as const,
                 }));
+                // Merge and deduplicate by URL (Scraper usually has better/fresher price/image)
+                return [...scraperMapped, ...googleResults];
               }
             }
-            return results;
+            return googleResults;
           } catch (err) {
             logger.warn("unified_search.site_failed", { site: mp.name, error: err });
             return [];
@@ -155,7 +133,10 @@ export async function unifiedMarketplaceSearch(
       resultsPerSite.push(...chunkResults);
     }
 
-    const products = [...adapterResults, ...resultsPerSite.flat()];
+    const products = Array.from(new Map([
+      ...adapterResults,
+      ...(resultsPerSite.flat()),
+    ].map(r => [new URL(r.url).origin + new URL(r.url).pathname, r])).values());
 
     // FALLBACK: If no products found in marketplaces (e.g. "iPhone 17"), try general web search
     if (products.length === 0) {
@@ -172,7 +153,7 @@ export async function unifiedMarketplaceSearch(
               currency: c.currency ?? "TL",
               url: c.link,
               image: c.image || "",
-              site: c.displayLink || "Genel Web",
+              marketplace: c.displayLink as MarketplaceName || "Genel Web" as MarketplaceName,
               source: "api" as const,
               inStock: true,
             }));
@@ -184,34 +165,7 @@ export async function unifiedMarketplaceSearch(
       }
     }
 
-    const urlMap = new Map<string, SearchResult>();
-
-    products.forEach((r) => {
-      try {
-        const normalizedUrl = new URL(r.url).origin + new URL(r.url).pathname;
-        const existing = urlMap.get(normalizedUrl);
-
-        if (!existing) {
-          urlMap.set(normalizedUrl, r);
-        } else {
-          // Priority:
-          // 1. Result from Adapter (highest data quality)
-          // 2. Result with image
-          // 3. Scraper results
-          if (r.source === "adapter") {
-            urlMap.set(normalizedUrl, r);
-          } else if (r.image && !existing.image) {
-            urlMap.set(normalizedUrl, r);
-          } else if (r.source === "scraper" && existing.source === "api") {
-            urlMap.set(normalizedUrl, r);
-          }
-        }
-      } catch {
-        urlMap.set(r.url, r);
-      }
-    });
-
-    const deduped = Array.from(urlMap.values());
+    const deduped = products;
     const filtered = filterAccessories(deduped, processedQuery, entities);
 
     // Sort to ensure best items are picked in getUniqueBySite
@@ -278,22 +232,28 @@ export async function unifiedMarketplaceSearch(
       logger.warn("unified_search.normalization_failed", { error: e });
     }
 
-    // 6. Deep Scrape for Barcodes (Phase 8) + UPCitemdb Fallback (Phase 9)
-    // Only enrichment for top results if barcode is missing
-    const resultsToEnrich = finalResults.filter(r => !r.barcode && r.url).slice(0, 3);
+    // 6. Deep Scrape for Barcodes (Phase 8) + Competition Data (Phase 10)
+    // Enrichment depth depends on 'deep' flag
+    const enrichmentLimit = deep ? 10 : 3;
+    const resultsToEnrich = finalResults.filter(r => r.url).slice(0, enrichmentLimit);
+    
     if (resultsToEnrich.length > 0) {
-      logger.info("unified_search.deep_scrape_enrichment", { count: resultsToEnrich.length });
+      logger.info("unified_search.enrichment_start", { count: resultsToEnrich.length, deep });
       await Promise.all(resultsToEnrich.map(async (r) => {
         try {
-          // Strategy 1: Web scraping (works for Hepsiburada)
           const { scrapeProductDetails } = await import("../webScraperService.js");
-          const details = await scrapeProductDetails(r.url, r.site);
-          if (details.barcode) {
-            r.barcode = details.barcode;
-            if (details.brand && !r.brand) r.brand = details.brand;
-            if (details.description && !r.description) r.description = details.description;
-            logger.info("unified_search.barcode_from_scraper", { site: r.site, barcode: r.barcode });
-            return;
+          const details = await scrapeProductDetails(r.url, r.marketplace);
+          
+          if (details.barcode) r.barcode = details.barcode;
+          if (details.brand && !r.brand) r.brand = details.brand;
+          if (details.description && !r.description) r.description = details.description;
+          if (details.competitors) {
+            r.attributes = { ...r.attributes, competitors: details.competitors };
+            // Also update competition fields if not present
+            if (details.competitors.length > 0) {
+              r.competitorCount = details.competitors.length;
+              r.buyBoxPrice = Math.min(...details.competitors.map(c => c.price));
+            }
           }
           
           // Strategy 2: UPCitemdb fallback (for international products)
@@ -303,13 +263,13 @@ export async function unifiedMarketplaceSearch(
             r.barcode = lookupResult.barcode;
             if (lookupResult.product?.brand && !r.brand) r.brand = lookupResult.product.brand;
             logger.info("unified_search.barcode_from_upcitemdb", { 
-              site: r.site, 
+              marketplace: r.marketplace, 
               barcode: r.barcode, 
               source: lookupResult.source 
             });
           }
         } catch (e) {
-          logger.warn("unified_search.enrichment_failed", { site: r.site, error: e });
+          logger.warn("unified_search.enrichment_failed", { site: r.marketplace, error: e });
         }
       }));
     }
@@ -429,10 +389,10 @@ function getUniqueBySite(products: SearchResult[]): SearchResult[] {
   const siteGroups = new Map<string, SearchResult[]>();
 
   for (const p of products) {
-    if (!siteGroups.has(p.site)) {
-      siteGroups.set(p.site, []);
+    if (!siteGroups.has(p.marketplace)) {
+      siteGroups.set(p.marketplace, []);
     }
-    siteGroups.get(p.site)!.push(p);
+    siteGroups.get(p.marketplace)!.push(p);
   }
 
   // Sort each group by quality (price > 0, hasImage, title matching relevance)
@@ -481,7 +441,7 @@ function getUniqueBySite(products: SearchResult[]): SearchResult[] {
     index++;
   }
 
-  return result.slice(0, 6);
+  return result.slice(0, 6) as SearchResult[];
 }
 
 function sanitizeQuery(query: string): string {

@@ -1,16 +1,9 @@
 import { ChatHandler } from "./baseHandler.js";
 import { ChatEntity, HandlerResult, MarketplaceComparisonCard } from "../types.js";
 import { logger } from "../../logger.js";
-<<<<<<< HEAD
 import { getMarketplaceProvider, getMarketplaceProviders, listMarketplaceProviders } from "../../services/marketplace/index.js";
 import { MarketplaceName } from "../../services/marketplace/types.js";
 import { auditService } from "../auditService.js";
-=======
-import { getMarketplaceProvider, getMarketplaceProviders, listMarketplaceProviders } from "../../marketplaces/index.js";
-import { MarketplaceName } from "../../marketplaces/types.js";
-import { auditService } from "../auditService.js";
-import { confirmationService } from "../confirmationService.js";
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 
 /**
  * Marketplace Handler
@@ -21,6 +14,7 @@ import { confirmationService } from "../confirmationService.js";
  * - listing_update: Listing güncelle
  * - batch_operation: Toplu işlem
  * - analytics_query: Pazaryeri analitik sorgusu
+ * - order_sync: Sipariş senkronizasyonu
  */
 export class MarketplaceHandler implements ChatHandler {
     name = "MarketplaceHandler";
@@ -30,10 +24,8 @@ export class MarketplaceHandler implements ChatHandler {
         "listing_update",
         "batch_operation",
         "analytics_query",
-<<<<<<< HEAD
         "product_search",
-=======
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
+        "order_sync",
     ];
 
     async handle(
@@ -49,6 +41,9 @@ export class MarketplaceHandler implements ChatHandler {
                 case "marketplace_sync":
                     return await this.syncMarketplace(entities, userId, sessionId);
 
+                case "order_sync":
+                    return await this.syncOrders();
+
                 case "marketplace_publish":
                     return await this.publishProduct(entities, userId, sessionId);
 
@@ -61,12 +56,8 @@ export class MarketplaceHandler implements ChatHandler {
                 case "batch_operation":
                     return await this.handleBatchOperation(entities, userId, sessionId);
 
-<<<<<<< HEAD
                 case "product_search":
                     return await this.handleProductSearch(entities);
-
-=======
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
                 default:
                     return {
                         success: false,
@@ -83,12 +74,35 @@ export class MarketplaceHandler implements ChatHandler {
     }
 
     /**
+     * Siparişleri senkronize et
+     */
+    private async syncOrders(): Promise<HandlerResult> {
+        const { marketplaceOrderSyncService } = await import("../../services/marketplaceOrderSyncService.js");
+        const results = await marketplaceOrderSyncService.syncAllOrders();
+
+        let message = "📦 **Sipariş Senkronizasyonu Tamamlandı**\n\n";
+        results.forEach((r: { marketplace: string; error?: string; fetched?: number; created?: number }) => {
+            if (r.error) {
+                message += `❌ **${r.marketplace}**: Hata (${r.error})\n`;
+            } else {
+                message += `✅ **${r.marketplace}**: ${r.fetched} sipariş bulundu, ${r.created} yeni sipariş eklendi.\n`;
+            }
+        });
+
+        return {
+            success: true,
+            message,
+            data: { results }
+        };
+    }
+
+    /**
      * Pazaryeri senkronizasyonu
      */
     private async syncMarketplace(
         entities: ChatEntity,
-        userId?: string,
-        sessionId?: string
+        _userId?: string,
+        _sessionId?: string
     ): Promise<HandlerResult> {
         const { marketplace, barcode } = entities;
 
@@ -131,7 +145,6 @@ export class MarketplaceHandler implements ChatHandler {
         }
 
         // Get listings from marketplace
-<<<<<<< HEAD
         const result = await provider.listListings({ barcode });
 
         if (!result.ok) {
@@ -145,29 +158,11 @@ export class MarketplaceHandler implements ChatHandler {
         const message = barcode
             ? `✅ **${marketplace}** - Barkod ${barcode} senkronize edildi.`
             : `✅ **${marketplace}** - ${items.length} ürün çekildi.`;
-=======
-        const listResult = await provider.listListings({ barcode });
-
-        if (listResult.status !== "ok") {
-            return {
-                success: false,
-                message: `${marketplace} senkronizasyon hatası: ${listResult.message}`,
-            };
-        }
-
-        const message = barcode
-            ? `✅ **${marketplace}** - Barkod ${barcode} senkronize edildi.`
-            : `✅ **${marketplace}** - ${listResult.items.length} ürün çekildi.`;
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 
         return {
             success: true,
             message,
-<<<<<<< HEAD
             data: { items },
-=======
-            data: { items: listResult.items },
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
         };
     }
 
@@ -188,17 +183,16 @@ export class MarketplaceHandler implements ChatHandler {
             };
         }
 
-<<<<<<< HEAD
         // Get product from database
-        const { getProductByBarcode } = await import("../../services/productService.js");
-        const product = await getProductByBarcode(barcode);
-
-        if (!product) {
+        const { getProductByBarcode } = await import("../../services/product/productService.js");
+        const productResult = await getProductByBarcode(barcode);
+        if (!productResult.ok) {
             return {
                 success: false,
                 message: `Barkod ${barcode} sistemde bulunamadı. Önce ürünü ekleyin.`,
             };
         }
+        const product = productResult.value;
 
         // Prepare payload for marketplace
         const payload = {
@@ -231,7 +225,7 @@ export class MarketplaceHandler implements ChatHandler {
             try {
                 const result = await provider.upsertProduct({
                     ...payload,
-                    name: product.name, // Ensure required 'name' field
+                    name: product.name,
                 });
                 
                 if (result.ok) {
@@ -270,7 +264,6 @@ export class MarketplaceHandler implements ChatHandler {
         }
 
         const successCount = results.filter(r => r.status === "ok" || r.status === "queued").length;
-        const totalCount = results.filter(r => r.status !== "skipped").length;
 
         let message = `📤 **${product.name}** (${barcode})\n\n`;
         results.forEach(r => {
@@ -282,15 +275,6 @@ export class MarketplaceHandler implements ChatHandler {
             success: successCount > 0,
             message,
             data: { barcode, results },
-=======
-        // TODO: Get product from database and publish to marketplace
-        // This is a placeholder for now
-
-        return {
-            success: true,
-            message: `📤 Barkod ${barcode} ${marketplace || "tüm pazaryerlerine"} yayınlanmak üzere kuyruğa alındı.`,
-            data: { barcode, marketplace, status: "queued" },
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
         };
     }
 
@@ -322,7 +306,7 @@ export class MarketplaceHandler implements ChatHandler {
             ? [marketplace]
             : ["Trendyol", "Hepsiburada", "N11", "Ciceksepeti", "PttAVM", "Pazarama"];
 
-        const results: any[] = [];
+        const results: { marketplace: string; status: string; message: string }[] = [];
 
         for (const mp of targetMarketplaces) {
             const provider = getMarketplaceProvider(mp as MarketplaceName);
@@ -334,7 +318,6 @@ export class MarketplaceHandler implements ChatHandler {
                 stock,
             });
 
-<<<<<<< HEAD
             if (result.ok) {
                 results.push({
                     marketplace: mp,
@@ -348,13 +331,6 @@ export class MarketplaceHandler implements ChatHandler {
                     message: result.error.message,
                 });
             }
-=======
-            results.push({
-                marketplace: mp,
-                status: result.status,
-                message: result.message,
-            });
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
         }
 
         // Audit log
@@ -382,15 +358,12 @@ export class MarketplaceHandler implements ChatHandler {
      * Pazaryeri analitikleri
      */
     private async getMarketplaceAnalytics(entities: ChatEntity): Promise<HandlerResult> {
-        const { marketplace, barcode } = entities;
+        const { barcode } = entities;
 
-<<<<<<< HEAD
-        // If no specific barcode, show cross-marketplace summary
         if (!barcode) {
             return await this.getCrossMarketplaceSummary();
         }
 
-        // Get price comparison across marketplaces for specific barcode
         const comparison = await this.getPriceComparison(barcode);
 
         if (comparison.length === 0) {
@@ -415,153 +388,25 @@ export class MarketplaceHandler implements ChatHandler {
             success: true,
             message,
             marketplaceComparison: comparison,
-=======
-        // Get price comparison across marketplaces
-        if (barcode) {
-            const comparison = await this.getPriceComparison(barcode);
-
-            if (comparison.length === 0) {
-                return {
-                    success: true,
-                    message: `Barkod ${barcode} için pazaryerlerinde veri bulunamadı.`,
-                    marketplaceComparison: [],
-                };
-            }
-
-            let message = `📊 **Barkod ${barcode} - Pazaryeri Karşılaştırma**\n\n`;
-            comparison.forEach(c => {
-                const icon = c.available ? "✅" : "❌";
-                message += `${icon} **${c.marketplace}**: ${c.price} ${c.currency}`;
-                if (c.stock !== undefined) {
-                    message += ` (${c.stock} adet)`;
-                }
-                message += "\n";
-            });
-
-            return {
-                success: true,
-                message,
-                marketplaceComparison: comparison,
-            };
-        }
-
-        return {
-            success: true,
-            message: "Pazaryeri analizi için barkod belirtin.",
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
         };
     }
 
-    /**
-<<<<<<< HEAD
-     * Get cross-marketplace price summary
-     */
     private async getCrossMarketplaceSummary(): Promise<HandlerResult> {
-        const fs = await import("fs");
-        const path = await import("path");
+        const providers = listMarketplaceProviders();
+        let message = "🌐 **Genel Pazaryeri Özeti**\n\n";
         
-        // Try to read the price comparison report
-        const reportPath = path.join(process.cwd(), "price_comparison_report.json");
-        
-        try {
-            if (fs.existsSync(reportPath)) {
-                const reportData = JSON.parse(fs.readFileSync(reportPath, "utf-8"));
-                
-                let message = "📊 **Pazaryerleri Arası Fiyat Karşılaştırması**\n\n";
-                
-                // Summary by marketplace
-                message += "**📈 Ortalama Fiyatlar:**\n";
-                const summary = reportData.summary?.byMarketplace || {};
-                const sortedMPs = Object.entries(summary).sort((a: any, b: any) => a[1].avgPrice - b[1].avgPrice);
-                
-                for (const [mp, data] of sortedMPs as [string, { count: number; avgPrice: number }][]) {
-                    const cheapIcon = sortedMPs[0][0] === mp ? "💰" : "";
-                    message += `  ${cheapIcon} **${mp}**: ${data.avgPrice.toFixed(2)}₺ (${data.count} ürün)\n`;
-                }
-                
-                // Top differences
-                if (reportData.topDifferences?.length > 0) {
-                    message += "\n**🔥 En Büyük Fiyat Farkları:**\n";
-                    const top5 = reportData.topDifferences.slice(0, 5);
-                    for (const diff of top5) {
-                        message += `  • ${diff.title?.substring(0, 35)}...\n`;
-                        message += `    ${diff.cheapestAt}: ${diff.minPrice}₺ vs diğerleri: ${diff.maxPrice}₺ (**${diff.priceDiff.toFixed(0)}₺ fark**)\n`;
-                    }
-                }
-                
-                message += `\n📅 Rapor: ${new Date(reportData.timestamp).toLocaleString("tr-TR")}`;
-                message += `\n🔢 Toplam: ${reportData.totalProducts} ürün, ${reportData.comparisonsFound} eşleşme`;
-                
-                return {
-                    success: true,
-                    message,
-                    data: reportData,
-                };
-            }
-        } catch (err) {
-            logger.error("marketplaceHandler.getCrossMarketplaceSummary.error", { error: err });
+        for (const p of providers) {
+            const icon = p.configured ? "✅" : "❌";
+            message += `${icon} **${p.name}**: ${p.configured ? "Bağlı" : "Bağlı Değil"}\n`;
         }
-        
-        // If no report, generate one on-the-fly with live data
-        return await this.generateLivePriceComparison();
-    }
-    
-    /**
-     * Generate live price comparison from all marketplaces
-     */
-    private async generateLivePriceComparison(): Promise<HandlerResult> {
-        const providerInstances = getMarketplaceProviders();
-        const allProducts: { mp: string; barcode: string; price: number; stock: number }[] = [];
-        
-        let message = "📊 **Canlı Pazaryeri Analizi**\n\n";
-        
-        for (const provider of providerInstances) {
-            if (!provider.isConfigured()) continue;
-            
-            try {
-                const result = await provider.listListings({ size: 50 });
-                if (result.status === "ok" && result.items.length > 0) {
-                    for (const item of result.items) {
-                        allProducts.push({
-                            mp: provider.name,
-                            barcode: item.barcode,
-                            price: item.price || 0,
-                            stock: item.stock || 0,
-                        });
-                    }
-                    message += `✅ **${provider.name}**: ${result.items.length} ürün\n`;
-                }
-            } catch (err) {
-                message += `❌ **${provider.name}**: Bağlantı hatası\n`;
-            }
-        }
-        
-        // Calculate average prices per marketplace
-        const mpStats = new Map<string, { count: number; total: number }>();
-        for (const p of allProducts) {
-            if (!mpStats.has(p.mp)) mpStats.set(p.mp, { count: 0, total: 0 });
-            const stat = mpStats.get(p.mp)!;
-            stat.count++;
-            stat.total += p.price;
-        }
-        
-        message += "\n**📈 Ortalama Fiyatlar:**\n";
-        for (const [mp, stat] of mpStats) {
-            const avg = stat.total / stat.count;
-            message += `  • ${mp}: ${avg.toFixed(2)}₺\n`;
-        }
-        
+
         return {
             success: true,
             message,
-            data: { totalProducts: allProducts.length, byMarketplace: Object.fromEntries(mpStats) },
         };
     }
 
-
     /**
-=======
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
      * Get price comparison from all marketplaces
      */
     private async getPriceComparison(barcode: string): Promise<MarketplaceComparisonCard[]> {
@@ -574,8 +419,8 @@ export class MarketplaceHandler implements ChatHandler {
             try {
                 const result = await provider.listListings({ barcode });
 
-                if (result.status === "ok" && result.items.length > 0) {
-                    const item = result.items[0];
+                if (result.ok && result.value.items.length > 0) {
+                    const item = result.value.items[0];
                     comparison.push({
                         marketplace: provider.name as MarketplaceName,
                         price: item.price || 0,
@@ -596,7 +441,6 @@ export class MarketplaceHandler implements ChatHandler {
     }
 
     /**
-<<<<<<< HEAD
      * Evrensel Ürün Arama (Unified Search)
      */
     private async handleProductSearch(entities: ChatEntity): Promise<HandlerResult> {
@@ -626,24 +470,23 @@ export class MarketplaceHandler implements ChatHandler {
             };
         }
 
-        // Map SearchResult to ProductCard/MarketplaceComparisonCard
         const productCards = foundProducts.map(p => ({
             name: p.title,
             price: p.price,
             currency: p.currency || "TRY",
             imageUrl: p.image,
-            marketplace: p.site as MarketplaceName,
+            marketplace: p.marketplace as MarketplaceName,
             url: p.url,
             barcode: p.barcode,
-            canImport: true // Allow importing found products to user's shop
+            canImport: true
         }));
 
         const comparison = foundProducts.map(p => ({
-            marketplace: p.site as MarketplaceName,
+            marketplace: p.marketplace as MarketplaceName,
             price: p.price,
             stock: p.stockCount ?? (p.inStock ? 100 : 0),
             currency: p.currency || "TRY",
-            available: p.inStock,
+            available: p.inStock ?? false,
             url: p.url
         }));
 
@@ -659,16 +502,13 @@ export class MarketplaceHandler implements ChatHandler {
     }
 
     /**
-=======
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
      * Toplu işlem (requires confirmation)
      */
     private async handleBatchOperation(
-        entities: ChatEntity,
-        userId?: string,
-        sessionId?: string
+        _entities: ChatEntity,
+        _userId?: string,
+        _sessionId?: string
     ): Promise<HandlerResult> {
-        // Batch operations require confirmation
         return {
             success: false,
             message: "Toplu işlemler için lütfen detay belirtin (örn: 'Tüm stokları %10 artır').",

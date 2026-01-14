@@ -1,11 +1,6 @@
 import { getRevenueTimeline } from "./analyticsService.js";
-<<<<<<< HEAD
 import { getLowStockProducts } from "./product/productService.js";
 import { generateGeminiReply } from "./ai/geminiClient.js";
-=======
-import { getLowStockProducts } from "./productService.js";
-import { generateGeminiReply } from "./geminiClient.js";
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 import { logger } from "../logger.js";
 import { Locale } from "../types.js";
 import { getUserPreferences } from "./userPreferenceService.js";

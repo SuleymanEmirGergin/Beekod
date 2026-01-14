@@ -11,10 +11,10 @@ export {
   createOrder,
   updateOrderStatus,
   updateOrderShipping,
-} from "../../services/orderService.js";
+} from "../../services/order/orderService.js";
 
 // Sync service
-export { syncOrdersFromMarketplaces } from "../../services/orderSyncService.js";
+export { syncOrdersFromMarketplaces } from "../../services/order/orderSyncService.js";
 
 // Routes
 export { orderRouter } from "../../routes/orderRoutes.js";

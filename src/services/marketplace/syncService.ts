@@ -74,27 +74,23 @@ export async function syncPriceStock(input: SyncPriceInput): Promise<SyncResult>
         }
 
         // Attempt update
-        const result = await provider.updateListing({
+        const updateResult = await provider.updateListing({
           barcode,
           price,
           stock,
         });
 
-        // Map MarketplaceActionStatus to SyncResult status
-        const mappedStatus: "ok" | "failed" | "not_configured" | "skipped" =
-          result.status === "ok" ? "ok" : result.status === "not_configured" ? "not_configured" : "failed";
-
-        if (mappedStatus === "ok") {
+        if (updateResult.ok) {
+          const actionData = updateResult.value;
           return {
             marketplace: provider.name,
-            status: mappedStatus,
-            message: result.message,
+            status: actionData.status === "ok" ? "ok" as const : "failed" as const,
+            message: actionData.message,
           };
         }
 
-        // If it failed, we might want to retry depending on the message
-        // For now, retry all failures until maxAttempts
-        lastError = new Error(result.message);
+        // If it failed at the Result level
+        lastError = updateResult.error;
 
         if (attempts < maxAttempts) {
           logger.warn("sync.retry", { provider: provider.name, barcode, attempt: attempts });
@@ -140,13 +136,14 @@ export async function bulkSyncPriceStock(barcodes: string[]): Promise<SyncResult
 
   const syncPromises = barcodes.map(async (barcode) => {
     try {
-      const product = await getProductByBarcode(barcode);
-      if (!product) {
+      const productResult = await getProductByBarcode(barcode);
+      if (!productResult.ok) {
         return {
           success: false,
           results: [{ marketplace: "all", status: "failed" as const, message: "Product not found" }],
         };
       }
+      const product = productResult.value;
       return await syncPriceStock({
         barcode,
         price: product.price,

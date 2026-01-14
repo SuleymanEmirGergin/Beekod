@@ -22,7 +22,7 @@ export interface SearchResultItem {
     name: string;
     rating?: number;
   };
-  attributes?: Record<string, string | number>;
+  attributes?: Record<string, any>;
   variants?: {
     barcode: string;
     sku?: string;

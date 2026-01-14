@@ -21,11 +21,15 @@ describe("OrderService", () => {
             // Define mock data
             const mockOrder = {
                 id: 100,
-                requestId: "#BK-2105",
-                totalAmount: "₺1500.00",
-                customerName: "Test User",
-                orderDate: new Date().toISOString(),
-                status: "New"
+                request_id: "#BK-2105",
+                source_name: "Trendyol",
+                customer_name: "Test User",
+                order_date: new Date().toISOString(),
+                total_amount: "₺1500.00",
+                status_label: "New",
+                status_color: "bg-yellow-50",
+                status_dot: "bg-yellow-500",
+                currency: "TRY"
             };
 
             const queryMock = query as any;
@@ -54,7 +58,7 @@ describe("OrderService", () => {
             const input = {
                 source: { name: "Trendyol", icon: "ty", color: "orange" },
                 customer: { name: "Test User" },
-                items: [{ name: "Ayakkabı", sku: "SKU123", price: "₺1500.00", quantity: 1 }],
+                items: [{ product_name: "Ayakkabı", sku: "SKU123", price: "₺1500.00", quantity: 1 }],
                 total: "₺1500.00"
             };
 

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { googleSearchService } from "../services/googleSearchService.js";
+import { googleSearchService } from "../services/search/googleSearchService.js";
 import { scrapeProductFromUrl } from "../services/productScraper.js";
 import { sendSuccessResponse, sendErrorResponse } from "../utils/responseHelper.js";
 import { upsertProduct } from '../services/product/productService.js';

@@ -2,8 +2,8 @@ import { ChatHandler } from "./baseHandler.js";
 import { ChatEntity, HandlerResult } from "../types.js";
 import { logger } from "../../logger.js";
 import { pool } from "../../db.js";
-import { getMarketplaceProvider } from "../../marketplaces/index.js";
-import { MarketplaceName } from "../../marketplaces/types.js";
+import { getMarketplaceProvider } from "../../services/marketplace/index.js";
+import { MarketplaceName } from "../../services/marketplace/types.js";
 
 /**
  * Order Handler

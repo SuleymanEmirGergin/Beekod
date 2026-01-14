@@ -1,35 +1,29 @@
-import { describe, it, before } from 'node:test';
-import assert from 'node:assert';
-import { getMarketplaceProvider } from '../../src/marketplaces/index.js';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { getMarketplaceProvider } from '../../src/services/marketplace/index.js';
 
 describe('Marketplace Integration (Mock Mode)', () => {
-    let trendyolProvider;
-    let originalEnv;
+    let originalEnv: string | undefined;
 
-    before(() => {
+    beforeEach(() => {
         // Ensure we are in mock mode
         originalEnv = process.env.MARKETPLACE_MODE;
         process.env.MARKETPLACE_MODE = 'mock';
     });
 
     it('should initialize Trendyol provider', async () => {
-        trendyolProvider = await getMarketplaceProvider('Trendyol');
-        assert.ok(trendyolProvider, 'Trendyol provider should be initialized');
-        assert.strictEqual(trendyolProvider.name.toLowerCase(), 'trendyol');
+        const trendyolProvider = getMarketplaceProvider('Trendyol');
+        expect(trendyolProvider).toBeDefined();
+        expect(trendyolProvider?.name.toLowerCase()).toBe('trendyol');
     });
 
     it('should initialize Hepsiburada provider', async () => {
-        const hbProvider = await getMarketplaceProvider('Hepsiburada');
-        assert.ok(hbProvider, 'Hepsiburada provider should be initialized');
-        assert.strictEqual(hbProvider.name.toLowerCase(), 'hepsiburada');
+        const hbProvider = getMarketplaceProvider('Hepsiburada');
+        expect(hbProvider).toBeDefined();
+        expect(hbProvider?.name.toLowerCase()).toBe('hepsiburada');
     });
 
-    // Note: Integration tests with real API calls are skipped in this suite
-    // as they require valid credentials and would fail in CI/CD without them.
-    // This suite focuses on the provider factory and basic interface compliance.
-
     it('should return null for unknown marketplace', async () => {
-        const provider = await getMarketplaceProvider('UnknownMarketplace');
-        assert.strictEqual(provider, null);
+        const provider = getMarketplaceProvider('UnknownMarketplace');
+        expect(provider).toBeNull();
     });
 });

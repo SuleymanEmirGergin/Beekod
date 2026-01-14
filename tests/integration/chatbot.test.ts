@@ -204,7 +204,7 @@ describe("ConfirmationService Integration", () => {
             );
 
             expect(result.verified).toBe(false);
-            expect(result.error).toContain("süresi dolmuş");
+            expect(result.error).toContain("süresi doldu");
 
             vi.useRealTimers();
         });

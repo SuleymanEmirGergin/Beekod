@@ -71,7 +71,9 @@ router.post("/mark-all-read", requireAdminKey, async (req, res) => {
 router.post("/generate-recommendations", requireAdminKey, async (req, res) => {
   try {
     // Gather business context
-    const products = await getAllProducts(1000);
+    const productsResult = await getAllProducts(1000);
+    if (!productsResult.ok) throw productsResult.error;
+    const products = productsResult.value;
     const lowStockProducts = products.filter((p) => p.stock < (p.alert_threshold || 10)).length;
 
     // Count pending orders from MySQL

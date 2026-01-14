@@ -27,7 +27,7 @@ Bu klasör, ağır AI işlemlerini asenkron olarak işleyen worker'ları içerir
 
 ### 2. `aiModelWorker.ts` - AI Model Worker
 - Virtual Try-On işlemleri
-- Wiro ve Replicate entegrasyonu
+- Fal.ai ve Replicate entegrasyonu
 - Concurrency: 2 (aynı anda 2 işlem)
 - Timeout: 90 saniye
 
@@ -151,9 +151,9 @@ AI_WORKER_CONCURRENCY=2
 
 # AI Services
 GEMINI_API_KEY=xxx
+GOOGLE_AI_API_KEY=xxx
+FAL_KEY=xxx
 REPLICATE_API_TOKEN=xxx
-WIRO_API_KEY=xxx
-WIRO_API_SECRET=xxx
 ```
 
 ### Docker Resource Limits

@@ -14,7 +14,7 @@ export {
   generateInvoicePdfUrl,
   officialiseInvoice,
   createInvoicesFromOrders,
-} from "../../services/invoiceService.js";
+} from "../../services/order/invoiceService.js";
 
 // Invoice store
 export {

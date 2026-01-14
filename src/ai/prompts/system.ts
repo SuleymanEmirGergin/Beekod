@@ -31,11 +31,14 @@ Return JSON:
 }`;
   },
 
-  responder: (style: "short" | "normal" | "detailed") => {
+  responder: (style: "short" | "normal" | "detailed" | "concise" | "friendly" | "professional") => {
     const styleGuide: Record<string, string> = {
       short: "Keep it brief and direct.",
       normal: "Be clear and helpful with moderate detail.",
       detailed: "Provide a thorough, structured response.",
+      concise: "Keep it brief and to the point.",
+      friendly: "Be warm, conversational and approachable.",
+      professional: "Use formal, business-appropriate language.",
     };
 
     return `You are the AI assistant for Beekod.

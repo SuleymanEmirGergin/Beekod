@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getDailyBrief } from "../../src/services/intelligenceService";
-import { generateGeminiReply } from "../../src/services/geminiService";
+import { generateGeminiReply } from "../../src/services/ai/geminiClient";
 import { query } from "../../src/db";
 
 // Mocks
-vi.mock("../../src/services/geminiService");
+vi.mock("../../src/services/ai/geminiClient");
 vi.mock("../../src/db");
 
 describe("IntelligenceService", () => {

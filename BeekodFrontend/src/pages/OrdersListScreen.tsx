@@ -519,11 +519,7 @@ export function OrdersListScreen({ onNavigate }: OrdersListScreenProps) {
                   {syncOrdersMutation.isPending ? 'Eşitleniyor...' : 'Siparişleri Eşitle'}
                 </button>
                 <button
-<<<<<<< HEAD
                   className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white rounded-xl text-sm font-medium transition-all shadow-md"
-=======
-                  className="relative z-10 flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white rounded-xl text-sm font-medium transition-all shadow-md"
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
                   onClick={() => setShowCreateOrderModal(true)}
                 >
                   <Plus className="w-4 h-4" />
@@ -716,10 +712,7 @@ export function OrdersListScreen({ onNavigate }: OrdersListScreenProps) {
       </div>
 
       {/* Floating Chat Button */}
-<<<<<<< HEAD
       
-=======
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 
 
       {showCreateOrderModal && (
@@ -1038,3 +1031,4 @@ export function OrdersListScreen({ onNavigate }: OrdersListScreenProps) {
     </div >
   );
 }
+

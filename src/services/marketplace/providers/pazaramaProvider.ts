@@ -6,6 +6,7 @@ import {
   MarketplaceOrder,
   MarketplaceOrderResult,
   MarketplaceProductPayload,
+  MarketplaceReviewResult,
   MarketplaceTokenStatus,
   MarketplaceUpdatePayload,
 } from "../types.js";
@@ -597,5 +598,69 @@ export class PazaramaProvider extends BaseMarketplaceProvider {
     } catch (e: any) {
       return fail(e);
     }
+  }
+
+  /**
+   * Get price competition data using web scraping
+   * Note: Pazarama doesn't provide a direct API for competitor pricing
+   * This method would integrate with webScraperService for BuyBox data
+   */
+  async getPriceCompetition(barcodes: string[]): Promise<Result<{ barcode: string; lowestPrice: number; winningSeller?: string; competitorCount?: number }[]>> {
+    if (!this.isConfigured()) return fail(new Error("Not configured"));
+    if (!barcodes || barcodes.length === 0) return ok([]);
+
+    try {
+      const results: { barcode: string; lowestPrice: number; winningSeller?: string; competitorCount?: number }[] = [];
+
+      for (const barcode of barcodes) {
+        // TODO: Integrate with webScraperService for actual scraping
+        // For now, we'll use the API to get our own listing and note that competitor data requires scraping
+        const listResult = await this.listListings({ barcode });
+        
+        if (!listResult.ok || listResult.value.items.length === 0) {
+          results.push({ barcode, lowestPrice: 0, competitorCount: 0 });
+          continue;
+        }
+
+        const ourListing = listResult.value.items[0];
+        
+        results.push({
+          barcode,
+          lowestPrice: ourListing.price,
+          winningSeller: "WebScrapingRequired",
+          competitorCount: 1 // Only our listing via API
+        });
+      }
+
+      logMarketplaceEvent(this.name, "getPriceCompetition", {
+        status: "ok",
+        message: `Analyzed ${barcodes.length} products (API only, scraping needed for full competition data)`
+      });
+
+      return ok(results);
+    } catch (error: unknown) {
+      return fail(error instanceof Error ? error : new Error(String(error)));
+    }
+  }
+
+  /**
+   * Get product reviews
+   * Note: Pazarama API doesn't provide review endpoint for sellers
+   */
+  async getProductReviews(barcode: string): Promise<Result<MarketplaceReviewResult>> {
+    if (!this.isConfigured()) return fail(new Error("Not configured"));
+    if (!barcode) return fail(new Error("Barcode required"));
+
+    // Pazarama doesn't provide a reviews API for sellers
+    logMarketplaceEvent(this.name, "getProductReviews", {
+      status: "ok",
+      message: `Reviews API not available for ${barcode}`
+    });
+
+    return ok({
+      status: "ok",
+      message: "Pazarama yorum API'si satıcılar için mevcut değil. Web scraping gerektirir.",
+      reviews: []
+    });
   }
 }

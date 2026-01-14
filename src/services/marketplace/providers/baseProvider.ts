@@ -37,6 +37,9 @@ export abstract class BaseMarketplaceProvider implements MarketplaceProvider {
   abstract listListings(params?: {
     status?: "active" | "inactive";
     barcode?: string;
+    deep?: boolean;
+    page?: number;
+    pageSize?: number;
   }): Promise<Result<MarketplaceListResult>>;
   abstract getNewOrders(params?: { startDate?: string; endDate?: string }): Promise<Result<MarketplaceOrderResult>>;
 

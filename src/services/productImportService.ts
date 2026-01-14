@@ -1,7 +1,7 @@
-import { scrapeProductFromUrl } from "./productScraper.js";
+import { scrapeProductFromUrl, ScrapedProduct } from "./productScraper.js";
 import { rewriteProductContent, generateHtmlSpecTable } from "./ai/productRewriter.js";
-import { upsertProduct } from "./productService.js";
-import { getAllIntegrations } from "./integrationService.js";
+import { upsertProduct } from "./product/productService.js";
+import { getAllIntegrations } from "./marketplace/integrationService.js";
 import { ShopifyConnector } from "./connectors/shopifyConnector.js";
 import { WooConnector } from "./connectors/wooConnector.js";
 import { logger } from "../logger.js";
@@ -14,7 +14,7 @@ type ImportResult = {
     localId?: string;
     aiImageInsight?: string;
     aiMarketInsight?: string;
-    socialPosts?: any;
+    socialPosts?: Record<string, string>;
     error?: string;
 };
 
@@ -24,7 +24,7 @@ export async function importProductFromUrl(url: string, providerId?: "shopify" |
     // 0. Check Mock Data (Demo Support)
     // We strictly identify our mock URLs to generate consistent demo data
 
-    let scraped: any = null;
+    let scraped: ScrapedProduct | null = null;
 
     try {
         const u = new URL(url);
@@ -156,7 +156,7 @@ export async function importProductFromUrl(url: string, providerId?: "shopify" |
                     imageBuffer = Buffer.from(await imgRes.arrayBuffer());
                     imgMime = imgRes.headers.get("content-type") || "image/jpeg";
                 }
-            } catch (e) { }
+            } catch (_e) { }
         }
 
         const { analyzeImage } = await import("./geminiClient.js");
@@ -172,9 +172,8 @@ export async function importProductFromUrl(url: string, providerId?: "shopify" |
     }
 
     // 3. Save to Local DB (Beekod Inventory)
-    let localProduct = null;
     try {
-        localProduct = await upsertProduct({
+        const upResult = await upsertProduct({
             barcode: scraped.barcode || `IMP${Date.now()}`,
             name: optimized.title,
             description: finalDescription,
@@ -187,7 +186,13 @@ export async function importProductFromUrl(url: string, providerId?: "shopify" |
             sourceUrl: url,
             sourceSite: new URL(url).hostname,
         });
-        logger.info("import.saved_local", { barcode: localProduct?.barcode });
+
+        if (!upResult.ok) {
+            throw upResult.error;
+        }
+
+        const savedBarcode = upResult.value.barcode;
+        logger.info("import.saved_local", { barcode: savedBarcode });
     } catch (dbErr) {
         logger.error("import.local_db_failed", { dbErr });
         return {
@@ -217,7 +222,7 @@ export async function importProductFromUrl(url: string, providerId?: "shopify" |
             success: true, // Mark as success because local DB saved, but store failed
             provider: targetProvider || "none",
             productName: optimized.title,
-            localId: localProduct?.barcode,
+            localId: scraped?.barcode,
             error: targetProvider
                 ? `Envantere kaydedildi ancak ${targetProvider} bağlantısı olmadığı için mağazaya yüklenemedi.`
                 : `Envantere kaydedildi. Mağaza bağlantısı (Shopify/Woo) bulunamadığı için sadece yerel envantere eklendi.`
@@ -251,23 +256,24 @@ export async function importProductFromUrl(url: string, providerId?: "shopify" |
             provider: finalProviderId,
             productName: optimized.title,
             editUrl: storeResult.editUrl,
-            localId: localProduct?.barcode,
+            localId: scraped?.barcode,
             aiImageInsight,
             aiMarketInsight,
             socialPosts: optimized.socialPosts
         };
 
-    } catch (err: any) {
+    } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
         logger.error("import.connector_error", { err });
         return {
             success: true,
             provider: finalProviderId,
             productName: optimized.title,
-            localId: localProduct?.barcode,
+            localId: scraped?.barcode,
             aiImageInsight,
             aiMarketInsight,
             socialPosts: optimized.socialPosts,
-            error: `Envantere kaydedildi ancak mağazaya yüklenirken hata oluştu: ${err.message}`
+            error: `Envantere kaydedildi ancak mağazaya yüklenirken hata oluştu: ${message}`
         };
     }
 }

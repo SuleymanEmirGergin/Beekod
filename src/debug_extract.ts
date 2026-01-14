@@ -1,5 +1,5 @@
 
-import { googleSearchService } from "./services/googleSearchService.js";
+import { googleSearchService } from "./services/search/googleSearchService.js";
 import { logger } from "./logger.js";
 
 async function run() {

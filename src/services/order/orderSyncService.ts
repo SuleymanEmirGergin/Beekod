@@ -22,8 +22,9 @@ export const syncOrdersFromMarketplaces = async () => {
     if (!provider.isConfigured()) continue;
 
     try {
-      const syncResult = await provider.getNewOrders();
-      if (syncResult.status === "ok") {
+      const result = await provider.getNewOrders();
+      if (result.ok) {
+        const syncResult = result.value;
         for (const mOrder of syncResult.orders) {
           const processed = await processMarketplaceOrder(mOrder);
           if (processed) {
@@ -32,7 +33,7 @@ export const syncOrdersFromMarketplaces = async () => {
           }
         }
       } else {
-        results.errors.push(`${provider.name}: ${syncResult.message}`);
+        results.errors.push(`${provider.name}: ${result.error instanceof Error ? result.error.message : String(result.error)}`);
       }
     } catch (error) {
       logger.error("order_sync.provider_error", { provider: provider.name, error });

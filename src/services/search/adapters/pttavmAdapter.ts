@@ -15,8 +15,13 @@ export class PttAVMAdapter implements SearchAdapter {
 
       logger.info("pttavm_adapter.search_start", { query });
 
-      // Fetch listings via provider
-      const result = await provider.listListings();
+      // Fetch listings via provider (only first page for speed)
+      const isBarcode = /^\d+$/.test(query);
+      const result = await provider.listListings({
+        barcode: isBarcode ? query : undefined,
+        page: 1,
+        // pageSize is not valid, use defaults or specific provider params
+      });
       if (!result.ok) {
         logger.error("pttavm_adapter.list_listings_failed", { error: result.error });
         return [];

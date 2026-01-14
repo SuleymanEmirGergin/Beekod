@@ -1,86 +1,52 @@
 import { logger } from "../logger.js";
-<<<<<<< HEAD
 import { runVirtualTryOn } from "./visualIntelligenceService.js";
 
-=======
-import { runVirtualTryOn, getTaskDetail } from "./wiroService.js";
-
-interface TryOnRequest {
-  humanImage: string;
-  clothingImages: string | string[];
-}
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
-
 interface TryOnResult {
-  taskId: string;
-  token: string;
-  status: string;
+  status: "complete" | "error";
   imageUrl?: string;
+  error?: string;
 }
 
 /**
-<<<<<<< HEAD
- * Generates a Virtual Try-On task using Fal.ai (via Visual Intelligence Service).
-=======
- * Generates a Virtual Try-On task using Wiro AI.
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
+ * Generates a Virtual Try-On using Fal.ai IDM-VTON
+ * 
+ * Fal.ai is synchronous and returns the result directly without polling.
  */
 export async function generateVirtualTryOn(
   humanImage: string,
   clothingImages: string | string[],
+  category: "tops" | "bottoms" | "one-pieces" = "tops"
 ): Promise<TryOnResult> {
-<<<<<<< HEAD
-  logger.info("vto.generate_request_fal", { 
+  const clothes = Array.isArray(clothingImages) ? clothingImages[0] : clothingImages;
+  
+  logger.info("vto.generate_request", { 
     humanImage: humanImage.substring(0, 50), 
     clothesCount: Array.isArray(clothingImages) ? clothingImages.length : 1 
   });
 
-  const clothImage = Array.isArray(clothingImages) ? clothingImages[0] : clothingImages;
-  
-  // Fal.ai subscribe waits for the result, so we get the result immediately here
-  const resultUrl = await runVirtualTryOn(humanImage, clothImage, "tops");
-
-  return {
-    taskId: "fal-" + Date.now(),
-    token: "fal-" + Date.now(),
-    status: "completed",
-    imageUrl: resultUrl
-=======
-  logger.info("vto.generate_request_real", { humanImage: humanImage.substring(0, 50), clothesCount: Array.isArray(clothingImages) ? clothingImages.length : 1 });
-
-  const result = await runVirtualTryOn(humanImage, clothingImages);
-
-  return {
-    taskId: result.taskid,
-    token: result.socketaccesstoken,
-    status: result.status || "queued"
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
-  };
+  try {
+    const resultUrl = await runVirtualTryOn(humanImage, clothes, category);
+    
+    logger.info("vto.complete", { resultUrl });
+    
+    return {
+      status: "complete",
+      imageUrl: resultUrl
+    };
+  } catch (error) {
+    logger.error("vto.failed", { error: String(error) });
+    return {
+      status: "error",
+      error: String(error)
+    };
+  }
 }
 
 /**
-<<<<<<< HEAD
- * Polls for the result. (For Fal.ai, it is usually finished when generateVirtualTryOn returns)
- */
-export async function pollTryOnResult(token: string): Promise<string | null> {
-  // Since we are using the subscription model in generateVirtualTryOn,
-  // there's no real polling needed if we store the result.
-  // But for backward compatibility with existing callers, we return null or the stored result if we had a cache.
-  logger.info("vto.poll_request_fal", { token });
-  return null; 
-=======
  * Polls for the result of a VTO task.
+ * @deprecated Fal.ai is synchronous, no polling needed. Kept for API compatibility.
  */
-export async function pollTryOnResult(token: string): Promise<string | null> {
-  try {
-    const detail = await getTaskDetail(token);
-    if (detail && detail.status === "done" && detail.output && detail.output.length > 0) {
-      return detail.output[0];
-    }
-    return null;
-  } catch (error) {
-    logger.error("vto.poll_failed", { token, error });
-    return null;
-  }
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
+export async function pollTryOnResult(_token: string): Promise<string | null> {
+  logger.warn("vto.poll_deprecated", { msg: "Fal.ai is synchronous, polling is no longer needed" });
+  return null;
 }

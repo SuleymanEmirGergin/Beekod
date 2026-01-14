@@ -1,0 +1,90 @@
+src/ai/tools/productTools.ts(3,42): error TS2307: Cannot find module '../../services/unifiedMarketplaceSearch.js' or its corresponding type declarations.
+src/ai/tools/productTools.ts(21,36): error TS7006: Parameter 'a' implicitly has an 'any' type.
+src/ai/tools/productTools.ts(21,39): error TS7006: Parameter 'b' implicitly has an 'any' type.
+src/chatbot/handlers/orderHandler.ts(5,40): error TS2307: Cannot find module '../services/marketplace/index.js' or its corresponding type declarations.
+src/chatbot/handlers/orderHandler.ts(6,33): error TS2307: Cannot find module '../services/marketplace/types.js' or its corresponding type declarations.
+src/debug_extract.ts(2,37): error TS2307: Cannot find module './services/googleSearchService.js' or its corresponding type declarations.
+src/marketplaces/hepsiburadaProvider.ts(12,8): error TS2307: Cannot find module './types.js' or its corresponding type declarations.
+src/marketplaces/n11Provider.ts(15,8): error TS2307: Cannot find module './types.js' or its corresponding type declarations.
+src/marketplaces/n11Provider.ts(329,35): error TS7006: Parameter 'url' implicitly has an 'any' type.
+src/marketplaces/pazaramaProvider.ts(1,229): error TS2307: Cannot find module './types.js' or its corresponding type declarations.
+src/marketplaces/pazaramaProvider.ts(450,39): error TS7006: Parameter 'url' implicitly has an 'any' type.
+src/marketplaces/pttavmProvider.ts(1,229): error TS2307: Cannot find module './types.js' or its corresponding type declarations.
+src/marketplaces/pttavmProvider.ts(330,72): error TS7006: Parameter 'url' implicitly has an 'any' type.
+src/modules/invoices/index.ts(17,8): error TS2307: Cannot find module '../../services/invoiceService.js' or its corresponding type declarations.
+src/modules/orders/index.ts(9,3): error TS2305: Module '"../../services/orderService.js"' has no exported member 'getRecentOrders'.
+src/modules/orders/index.ts(17,44): error TS2307: Cannot find module '../../services/orderSyncService.js' or its corresponding type declarations.
+src/modules/search/index.ts(7,15): error TS2307: Cannot find module '../../services/searchService.js' or its corresponding type declarations.
+src/modules/shipping/index.ts(8,15): error TS2307: Cannot find module '../../services/shippingService.js' or its corresponding type declarations.
+src/routes/automationRoutes.ts(25,25): error TS2783: 'success' is specified more than once, so this usage will be overwritten.
+src/routes/notificationRoutes.ts(75,39): error TS2339: Property 'filter' does not exist on type 'Result<Product[]>'.
+  Property 'filter' does not exist on type 'Failure<Error>'.
+src/routes/notificationRoutes.ts(75,47): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/routes/productImportRoutes.ts(3,37): error TS2307: Cannot find module '../services/googleSearchService.js' or its corresponding type declarations.
+src/server.ts(200,30): error TS2345: Argument of type 'Server<typeof IncomingMessage, typeof ServerResponse> | undefined' is not assignable to parameter of type 'Server<typeof IncomingMessage, typeof ServerResponse>'.
+  Type 'undefined' is not assignable to type 'Server<typeof IncomingMessage, typeof ServerResponse>'.
+src/server.ts(202,5): error TS18048: 'server' is possibly 'undefined'.
+src/server.ts(212,5): error TS18048: 'server' is possibly 'undefined'.
+src/services/ai/pricingIntelligenceService.ts(47,22): error TS18048: 'product.cost_price' is possibly 'undefined'.
+src/services/ai/pricingIntelligenceService.ts(48,28): error TS18048: 'product.cost_price' is possibly 'undefined'.
+src/services/ai/pricingIntelligenceService.ts(62,30): error TS18048: 'product.cost_price' is possibly 'undefined'.
+src/services/ai/pricingIntelligenceService.ts(63,29): error TS18048: 'product.cost_price' is possibly 'undefined'.
+src/services/ai/pricingIntelligenceService.ts(94,7): error TS2322: Type 'Success<{ barcode: string; productName: string; myPrice: number; costPrice: number | undefined; currentMargin: number; lowestCompetitorPrice: number; isLowest: boolean; competitors: { site: string; price: number; url: string; }[]; suggestedPrice: number; expectedMargin: number; strategy: string; aiInsight: string; }>' is not assignable to type 'Result<BuyBoxAnalysis>'.
+  Type 'Success<{ barcode: string; productName: string; myPrice: number; costPrice: number | undefined; currentMargin: number; lowestCompetitorPrice: number; isLowest: boolean; competitors: { site: string; price: number; url: string; }[]; suggestedPrice: number; expectedMargin: number; strategy: string; aiInsight: string; }>' is not assignable to type 'Success<BuyBoxAnalysis>'.
+    Type '{ barcode: string; productName: string; myPrice: number; costPrice: number | undefined; currentMargin: number; lowestCompetitorPrice: number; isLowest: boolean; competitors: { site: string; price: number; url: string; }[]; suggestedPrice: number; expectedMargin: number; strategy: string; aiInsight: string; }' is not assignable to type 'BuyBoxAnalysis'.
+      Types of property 'costPrice' are incompatible.
+        Type 'number | undefined' is not assignable to type 'number'.
+          Type 'undefined' is not assignable to type 'number'.
+src/services/jobQueue.ts(320,18): error TS2783: 'summary' is specified more than once, so this usage will be overwritten.
+src/services/marketplace/healthCheckService.ts(26,38): error TS2551: Property 'isConfigured' does not exist on type '{ name: string; configured: boolean; config: MarketplaceConfigStatus; token: MarketplaceTokenStatus; }'. Did you mean 'configured'?
+src/services/marketplace/healthCheckService.ts(42,59): error TS2339: Property 'listListings' does not exist on type '{ name: string; configured: boolean; config: MarketplaceConfigStatus; token: MarketplaceTokenStatus; }'.
+src/services/marketplace/healthCheckService.ts(91,35): error TS2339: Property 'sendSystemNotification' does not exist on type '{ notify(payload: DispatchPayload): Promise<void>; mapType(type: string): "stock_alert" | "system" | "order_update" | "price_change" | "sync_status" | "ai_recommendation"; ... 7 more ...; generateAIRecommendations(context: AIRecommendationContext): Promise<...>; }'.
+src/services/marketplace/providers/n11Provider.ts(85,7): error TS2353: Object literal may only specify known properties, and 'title' does not exist in type 'MarketplaceProductPayload & { categoryId: number; brandId: number; }'.
+src/services/marketplace/providers/n11Provider.ts(161,74): error TS2339: Property 'product' does not exist on type '{}'.
+src/services/marketplace/providers/n11Provider.ts(161,101): error TS2339: Property 'products' does not exist on type '{}'.
+src/services/marketplace/providers/n11Provider.ts(227,27): error TS2339: Property 'status' does not exist on type 'Result<Record<string, any>>'.
+  Property 'status' does not exist on type 'Failure<Error>'.
+src/services/marketplace/providers/n11Provider.ts(227,56): error TS2339: Property 'data' does not exist on type 'Result<Record<string, any>>'.
+  Property 'data' does not exist on type 'Failure<Error>'.
+src/services/marketplace/providers/n11Provider.ts(228,40): error TS2339: Property 'data' does not exist on type 'Result<Record<string, any>>'.
+  Property 'data' does not exist on type 'Failure<Error>'.
+src/services/marketplace/providers/n11Provider.ts(234,39): error TS2322: Type '{}' is not assignable to type 'string'.
+src/services/marketplace/providers/n11Provider.ts(246,44): error TS2339: Property 'pageCount' does not exist on type '{}'.
+src/services/marketplace/providers/n11Provider.ts(444,7): error TS2322: Type 'Success<unknown>' is not assignable to type 'Result<Record<string, any>>'.
+  Type 'Success<unknown>' is not assignable to type 'Success<Record<string, any>>'.
+    Type 'unknown' is not assignable to type 'Record<string, any>'.
+src/services/marketplace/providers/n11Provider.ts(463,35): error TS2339: Property 'title' does not exist on type 'MarketplaceProductPayload & { categoryId: number; brandId: number; }'.
+src/services/marketplace/providers/pttavmProvider.ts(109,23): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'MarketplaceListing'.
+src/services/marketplace/providers/stubProvider.ts(1,41): error TS2307: Cannot find module './config.js' or its corresponding type declarations.
+src/services/marketplace/providers/stubProvider.ts(2,37): error TS2307: Cannot find module './logger.js' or its corresponding type declarations.
+src/services/marketplace/providers/stubProvider.ts(13,8): error TS2307: Cannot find module './types.js' or its corresponding type declarations.
+src/services/marketplace/syncService.ts(85,18): error TS2339: Property 'status' does not exist on type 'Result<MarketplaceActionResult>'.
+  Property 'status' does not exist on type 'Success<MarketplaceActionResult>'.
+src/services/marketplace/syncService.ts(85,50): error TS2339: Property 'status' does not exist on type 'Result<MarketplaceActionResult>'.
+  Property 'status' does not exist on type 'Success<MarketplaceActionResult>'.
+src/services/marketplace/syncService.ts(91,29): error TS2339: Property 'message' does not exist on type 'Result<MarketplaceActionResult>'.
+  Property 'message' does not exist on type 'Success<MarketplaceActionResult>'.
+src/services/marketplace/syncService.ts(97,38): error TS2339: Property 'message' does not exist on type 'Result<MarketplaceActionResult>'.
+  Property 'message' does not exist on type 'Success<MarketplaceActionResult>'.
+src/services/marketplace/syncService.ts(152,24): error TS2339: Property 'price' does not exist on type 'Result<Product>'.
+  Property 'price' does not exist on type 'Failure<Error>'.
+src/services/marketplace/syncService.ts(153,24): error TS2339: Property 'stock' does not exist on type 'Result<Product>'.
+  Property 'stock' does not exist on type 'Failure<Error>'.
+src/services/order/orderSyncService.ts(26,22): error TS2339: Property 'status' does not exist on type 'Result<MarketplaceOrderResult>'.
+  Property 'status' does not exist on type 'Failure<Error>'.
+src/services/order/orderSyncService.ts(27,41): error TS2339: Property 'orders' does not exist on type 'Result<MarketplaceOrderResult>'.
+  Property 'orders' does not exist on type 'Failure<Error>'.
+src/services/order/orderSyncService.ts(35,61): error TS2339: Property 'message' does not exist on type 'Result<MarketplaceOrderResult>'.
+  Property 'message' does not exist on type 'Failure<Error>'.
+src/services/productImportService.ts(4,36): error TS2307: Cannot find module './integrationService.js' or its corresponding type declarations.
+src/services/productImportService.ts(207,45): error TS7006: Parameter 'i' implicitly has an 'any' type.
+src/services/productImportService.ts(213,60): error TS7006: Parameter 'i' implicitly has an 'any' type.
+src/services/productService.ts(6,32): error TS2307: Cannot find module './stockHistoryService.js' or its corresponding type declarations.
+src/services/productService.ts(7,30): error TS2307: Cannot find module './auditService.js' or its corresponding type declarations.
+src/services/productService.ts(9,36): error TS2307: Cannot find module './cacheService.js' or its corresponding type declarations.
+src/services/productService.ts(35,53): error TS2307: Cannot find module './vectorService.js' or its corresponding type declarations.
+src/services/search/searchService.ts(29,50): error TS2339: Property 'map' does not exist on type 'Result<SearchResult[]>'.
+  Property 'map' does not exist on type 'Failure<Error>'.
+src/services/search/searchService.ts(29,54): error TS7006: Parameter 'r' implicitly has an 'any' type.
+src/services/search/unifiedMarketplaceSearch.ts(200,75): error TS2345: Argument of type 'SearchResult[]' is not assignable to parameter of type 'SearchResultItem[]'.
+  Property 'marketplace' is missing in type 'SearchResult' but required in type 'SearchResultItem'.

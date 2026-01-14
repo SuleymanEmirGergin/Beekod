@@ -19,7 +19,7 @@ export class ConfirmationService {
         sessionId: string,
         userId: string | undefined,
         action: string,
-        payload: Record<string, any>
+        payload: Record<string, unknown>
     ): PendingConfirmation {
         const code = this.generateConfirmationCode();
         const id = crypto.randomUUID();
@@ -55,7 +55,7 @@ export class ConfirmationService {
         sessionId: string,
         userId: string | undefined,
         action: string,
-        payload: Record<string, any>
+        payload: Record<string, unknown>
     ): PendingConfirmation {
         const code = this.generateConfirmationCode();
         const id = crypto.randomUUID();
@@ -155,6 +155,13 @@ export class ConfirmationService {
             .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
         return confirmations[0] || null;
+    }
+
+    /**
+     * Tüm bekleyen onayları temizle (testler için)
+     */
+    clearAll(): void {
+        this.pendingConfirmations.clear();
     }
 
     /**

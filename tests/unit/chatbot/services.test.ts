@@ -21,8 +21,8 @@ vi.mock("../../src/services/wiroService", () => ({
 }));
 
 // Import services
-import { semanticSearchService } from "../../src/services/semanticSearchService";
-import { accessoryFilterService } from "../../src/services/accessoryFilterService";
+import { semanticSearchService } from "../../../src/services/semanticSearchService";
+import { accessoryFilterService } from "../../../src/services/accessoryFilterService";
 
 // ============================================================
 // SEMANTIC SEARCH SERVICE TESTS

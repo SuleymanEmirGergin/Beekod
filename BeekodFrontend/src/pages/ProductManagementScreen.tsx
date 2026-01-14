@@ -14,15 +14,10 @@ import {
   Sparkles,
   ChevronDown,
   ChevronRight,
-<<<<<<< HEAD
   X,
   AlertTriangle,
   TrendingUp,
   Package,
-=======
-  ArrowUpRight,
-  ArrowUpRight,
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
   Filter,
   Trash2,
   CheckCircle,
@@ -38,18 +33,6 @@ interface ProductManagementScreenProps {
 
 export function ProductManagementScreen({ onNavigate }: ProductManagementScreenProps) {
   const navigate = useNavigate();
-<<<<<<< HEAD
-=======
-  // ... (keep state same)
-  // Re-declare state vars here isn't needed for replace, just context matching
-  // We will target the Import block and the Stats block separately in one multi-replace if possible, or just huge chunk.
-  // Actually, replace_file_content doesn't support multi-range well in one go unless I provide the whole file or a contiguous block.
-  // The imports are at the top (lines 9-22) and stats are at 310-347. They are far apart.
-  // I will use multi_replace for this.
-
-  // WAIT, I must use multi_replace. switching tool.
-
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
   const [showFilters, setShowFilters] = useState(false);
   const [showAIModal, setShowAIModal] = useState(false);
   const [showAddProductModal, setShowAddProductModal] = useState(false);
@@ -79,7 +62,6 @@ export function ProductManagementScreen({ onNavigate }: ProductManagementScreenP
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
   const [isSuggestingCategory, setIsSuggestingCategory] = useState(false);
 
-<<<<<<< HEAD
   // Bulk Selection States
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
@@ -121,8 +103,6 @@ export function ProductManagementScreen({ onNavigate }: ProductManagementScreenP
     }
   };
 
-=======
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
   // AI Handlers
   const handleAIDescription = async () => {
     if (!newProductName) {
@@ -372,7 +352,6 @@ export function ProductManagementScreen({ onNavigate }: ProductManagementScreenP
             <>
               {/* Stats Row */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 animate-in slide-in-from-top-4 duration-500">
-<<<<<<< HEAD
                 <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
                   <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
                     <Package className="w-6 h-6" />
@@ -666,258 +645,6 @@ export function ProductManagementScreen({ onNavigate }: ProductManagementScreenP
       </div>
 
       
-=======
-                {/* Stats Row - Left Aligned Modern Dock */}
-                <div className="flex flex-wrap items-stretch justify-start gap-5 mb-8 animate-in slide-in-from-left-4 duration-500">
-
-                  {/* Stats Group - Dark Theme for Contrast */}
-                  <div className="flex items-center p-1.5 bg-[#1A1A1A] rounded-2xl shadow-xl shadow-gray-200 border border-gray-800">
-                    <div className="px-5 py-3 flex flex-col justify-center border-r border-gray-700/50">
-                      <p className="text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-1">Toplam</p>
-                      <p className="text-2xl font-bold text-white leading-none">{products.length}</p>
-                    </div>
-
-                    <div className="px-5 py-3 flex flex-col justify-center border-r border-gray-700/50">
-                      <p className="text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-1">Kritik</p>
-                      <div className="flex items-center gap-2">
-                        <p className="text-2xl font-bold text-white leading-none">{products.filter(p => p.stock.level === 'low').length}</p>
-                        <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                      </div>
-                    </div>
-
-                    <div className="px-5 py-3 flex flex-col justify-center">
-                      <p className="text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-1">Aktif</p>
-                      <p className="text-2xl font-bold text-[#F5B800] leading-none">{products.filter(p => p.status.label === 'Aktif').length}</p>
-                    </div>
-                  </div>
-
-                  {/* Quick Action Card - Modern Glass */}
-                  <div
-                    onClick={handleAddProduct}
-                    className="group cursor-pointer flex items-center gap-4 px-6 py-2 bg-white border-2 border-dashed border-gray-300 hover:border-[#F5B800] rounded-2xl transition-all hover:shadow-[0_8px_30px_rgb(245,184,0,0.15)] hover:scale-[1.02] active:scale-95"
-                  >
-                    <div className="w-10 h-10 rounded-full bg-[#F5B800]/10 flex items-center justify-center text-[#F5B800] group-hover:bg-[#F5B800] group-hover:text-black transition-colors">
-                      <Plus className="w-5 h-5" />
-                    </div>
-                    <div className="text-left">
-                      <p className="text-xs font-bold text-gray-900 uppercase tracking-widest">Hızlı Ekle</p>
-                      <p className="text-[10px] text-gray-500 font-medium group-hover:text-[#F5B800] transition-colors">Yeni Stok Girişi</p>
-                    </div>
-                    <ArrowUpRight className="w-4 h-4 text-gray-300 group-hover:text-[#F5B800] ml-2 transition-transform group-hover:-translate-y-1 group-hover:translate-x-1" />
-                  </div>
-
-                </div>
-
-                {/* Actions Bar */}
-                <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
-                  <div className="relative w-full md:w-96 group">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Filter className="h-4 w-4 text-gray-400 group-focus-within:text-[#F5B800] transition-colors" />
-                    </div>
-                    <input
-                      type="text"
-                      placeholder="İsim, barkod veya SKU ile ara..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-xl leading-5 bg-white placeholder-gray-400 focus:outline-none focus:border-[#F5B800] focus:ring-4 focus:ring-yellow-50 sm:text-sm transition-all shadow-sm"
-                    />
-                    {searchQuery && (
-                      <button
-                        onClick={() => setSearchQuery('')}
-                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                      >
-                        <X className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-pointer" />
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-3 w-full md:w-auto">
-                    <button
-                      onClick={() => setShowFilters(!showFilters)}
-                      className={`flex items-center gap-2 px-4 py-2.5 border rounded-xl text-sm font-medium transition-colors ${showFilters ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-                    >
-                      <Filter className="w-4 h-4" />
-                      Filtreler
-                    </button>
-
-                    <div className="h-8 w-px bg-gray-200" />
-
-                    <button
-                      onClick={() => setShowImportModal(true)}
-                      className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
-                    >
-                      <Download className="w-4 h-4" />
-                      İçe Aktar
-                    </button>
-                    <button
-                      onClick={handleAddProduct}
-                      className="flex items-center gap-2 px-5 py-2.5 bg-[#F5B800] hover:bg-[#E5A800] text-gray-900 rounded-xl text-sm font-bold shadow-lg shadow-yellow-100 hover:shadow-yellow-200 hover:-translate-y-0.5 transition-all"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Ürün Ekle
-                    </button>
-                  </div>
-                </div>
-
-                {/* Filters Panel */}
-                {showFilters && (
-                  <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm mb-6 animate-in slide-in-from-top-2">
-                    <div className="flex flex-wrap gap-4">
-                      <select
-                        value={categoryFilter}
-                        onChange={(e) => setCategoryFilter(e.target.value)}
-                        className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:border-[#F5B800] hover:bg-white transition-colors cursor-pointer"
-                      >
-                        <option value="All">Kategori: Hepsi</option>
-                        <option value="Electronics">Elektronik</option>
-                        <option value="Computers">Bilgisayar</option>
-                        <option value="Wearables">Giyilebilir Teknoloji</option>
-                        <option value="Audio">Ses Sistemleri</option>
-                      </select>
-
-                      <select
-                        value={brandFilter}
-                        onChange={(e) => setBrandFilter(e.target.value)}
-                        className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:border-[#F5B800] hover:bg-white transition-colors cursor-pointer"
-                      >
-                        <option value="All">Marka: Hepsi</option>
-                        <option value="Apple">Apple</option>
-                        <option value="Samsung">Samsung</option>
-                        <option value="Sony">Sony</option>
-                      </select>
-
-                      <select
-                        value={statusFilter[0] || 'All'}
-                        onChange={(e) => setStatusFilter(e.target.value === 'All' ? [] : [e.target.value])}
-                        className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:border-[#F5B800] hover:bg-white transition-colors cursor-pointer"
-                      >
-                        <option value="All">Durum: Hepsi</option>
-                        <option value="Aktif">Aktif</option>
-                        <option value="Pasif">Pasif</option>
-                      </select>
-
-                      {(categoryFilter !== 'All' || brandFilter !== 'All' || statusFilter.length > 0) && (
-                        <button
-                          onClick={handleClearAllFilters}
-                          className="text-sm text-red-500 hover:text-red-700 font-medium px-2 py-2"
-                        >
-                          Temizle
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Products Table / List */}
-                <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-gray-100 bg-gray-50/50">
-                        <th className="w-8 px-6 py-4">
-                          <input type="checkbox" className="rounded border-gray-300 text-[#F5B800] focus:ring-[#F5B800]" />
-                        </th>
-                        <th className="text-left text-xs font-bold text-gray-400 px-6 py-4 uppercase tracking-wider">Ürün Bilgisi</th>
-                        <th className="text-left text-xs font-bold text-gray-400 px-6 py-4 uppercase tracking-wider">Stok Durumu</th>
-                        <th className="text-left text-xs font-bold text-gray-400 px-6 py-4 uppercase tracking-wider">Fiyat</th>
-                        <th className="text-left text-xs font-bold text-gray-400 px-6 py-4 uppercase tracking-wider">Platformlar</th>
-                        <th className="text-left text-xs font-bold text-gray-400 px-6 py-4 uppercase tracking-wider">Durum</th>
-                        <th className="text-right text-xs font-bold text-gray-400 px-6 py-4 uppercase tracking-wider"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50 bg-white">
-                      {filteredProducts.map((product, idx) => (
-                        <tr
-                          key={product.id}
-                          className="group hover:bg-yellow-50/10 transition-colors cursor-pointer animate-in fade-in slide-in-from-bottom-2"
-                          style={{ animationDelay: `${idx * 50}ms` }}
-                          onClick={() => {
-                            setSelectedProduct(product);
-                            setShowProductDetail(true);
-                          }}
-                        >
-                          <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                            <input type="checkbox" className="rounded border-gray-300 text-[#F5B800] focus:ring-[#F5B800]" />
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 rounded-xl bg-gray-50 border border-gray-100 p-1 flex-shrink-0 relative overflow-hidden group-hover:border-[#F5B800] transition-colors">
-                                <img src={product.image} alt={product.name} className="w-full h-full object-cover rounded-lg" />
-                              </div>
-                              <div>
-                                <div className="text-sm font-bold text-gray-900 group-hover:text-[#F5B800] transition-colors">{product.name}</div>
-                                <div className="text-xs text-gray-500 font-mono mt-0.5">{product.barcode}</div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex flex-col gap-1">
-                              <div className="flex items-center justify-between text-xs mb-1">
-                                <span className="font-bold text-gray-700">{product.stock.value} Adet</span>
-                                {product.stock.level === 'low' && <span className="text-red-500 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Kritik</span>}
-                              </div>
-                              <div className="w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                                <div
-                                  className={`h-full rounded-full ${product.stock.level === 'high' ? 'bg-green-500' :
-                                    product.stock.level === 'medium' ? 'bg-blue-500' : 'bg-red-500'
-                                    }`}
-                                  style={{ width: `${Math.min((product.stock.value / 1000) * 100, 100)}%` }}
-                                />
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="text-sm font-bold text-gray-900">{product.basePrice}</div>
-                            <div className="text-xs text-green-600 font-medium">+12% Margin</div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex -space-x-2 overflow-hidden">
-                              {product.marketplaces.length > 0 ? (
-                                product.marketplaces.map((mp, i) => (
-                                  <div key={i} className={`inline-block h-6 w-6 rounded-full ring-2 ring-white ${mp.color} flex items-center justify-center text-[10px] text-white font-bold shadow-sm`}>
-                                    {mp.icon}
-                                  </div>
-                                ))
-                              ) : (
-                                <span className="text-xs text-gray-400">Listelenmedi</span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${product.status.color} border border-transparent`}>
-                              <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${product.status.dot}`}></span>
-                              {product.status.label}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                              <ChevronDown className="w-4 h-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                      {filteredProducts.length === 0 && (
-                        <tr>
-                          <td colSpan={7} className="px-6 py-12 text-center">
-                            <div className="flex flex-col items-center justify-center text-gray-400">
-                              <Package className="w-12 h-12 mb-3 opacity-20" />
-                              <p className="text-lg font-medium text-gray-900">Ürün Bulunamadı</p>
-                              <p className="text-sm">Arama kriterlerinize uygun ürün yok.</p>
-                              <button onClick={handleClearAllFilters} className="mt-4 text-[#F5B800] hover:underline font-medium">Filtreleri Temizle</button>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </>
-          )}
-
-            </main>
-      </div>
-
-
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 
       <ToastV2
         title={toastMessage.title}
@@ -1108,7 +835,6 @@ export function ProductManagementScreen({ onNavigate }: ProductManagementScreenP
         </div>
       )}
 
-<<<<<<< HEAD
       {/* Product Detail Modal */}
       {showProductDetail && selectedProduct && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
@@ -1189,129 +915,9 @@ export function ProductManagementScreen({ onNavigate }: ProductManagementScreenP
                     </div>
                   </div>
                 </div>
-=======
-      {/* Product Detail Modal - Shadow UI / Depth Design */}
-      {showProductDetail && selectedProduct && (
-        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-6 animate-in fade-in duration-300">
-          <div className="bg-white w-full max-w-4xl h-[600px] rounded-[32px] shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)] overflow-hidden flex animate-in zoom-in-95 duration-300 relative group">
-
-            {/* Close Button - Floating */}
-            <button
-              onClick={() => setShowProductDetail(false)}
-              className="absolute top-6 right-6 z-20 p-2.5 bg-white/80 backdrop-blur-md rounded-full shadow-lg hover:shadow-xl text-gray-400 hover:text-gray-900 transition-all hover:scale-110 active:scale-95 border border-white/50"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            {/* Left Column: Immersive Image */}
-            <div className="w-2/5 relative h-full bg-gray-100 overflow-hidden">
-              <img
-                src={selectedProduct.image}
-                alt={selectedProduct.name}
-                className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-90" />
-
-              {/* Floating Status Badge on Image */}
-              <div className="absolute top-6 left-6">
-                <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg backdrop-blur-md border border-white/10 ${selectedProduct.status.label === 'Aktif' ? 'bg-green-500 text-white' : 'bg-gray-500 text-white'}`}>
-                  {selectedProduct.status.label}
-                </span>
-              </div>
-
-              {/* Bottom Info on Image */}
-              <div className="absolute bottom-8 left-8 right-8 text-white">
-                <p className="text-sm font-medium text-gray-300 uppercase tracking-widest mb-2 flex items-center gap-2">
-                  <span className="w-8 h-[1px] bg-white/50"></span>
-                  {selectedProduct.category}
-                </p>
-                <h3 className="text-3xl font-bold leading-tight mb-4 shadow-black drop-shadow-md">
-                  {selectedProduct.name}
-                </h3>
-                <div className="flex items-center gap-3">
-                  <div className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-lg text-xs font-mono border border-white/10">
-                    {selectedProduct.sku}
-                  </div>
-                  <div className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-lg text-xs font-mono border border-white/10 flex items-center gap-1">
-                    <Package className="w-3 h-3" />
-                    {selectedProduct.id}
-                  </div>
-                </div>
               </div>
             </div>
 
-            {/* Right Column: Details & Actions */}
-            <div className="w-3/5 p-10 bg-white flex flex-col h-full relative">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-yellow-50/50 rounded-full blur-3xl -z-10 pointer-events-none translate-x-1/3 -translate-y-1/3"></div>
-
-              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                <div className="mb-8">
-                  <h4 className="text-sm font-bold text-gray-900 uppercase tracking-widest mb-5 flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#F5B800]"></span>
-                    Performans Özeti
-                  </h4>
-
-                  {/* Shadow Cards Grid */}
-                  <div className="grid grid-cols-2 gap-5">
-                    <div className="p-5 rounded-2xl bg-white border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all group/card">
-                      <p className="text-xs text-gray-400 font-medium uppercase mb-1">Satış Fiyatı</p>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-2xl font-bold text-gray-900 group-hover/card:text-[#F5B800] transition-colors">{selectedProduct.basePrice}</span>
-                        <span className="text-xs text-green-500 font-medium">+KDV</span>
-                      </div>
-                    </div>
-
-                    <div className="p-5 rounded-2xl bg-white border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all group/card">
-                      <p className="text-xs text-gray-400 font-medium uppercase mb-1">Stok Durumu</p>
-                      <div className="flex items-baseline gap-1">
-                        <span className={`text-2xl font-bold ${selectedProduct.stock.level === 'low' ? 'text-red-500' : 'text-gray-900 group-hover/card:text-blue-600'} transition-colors`}>
-                          {selectedProduct.stock.value}
-                        </span>
-                        <span className="text-xs text-gray-400">Adet</span>
-                      </div>
-                      {selectedProduct.stock.level === 'low' && (
-                        <span className="text-[10px] text-red-500 bg-red-50 px-2 py-0.5 rounded-full mt-2 inline-block">Kritik Seviye</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mb-8">
-                  <h4 className="text-sm font-bold text-gray-900 uppercase tracking-widest mb-5 flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                    Bağlı Platformlar
-                  </h4>
-                  <div className="space-y-3">
-                    {selectedProduct.marketplaces?.length > 0 ? (
-                      selectedProduct.marketplaces.map((mp: any, i: number) => (
-                        <div key={i} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100 transition-all hover:bg-blue-50/30 hover:border-blue-100 hover:shadow-sm">
-                          <div className="flex items-center gap-4">
-                            <div className={`w-10 h-10 rounded-xl ${mp.color} flex items-center justify-center text-white shadow-lg shadow-gray-200`}>
-                              {mp.icon}
-                            </div>
-                            <div>
-                              <p className="text-sm font-bold text-gray-900">{mp.name}</p>
-                              <p className="text-xs text-gray-500">Son Güncelleme: 2s önce</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                            <span className="text-xs font-medium text-green-600">Yayında</span>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="p-6 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center text-center">
-                        <Package className="w-8 h-8 text-gray-300 mb-2" />
-                        <p className="text-sm text-gray-400">Henüz bir pazaryerine bağlı değil</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
-              </div>
-
-<<<<<<< HEAD
             {/* Footer */}
             <div className="bg-gray-50 px-5 py-4 border-t border-gray-100 flex justify-end gap-3">
               <button
@@ -1323,30 +929,10 @@ export function ProductManagementScreen({ onNavigate }: ProductManagementScreenP
               <button className="px-4 py-2 bg-[#F5B800] text-gray-900 rounded-xl text-sm font-bold shadow-sm hover:translate-y-px transition-all">
                 Edit Product
               </button>
-=======
-              {/* Action Footer */}
-              <div className="pt-6 border-t border-gray-100 flex gap-4 mt-auto">
-                <button className="flex-1 py-4 rounded-xl border-2 border-gray-100 text-gray-700 font-bold text-sm tracking-wide hover:border-gray-300 hover:bg-gray-50 transition-all active:scale-[0.98]">
-                  GEÇMİŞİ GÖR
-                </button>
-                <button
-                  onClick={() => {
-                    setToastMessage({ title: 'Düzenle', message: 'Editör yükleniyor...' });
-                    setShowToast(true);
-                  }}
-                  className="flex-[2] py-4 rounded-xl bg-gray-900 text-white font-bold text-sm tracking-wide shadow-xl shadow-gray-200 hover:shadow-2xl hover:bg-black hover:-translate-y-1 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
-                >
-                  DÜZENLE
-                  <ArrowUpRight className="w-4 h-4" />
-                </button>
-              </div>
-
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }

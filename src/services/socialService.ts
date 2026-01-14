@@ -1,7 +1,7 @@
 import { pool } from "../db.js";
 import { logger } from "../logger.js";
 import { generateGeminiReply } from "./geminiClient.js";
-import { getProductByBarcode } from "./productService.js";
+import { getProductByBarcode } from "./product/productService.js";
 import { ISocialPost, mapSocialPostRow, ISocialPostDbRow } from "../models/SocialPost.js";
 import { ResultSetHeader } from "mysql2";
 
@@ -119,8 +119,9 @@ export const postNow = async (postId: string): Promise<boolean> => {
 export const simulateAutoPost = postNow;
 
 export const generateSocialContent = async (barcode: string, platform: string): Promise<string> => {
-  const product = await getProductByBarcode(barcode);
-  if (!product) throw new Error("Product not found");
+  const result = await getProductByBarcode(barcode);
+  if (!result.ok) throw result.error;
+  const product = result.value;
 
   const prompt = `Sen Beekod e-ticaret otomasyonu için profesyonel bir sosyal medya yöneticisisin.
     Aşağıdaki ürün için ${platform} platformuna uygun, viral olma potansiyeli yüksek, ilgi çekici bir paylaşım metni oluştur.
@@ -132,12 +133,12 @@ export const generateSocialContent = async (barcode: string, platform: string): 
     
     Lütfen metne uygun hashtagler de ekle. Yanıtın sadece paylaşım metni olsun.`;
 
-  const result = await generateGeminiReply({
+  const geminiResponse = await generateGeminiReply({
     message: prompt,
     locale: "tr",
   });
 
-  return result || "İçerik oluşturulamadı.";
+  return geminiResponse || "İçerik oluşturulamadı.";
 };
 
 export const generateBulkSocialContent = async (

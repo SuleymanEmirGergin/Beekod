@@ -72,7 +72,7 @@ export async function executeTool(
     logger.warn("tools.execute.unknown_tool", { toolName, requestId: ctx.requestId });
     return {
       success: false,
-      error: `Unknown tool: ${toolName}`,
+      error: `Bilinmeyen araç: ${toolName}`,
       meta: { executionTimeMs: Date.now() - startTime },
     };
   }
@@ -121,7 +121,7 @@ export async function executeTool(
       });
       return {
         success: false,
-        error: "Invalid tool arguments.",
+        error: "Geçersiz araç parametreleri.",
         meta: { executionTimeMs: Date.now() - startTime },
       };
     }
@@ -134,7 +134,7 @@ export async function executeTool(
 
     return {
       success: false,
-      error: "Tool execution failed.",
+      error: "Araç çalıştırılırken hata oluştu.",
       meta: { executionTimeMs: Date.now() - startTime },
     };
   }

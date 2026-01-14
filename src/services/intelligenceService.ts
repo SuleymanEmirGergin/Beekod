@@ -1,9 +1,5 @@
 import { query } from "../db.js";
-<<<<<<< HEAD
 import { generateGeminiReply } from "./ai/geminiClient.js";
-=======
-import { generateGeminiReply } from "./geminiClient.js";
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 import { getInvoices } from "./invoiceStore.js";
 import { logger } from "../logger.js";
 import { Product } from "../types.js";

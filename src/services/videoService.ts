@@ -1,41 +1,21 @@
-<<<<<<< HEAD
 import { getProductByBarcode } from "./product/productService.js";
-=======
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { getProductByBarcode } from "./productService.js";
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 import { logger } from "../logger.js";
-import { runImageToVideo, runVirtualTryOn, getTaskDetail } from "./wiroService.js";
+import { runVirtualTryOn, generateProductVideo } from "./visualIntelligenceService.js";
 import { NotFoundError, InternalError } from "../errors/AppError.js";
 import { getGeminiProvider } from "../ai/providers/gemini/GeminiProvider.js";
 
 // Mannequin stock images for virtual try-on
 const MANNEQUIN_IMAGES = {
   male: [
-    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=1200&fit=crop", // Professional male model
-    "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800&h=1200&fit=crop", // Casual male model
+    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=1200&fit=crop",
+    "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800&h=1200&fit=crop",
   ],
   female: [
-    "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&h=1200&fit=crop", // Professional female model
-    "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&h=1200&fit=crop", // Casual female model
+    "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&h=1200&fit=crop",
+    "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&h=1200&fit=crop",
   ],
   neutral: [
-    "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=800&h=1200&fit=crop", // Neutral/unisex model
-  ]
-};
-
-// Mannequin stock images for virtual try-on
-const MANNEQUIN_IMAGES = {
-  male: [
-    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=1200&fit=crop", // Professional male model
-    "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800&h=1200&fit=crop", // Casual male model
-  ],
-  female: [
-    "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&h=1200&fit=crop", // Professional female model
-    "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&h=1200&fit=crop", // Casual female model
-  ],
-  neutral: [
-    "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=800&h=1200&fit=crop", // Neutral/unisex model
+    "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=800&h=1200&fit=crop",
   ]
 };
 
@@ -49,8 +29,8 @@ export interface VideoScript {
     visualParams: string;
     audioScript: string;
     duration: number;
-    cinematicCamera?: string; // Cinematic movement instructions
-    voiceTone?: string; // Instructions for TTS engine
+    cinematicCamera?: string;
+    voiceTone?: string;
   }[];
   hashtags: string[];
   bgMusicStyle?: string;
@@ -80,11 +60,7 @@ function detectGenderFromCategory(category?: string): 'male' | 'female' | 'neutr
 /**
  * Helper: Build motion prompt for video generation
  */
-<<<<<<< HEAD
 function buildMotionPrompt(vibe: string, _category?: string): string {
-=======
-function buildMotionPrompt(vibe: string, category?: string): string {
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
   const basePrompt = "Professional fashion model showcase, commercial photography";
 
   const vibeMap: Record<string, string> = {
@@ -100,92 +76,12 @@ function buildMotionPrompt(vibe: string, category?: string): string {
 }
 
 /**
- * Helper: Poll for virtual try-on image result
- */
-async function pollAndGetTryOnImage(token: string): Promise<string> {
-  const maxAttempts = 30;
-  const intervalMs = 2000;
-
-  for (let i = 0; i < maxAttempts; i++) {
-    await new Promise(resolve => setTimeout(resolve, intervalMs));
-
-    try {
-      const detail = await getTaskDetail(token);
-      const task = detail.tasklist?.[0];
-
-      if (!task) {
-        logger.warn("video.try_on_poll_no_task", { attempt: i + 1 });
-        continue;
-      }
-
-      logger.debug("video.try_on_poll_status", { attempt: i + 1, status: task.status });
-
-      if (task.status === "task_postprocess_end" || task.status === "task_end") {
-        if (task.outputs && task.outputs.length > 0) {
-          const imageUrl = task.outputs[0].url;
-          logger.info("video.try_on_complete", { imageUrl });
-          return imageUrl;
-        }
-      }
-
-      if (task.status === "task_error" || task.status === "task_failed" || task.status === "task_cancel") {
-        throw new InternalError(`Virtual try-on failed: ${task.debugerror || task.status}`);
-      }
-    } catch (error) {
-      if (error instanceof InternalError) throw error;
-      logger.warn("video.try_on_poll_error", { attempt: i + 1, error });
-    }
-  }
-
-  throw new InternalError("Virtual try-on timed out after 60 seconds");
-}
-
-/**
- * Helper: Poll for video generation result
- */
-async function pollAndGetVideoUrl(token: string): Promise<string> {
-  const maxAttempts = 40; // Video gen can take longer
-  const intervalMs = 2000;
-
-  for (let i = 0; i < maxAttempts; i++) {
-    await new Promise(resolve => setTimeout(resolve, intervalMs));
-
-    try {
-      const detail = await getTaskDetail(token);
-      const task = detail.tasklist?.[0];
-
-      if (!task) {
-        logger.warn("video.video_poll_no_task", { attempt: i + 1 });
-        continue;
-      }
-
-      logger.debug("video.video_poll_status", { attempt: i + 1, status: task.status });
-
-      if (task.status === "task_postprocess_end" || task.status === "task_end") {
-        if (task.outputs && task.outputs.length > 0) {
-          const videoUrl = task.outputs[0].url || `https://api.wiro.ai/v1/File/Download/${task.outputs[0].id}`;
-          logger.info("video.generation_complete", { videoUrl });
-          return videoUrl;
-        }
-      }
-
-      if (task.status === "task_error" || task.status === "task_failed" || task.status === "task_cancel") {
-        throw new InternalError(`Video generation failed: ${task.debugerror || task.status}`);
-      }
-    } catch (error) {
-      if (error instanceof InternalError) throw error;
-      logger.warn("video.video_poll_error", { attempt: i + 1, error });
-    }
-  }
-
-  throw new InternalError("Video generation timed out after 80 seconds");
-}
-
-/**
- * Main function: Generate video using virtual try-on workflow
+ * Main function: Generate video using Fal.ai virtual try-on workflow
+ * 
+ * Flow:
  * 1. Select mannequin based on product category
- * 2. Run virtual try-on to fit product onto model
- * 3. Convert try-on result to dynamic video
+ * 2. Run virtual try-on using Fal.ai IDM-VTON
+ * 3. Convert try-on result to video using Fal.ai Kling
  * 4. Return video URL
  */
 export const generateTryOnVideo = async (
@@ -194,18 +90,13 @@ export const generateTryOnVideo = async (
     gender?: 'male' | 'female' | 'neutral';
     vibe?: string;
   }
-): Promise<{ videoUrl: string; taskToken: string }> => {
+): Promise<{ videoUrl: string }> => {
   logger.info("video.try_on_video_start", { barcode, options });
 
   // 1. Get product details
-<<<<<<< HEAD
   const productResult = await getProductByBarcode(barcode);
   if (!productResult.ok) throw new NotFoundError("Product not found");
   const product = productResult.value;
-=======
-  const product = await getProductByBarcode(barcode);
-  if (!product) throw new NotFoundError("Product not found");
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 
   // 2. Select appropriate mannequin
   const gender = options?.gender || detectGenderFromCategory(product.category);
@@ -221,30 +112,23 @@ export const generateTryOnVideo = async (
     throw new NotFoundError("Product has no images to generate video from");
   }
 
-  // 4. Run virtual try-on
+  // 4. Run virtual try-on using Fal.ai (synchronous)
   logger.info("video.try_on_start", { barcode, mannequin: mannequinUrl, product: productImage });
-  const tryOnResult = await runVirtualTryOn(mannequinUrl, productImage);
+  const tryOnImageUrl = await runVirtualTryOn(mannequinUrl, productImage, "tops");
 
-  // 5. Wait for try-on completion and get result image
-  const tryOnImageUrl = await pollAndGetTryOnImage(tryOnResult.socketaccesstoken);
-
-  // 6. Build motion prompt based on vibe
+  // 5. Build motion prompt based on vibe
   const vibe = options?.vibe || "dynamic";
   const motionPrompt = buildMotionPrompt(vibe, product.category);
   logger.info("video.motion_prompt", { vibe, prompt: motionPrompt });
 
-  // 7. Convert try-on image to video
+  // 6. Convert try-on image to video using Fal.ai Kling
   logger.info("video.image_to_video_start", { tryOnImage: tryOnImageUrl });
-  const videoTask = await runImageToVideo(tryOnImageUrl, motionPrompt);
+  const videoResult = await generateProductVideo(tryOnImageUrl, motionPrompt);
 
-  // 8. Poll for video completion
-  const videoUrl = await pollAndGetVideoUrl(videoTask.socketaccesstoken);
-
-  logger.info("video.try_on_video_complete", { videoUrl });
+  logger.info("video.try_on_video_complete", { videoUrl: videoResult.videoUrl });
 
   return {
-    videoUrl,
-    taskToken: videoTask.socketaccesstoken
+    videoUrl: videoResult.videoUrl
   };
 };
 
@@ -299,16 +183,7 @@ export const generateVideoScript = async (
   }
 
   try {
-<<<<<<< HEAD
     const provider = getGeminiProvider();
-=======
-    const genAI = new GoogleGenerativeAI(apiKey);
-    // Use gemini-1.5-flash for better availability/speed
-    const modelName = "gemini-1.5-flash";
-    const model = genAI.getGenerativeModel({ model: modelName });
-
-    logger.info("video.using_model", { modelName });
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 
     const prompt = `
         Sen ödüllü bir Sosyal Medya İçerik Yönetmeni ve Viral Pazarlama Dehasısın.
@@ -323,8 +198,8 @@ export const generateVideoScript = async (
 
         STRATEJİK YÖNERGELER:
         1. "Hook" (Kanca) ilk 1.5 saniyede merak uyandırmalı.
-        2. "Visuals": Sahne tarifleri Wiro AI Video motorunun anlayacağı şekilde sinematik olmalı (örn: "Dolly zoom on the professional finish", "Cinematic product reveal with soft lighting").
-        3. "Audio": Samimi, ikna edici ve profesyonel bir TTS (Seslendirme) tonu tarif et.
+        2. "Visuals": Sahne tarifleri video motorunun anlayacağı şekilde sinematik olmalı.
+        3. "Audio": Samimi, ikna edici ve profesyonel bir TTS tonu tarif et.
         4. "Dinamik Katmanlar": Ekranda görünecek fiyat, indirim veya özellik metinlerini belirle.
 
         JSON Formatı:
@@ -337,25 +212,19 @@ export const generateVideoScript = async (
                 {
                     "sceneNumber": 1,
                     "visualParams": "Detaylı görsel tarif",
-                    "cinematicCamera": "Kamera hareketi (Örn: Zoom, Pan, Tilt)",
+                    "cinematicCamera": "Kamera hareketi",
                     "audioScript": "Seslendirme metni",
-                    "voiceTone": "Ses tonu tarifi (Örn: Heyecanlı, Güven verici)",
+                    "voiceTone": "Ses tonu tarifi",
                     "duration": 3
                 }
             ],
             "hashtags": ["#marketing"],
-            "bgMusicStyle": "Müzik tarzı (Örn: Lofi, Phonk, Corporate)",
+            "bgMusicStyle": "Müzik tarzı",
             "overlayText": "Ekranda görünecek ana metin"
         }
     `;
 
-<<<<<<< HEAD
     const text = (await provider.generate(prompt)) || "";
-=======
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text() || "";
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 
     // Clean markdown code blocks if present
     const jsonStr = text
@@ -367,23 +236,19 @@ export const generateVideoScript = async (
 
   } catch (error) {
     logger.error("video.script_generation_failed", { err: error, msg: "Falling back to mock script" });
-    // Fallback to mock script on error instead of throwing 500
     return mockScript;
   }
 };
 
-const PEXELS_API_KEY = process.env.PEXELS_API_KEY || "563492ad6f917000010000019056d3d4554247898864315264875321"; // Free tier key for demo
+const PEXELS_API_KEY = process.env.PEXELS_API_KEY || "563492ad6f917000010000019056d3d4554247898864315264875321";
 
 export const generateVideoMedia = async (barcode: string, _script: VideoScript): Promise<{ url: string }> => {
   const productResult = await getProductByBarcode(barcode);
   if (!productResult.ok) throw new NotFoundError("Product not found");
   const product = productResult.value;
 
-  // Extract simple search terms from product name (e.g., "iPhone 15" -> "smartphone", "Nike Air" -> "running shoes")
-  // For now, we take the first 2 words or category fallback
   let query = product.category || product.name.split(" ").slice(0, 2).join(" ");
 
-  // Refine query based on common electronic terms to get better stock footage
   if (query.toLowerCase().includes("iphone") || query.toLowerCase().includes("samsung")) query = "smartphone";
   if (query.toLowerCase().includes("kulaklık")) query = "headphones";
   if (query.toLowerCase().includes("laptop") || query.toLowerCase().includes("bilgisayar")) query = "laptop working";
@@ -413,20 +278,17 @@ export const generateVideoMedia = async (barcode: string, _script: VideoScript):
     };
 
     if (data.videos && data.videos.length > 0) {
-      // Return the best quality video file link (usually the first one's video file)
       const bestVideo = data.videos[0].video_files.find((f) => f.quality === "hd") || data.videos[0].video_files[0];
       return { url: bestVideo.link };
     }
 
     logger.warn("video.no_stock_found", { query });
-    // Fallback to abstract tech background if no specific video found
     return {
       url: "https://assets.mixkit.co/videos/preview/mixkit-tech-animation-with-glowing-lines-48356-preview.mp4",
     };
 
   } catch (error) {
     logger.error("video.media_generation_failed", { err: error });
-    // Graceful fallback on error
     return {
       url: "https://assets.mixkit.co/videos/preview/mixkit-tech-animation-with-glowing-lines-48356-preview.mp4",
     };
@@ -434,19 +296,13 @@ export const generateVideoMedia = async (barcode: string, _script: VideoScript):
 };
 
 /**
- * Generates a high-quality video using Wiro AI based on a product image and an AI-generated script.
+ * Generates a high-quality video using Fal.ai based on a product image and an AI-generated script.
  */
-export const generateAIDrivenVideo = async (barcode: string, vibe: string, customPrompt?: string): Promise<{ taskId: string; token: string }> => {
-<<<<<<< HEAD
+export const generateAIDrivenVideo = async (barcode: string, vibe: string, customPrompt?: string): Promise<{ videoUrl: string }> => {
   const productResult = await getProductByBarcode(barcode);
   if (!productResult.ok) throw new NotFoundError("Product not found");
   const product = productResult.value;
-=======
-  const product = await getProductByBarcode(barcode);
-  if (!product) throw new NotFoundError("Product not found");
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
 
-  // 1. Select product image
   const imageUrl = (product.images && product.images.length > 0) ? product.images[0] : product.imageUrl;
   if (!imageUrl) {
     throw new NotFoundError("Product has no images to generate video from");
@@ -455,24 +311,18 @@ export const generateAIDrivenVideo = async (barcode: string, vibe: string, custo
   let videoPrompt = "";
 
   if (customPrompt) {
-    // 2. Use manual prompt if provided
     videoPrompt = customPrompt;
   } else {
-    // 2. Generate a viral script (automatic mode)
     const script = await generateVideoScript(barcode, vibe, "instagram");
-
-    // We combine the visual params and cinematic camera instructions for the first scene
     const firstScene = script.scenes[0] || { visualParams: script.hook, cinematicCamera: "cinematic product reveal" };
     videoPrompt = `${firstScene.visualParams}. Camera movement: ${firstScene.cinematicCamera || "dynamic reveal"}. Style: ${vibe}, high quality, commercial look.`;
   }
 
-  // 3. Trigger Wiro AI task
   logger.info("video.ai_driven_start", { barcode, imageUrl, videoPrompt, isCustom: !!customPrompt });
 
-  const result = await runImageToVideo(imageUrl, videoPrompt);
+  const result = await generateProductVideo(imageUrl, videoPrompt);
 
   return {
-    taskId: result.taskid,
-    token: result.socketaccesstoken
+    videoUrl: result.videoUrl
   };
 };

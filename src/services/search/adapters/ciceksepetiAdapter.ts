@@ -10,7 +10,8 @@ interface CiceksepetiAttribute {
 interface CiceksepetiProduct {
   productName?: string;
   productCode?: string;
-  salePrice?: number;
+  stockCode?: string;
+  salesPrice?: number;  // API returns salesPrice, not salePrice
   link?: string;
   mainImage?: string;
   images?: string[];
@@ -53,7 +54,7 @@ export class CiceksepetiAdapter implements SearchAdapter {
         .map((p) => ({
            marketplace: this.name,
            title: p.productName || "",
-           price: p.salePrice || 0,
+           price: p.salesPrice || 0,
            currency: "TRY",
            url: p.link || `https://www.ciceksepeti.com/${p.productCode || ""}`, 
            imageUrl: p.mainImage || (p.images && p.images.length > 0 ? p.images[0] : ""),
@@ -62,7 +63,7 @@ export class CiceksepetiAdapter implements SearchAdapter {
            brand: p.attributes?.find((a) => a.attributeName === "Marka" || a.attributeName === "Brand")?.attributeValue || "",
            stockCount: p.stockQuantity || p.quantity || 0,
            inStock: (p.stockQuantity || p.quantity || 0) > 0,
-           barcode: p.barcode,
+           barcode: p.barcode || p.stockCode,
            category: p.categoryName || ""
         }))
         .slice(0, 10);

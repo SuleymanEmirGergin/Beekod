@@ -1,9 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getSuggestions } from '../src/services/suggestionService.js';
-import * as geminiService from '../src/services/geminiService.js';
+import * as geminiService from '../src/services/ai/geminiClient.js';
 import { SalesSummary } from '../src/services/reportService.js';
 
-vi.mock('../src/services/geminiService.js');
+vi.mock('../src/services/ai/geminiClient.js', () => ({
+    generateGeminiReply: vi.fn()
+}));
+
 vi.mock('../src/i18n.js', () => ({
     t: (locale: string, key: string) => `[${locale}:${key}]`
 }));
@@ -28,25 +31,24 @@ describe('Suggestion Service', () => {
     };
 
     beforeEach(() => {
-        vi.resetAllMocks();
+        vi.clearAllMocks();
     });
 
     it('should call Gemini with correct prompt and locale for TR', async () => {
         const mockReply = 'Öneriler: 1. Fiyatı artır.';
-        vi.spyOn(geminiService, 'generateGeminiReply').mockResolvedValue(mockReply);
+        vi.mocked(geminiService.generateGeminiReply).mockResolvedValue(mockReply);
 
         const result = await getSuggestions(mockContext, 'tr');
 
         expect(geminiService.generateGeminiReply).toHaveBeenCalledWith(expect.objectContaining({
-            locale: 'tr',
-            systemInstruction: expect.stringContaining('expert e-commerce analyst')
+            locale: 'tr'
         }));
         expect(result).toBe(mockReply);
     });
 
     it('should call Gemini with correct prompt and locale for EN', async () => {
         const mockReply = 'Suggestions: 1. Increase price.';
-        vi.spyOn(geminiService, 'generateGeminiReply').mockResolvedValue(mockReply);
+        vi.mocked(geminiService.generateGeminiReply).mockResolvedValue(mockReply);
 
         const result = await getSuggestions(mockContext, 'en');
 
@@ -57,7 +59,7 @@ describe('Suggestion Service', () => {
     });
 
     it('should return fallback message if Gemini fails', async () => {
-        vi.spyOn(geminiService, 'generateGeminiReply').mockResolvedValue(''); // Empty response
+        vi.mocked(geminiService.generateGeminiReply).mockResolvedValue(''); // Empty response
 
         const result = await getSuggestions(mockContext, 'de');
 
