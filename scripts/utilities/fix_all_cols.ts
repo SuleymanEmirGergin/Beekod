@@ -1,5 +1,5 @@
 
-import { query } from "./src/db.js";
+import { query } from "../../src/db.js";
 
 async function fixAll() {
     const cols = [

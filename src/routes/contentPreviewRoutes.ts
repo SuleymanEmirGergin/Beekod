@@ -3,7 +3,7 @@ import { buildSeoContent, buildSocialContent } from "../services/contentService.
 import { z } from "zod";
 import { Locale } from "../types.js";
 import { requireJsonBody } from "../middleware/requireJsonBody.js";
-import { validateBody } from "../validation.js";
+import { validateBody } from "../validation/middleware.js";
 
 const router = Router();
 

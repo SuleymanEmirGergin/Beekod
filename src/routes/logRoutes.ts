@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireAdminKey } from "../middleware/adminKey.js";
 import { logger } from "../logger.js";
 import { getLogs } from "../services/logService.js";
-import { validateQuery } from "../validation.js";
+import { validateQuery } from "../validation/middleware.js";
 
 const router = Router();
 

@@ -4,7 +4,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { config } from "../config.js";
 import { ADMIN_COOKIE, resolveAdminKey } from "../middleware/adminKey.js";
-import { validateQuery } from "../validation.js";
+import { validateQuery } from "../validation/middleware.js";
 import { pool } from "../db.js";
 
 const router = Router();

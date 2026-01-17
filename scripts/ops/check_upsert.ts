@@ -1,5 +1,5 @@
 
-import { upsertProduct } from "./src/services/productService.js";
+import { upsertProduct } from "../../src/services/productService.js";
 
 async function testInsert() {
     console.log("Starting manual insert test...");

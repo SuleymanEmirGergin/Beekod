@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { validateBody } from "../validation.js";
+import { validateBody } from "../validation/middleware.js";
 import { logger } from "../logger.js";
 import { requireAdminKey } from "../middleware/adminKey.js";
 import {

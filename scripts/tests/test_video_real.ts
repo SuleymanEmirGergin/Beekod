@@ -1,4 +1,4 @@
-import { runImageToVideo } from "./src/services/wiroService.js";
+import { runImageToVideo } from "../../src/services/wiroService.js";
 import fs from "fs";
 
 async function testVideo() {

@@ -6,7 +6,7 @@ import { z } from "zod";
 import { config } from "../config.js";
 import { query } from "../db.js";
 import { logger } from "../logger.js";
-import { validateQuery } from "../validation.js";
+import { validateQuery } from "../validation/middleware.js";
 
 const router = Router();
 

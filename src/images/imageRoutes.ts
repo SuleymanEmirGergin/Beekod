@@ -9,7 +9,7 @@ import { z } from "zod";
 import { config } from "../config.js";
 import { logger } from "../logger.js";
 import { requireAdminKey } from "../middleware/adminKey.js";
-import { validateBody, validateParams, validateQuery } from "../validation.js";
+import { validateBody, validateParams, validateQuery } from "../validation/middleware.js";
 import { getImageProfile, resolveImageProfile } from "./imageProfiles.js";
 import { getMarketplaceProfileSets, resolveMarketplaceProfileSet } from "./marketplaceProfileSets.js";
 import {

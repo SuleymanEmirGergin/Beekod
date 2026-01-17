@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { N11Provider } from "../../src/services/marketplace/providers/n11Provider.ts";
+import { N11Provider } from "../../src/services/marketplace/providers/n11Provider.js";
 
 async function testOrders() {
     const p = new N11Provider();

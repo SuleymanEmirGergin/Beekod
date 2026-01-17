@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { requireJsonBody } from "../middleware/requireJsonBody.js";
-import { validateBody } from "../validation.js";
+import { validateBody } from "../validation/middleware.js";
 import { logger } from "../logger.js";
 import { getAllOrders, createOrder, getOrderById, updateOrderStatus, updateOrderShipping } from "../services/order/orderService.js";
 import { syncOrdersFromMarketplaces } from "../services/order/orderSyncService.js";

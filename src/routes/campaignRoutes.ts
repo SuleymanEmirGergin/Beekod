@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { requireAdminKey } from "../middleware/adminKey.js";
 import { requireJsonBody } from "../middleware/requireJsonBody.js";
-import { validateBody } from "../validation.js";
+import { validateBody } from "../validation/middleware.js";
 import { logger } from "../logger.js";
 import { 
   createCampaign, 

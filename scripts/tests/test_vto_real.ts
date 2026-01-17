@@ -1,5 +1,5 @@
-import { runVirtualTryOn } from "./src/services/wiroService.js";
-import { logger } from "./src/logger.js";
+import { runVirtualTryOn } from "../../src/services/wiroService.js";
+import { logger } from "../../src/logger.js";
 
 async function testVto() {
     const humanImage = "C:/Users/emirg/.gemini/antigravity/brain/2f4f53c8-022a-4405-b4e7-4e5b002e34ee/uploaded_image_0_1767828437806.jpg";

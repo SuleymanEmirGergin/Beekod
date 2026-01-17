@@ -1,8 +1,0 @@
-{
-  "message": "Unknown column 'cost_price' in 'field list'",
-  "code": "ER_BAD_FIELD_ERROR",
-  "errno": 1054,
-  "sql": "SELECT id, barcode, name, category, description, price, cost_price, stock, alert_threshold, currency, brand, product_code, vat_rate, unit, images, attributes, cargo_company, cargo_desi, width, height, length, weight, max_order_limit, auto_stock_update, parent_barcode, variants, product_type, preparation_days, translations FROM products WHERE barcode = 'TY-IP17-TEST-1' LIMIT 1",
-  "sqlState": "42S22",
-  "sqlMessage": "Unknown column 'cost_price' in 'field list'"
-}

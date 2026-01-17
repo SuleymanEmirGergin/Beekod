@@ -1,5 +1,5 @@
 import "../../env.js";
-import { listMarketplaceProviders } from "../../src/services/marketplace/index.ts";
+import { listMarketplaceProviders } from "../../src/services/marketplace/index.js";
 
 async function inspectCredentials() {
     console.log("=== Marketplace API Credentials Evaluation ===\n");

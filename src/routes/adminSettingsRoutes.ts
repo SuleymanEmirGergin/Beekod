@@ -2,7 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { requireAdminKey } from "../middleware/adminKey.js";
 import { getAdminSettings, updateAdminSettings } from "../services/adminSettingsService.js";
-import { validateBody } from "../validation.js";
+import { validateBody } from "../validation/middleware.js";
 
 const router = Router();
 
