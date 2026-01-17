@@ -42,7 +42,14 @@ const scraperRegistry: Record<string, BaseScraper> = {
  * Get scraper by site name
  */
 export function getScraper(siteName: string): BaseScraper | undefined {
-    return scraperRegistry[siteName];
+    // Try exact match first
+    if (scraperRegistry[siteName]) return scraperRegistry[siteName];
+
+    // Try case-insensitive lookup
+    const key = Object.keys(scraperRegistry).find(
+        (k) => k.toLowerCase() === siteName.toLowerCase()
+    );
+    return key ? scraperRegistry[key] : undefined;
 }
 
 /**

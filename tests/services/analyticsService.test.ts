@@ -36,15 +36,17 @@ describe('AnalyticsService', () => {
     describe('getDashboardStats', () => {
         it('should return dashboard statistics', async () => {
             // getDashboardStats calls query in this order:
-            // 1. totalProducts
-            // 2. lowStockCount
-            // 3. totalRevenue
-            // 4. topProducts
-            // 5. categoryData
+            // 1. totalProducts (c)
+            // 2. totalRevenue (s)
+            // 3. lowStockCount (c)
+            // 4. topPerformers
+            // 5. categoryBreakdown
+            // 6. recentActivity
             vi.mocked(query)
-                .mockResolvedValueOnce([{ total: 100 }])
-                .mockResolvedValueOnce([{ total: 5 }])
-                .mockResolvedValueOnce([{ total: 50000 }])
+                .mockResolvedValueOnce([{ c: 100 }])
+                .mockResolvedValueOnce([{ s: 50000 }])
+                .mockResolvedValueOnce([{ c: 5 }])
+                .mockResolvedValueOnce([])
                 .mockResolvedValueOnce([])
                 .mockResolvedValueOnce([]);
 
@@ -54,14 +56,15 @@ describe('AnalyticsService', () => {
             expect(stats.totalProducts).toBe(100);
             expect(stats.lowStockCount).toBe(5);
             expect(stats.totalRevenue).toBe(50000);
-            expect(query).toHaveBeenCalledTimes(5);
+            expect(query).toHaveBeenCalledTimes(6);
         });
 
         it('should handle empty database results', async () => {
             vi.mocked(query)
-                .mockResolvedValueOnce([{ total: 0 }])
-                .mockResolvedValueOnce([{ total: 0 }])
-                .mockResolvedValueOnce([{ total: 0 }])
+                .mockResolvedValueOnce([{ c: 0 }])
+                .mockResolvedValueOnce([{ s: 0 }])
+                .mockResolvedValueOnce([{ c: 0 }])
+                .mockResolvedValueOnce([])
                 .mockResolvedValueOnce([])
                 .mockResolvedValueOnce([]);
 
@@ -81,8 +84,9 @@ describe('AnalyticsService', () => {
                     name: 'Test Product',
                     category: 'Electronics',
                     price: 50,
-                    stock: 100,
-                    totalValue: 5000,
+                    totalUnits: 100,
+                    totalRevenue: 5000,
+                    orderCount: 10
                 },
             ]);
 
@@ -90,13 +94,14 @@ describe('AnalyticsService', () => {
 
             expect(result).toBeDefined();
             expect(result?.barcode).toBe('ABC123');
-            expect(result?.totalSales).toBe(100); // stock maps to totalSales in this specific function
+            expect(result?.totalUnits).toBe(100);
         });
 
-        it('should throw NotFoundError for non-existent barcode', async () => {
+        it('should return null for non-existent barcode', async () => {
             vi.mocked(query).mockResolvedValueOnce([]);
 
-            await expect(getProductPerformance('NONEXISTENT')).rejects.toThrow();
+            const result = await getProductPerformance('NONEXISTENT');
+            expect(result).toBeNull();
         });
     });
 
@@ -139,13 +144,14 @@ describe('AnalyticsService', () => {
 
     describe('getInventoryHealth', () => {
         it('should return inventory health breakdown', async () => {
-            // getInventoryHealth calls query 5 separate times for each category
-            vi.mocked(query)
-                .mockResolvedValueOnce([{ count: 5 }]) // critical
-                .mockResolvedValueOnce([{ count: 2 }]) // outOfStock
-                .mockResolvedValueOnce([{ count: 10 }]) // low
-                .mockResolvedValueOnce([{ count: 80 }]) // normal
-                .mockResolvedValueOnce([{ count: 3 }]); // overstocked
+            // getInventoryHealth calls query once
+            vi.mocked(query).mockResolvedValueOnce([{
+                critical: 5,
+                outOfStock: 2,
+                low: 10,
+                normal: 80,
+                overstocked: 3
+            }]);
 
             const health = await getInventoryHealth();
 

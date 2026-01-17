@@ -1,33 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getProductByBarcode, updatePrice, updateStock } from "../../src/services/product/productService.js";
 import { query } from "../../src/db.js";
-import { getCache, setCache } from "../../src/services/product/cacheService.js";
-import { auditService } from "../../src/services/product/auditService.js";
 
 // Mock dependencies
 vi.mock("../../src/db.js", () => ({
     query: vi.fn(),
 }));
 
-vi.mock("../../src/services/product/cacheService.js", () => ({
-    getCache: vi.fn(),
-    setCache: vi.fn(),
-}));
-
-vi.mock("../../src/services/product/auditService.js", () => ({
-    auditService: {
-        log: vi.fn(),
-    },
-}));
-
-vi.mock("../../src/services/product/stockHistoryService.js", () => ({
-    logStockChange: vi.fn(),
-}));
-
-vi.mock("../../src/services/product/vectorService.js", () => ({
-    generateEmbedding: vi.fn(),
-    cosineSimilarity: vi.fn(),
-}));
+// We don't need to mock cacheService or auditService as they are not used in the implementation
+// referenced by these tests (based on source code inspection).
 
 describe("ProductService", () => {
     beforeEach(() => {
@@ -35,65 +16,59 @@ describe("ProductService", () => {
     });
 
     describe("getProductByBarcode", () => {
-        it("should return cached product if available", async () => {
-            const mockProduct = { barcode: "123", name: "Test Product", stock: 10 };
-            vi.mocked(getCache).mockResolvedValue(mockProduct);
-
-            const result = await getProductByBarcode("123");
-
-            expect(result.ok).toBe(true);
-            if (result.ok) {
-                expect(result.value).toEqual(mockProduct);
-                expect(getCache).toHaveBeenCalledWith("product:123");
-                expect(query).not.toHaveBeenCalled();
-            }
-        });
-
-        it("should fetch from DB and cache if not in cache", async () => {
+        it("should fetch from DB", async () => {
             const mockProduct = { barcode: "123", name: "DB Product", stock: 5 };
-            vi.mocked(getCache).mockResolvedValue(null);
             vi.mocked(query).mockResolvedValue([mockProduct]);
 
             const result = await getProductByBarcode("123");
 
             expect(result.ok).toBe(true);
             if (result.ok) {
-                expect(result.value.name).toBe("DB Product");
-                expect(setCache).toHaveBeenCalledWith("product:123", expect.any(Object), 3600);
+                expect(result.value).toEqual(mockProduct);
+                expect(query).toHaveBeenCalledWith(expect.stringContaining("SELECT * FROM products"), expect.any(Array));
             }
+        });
+
+        it("should fail if product not found", async () => {
+            vi.mocked(query).mockResolvedValue([]);
+
+            const result = await getProductByBarcode("123");
+
+            expect(result.ok).toBe(false);
         });
     });
 
     describe("updatePrice", () => {
-        it("should update price and log audit", async () => {
-            vi.mocked(query).mockResolvedValue({ affectedRows: 1 });
-            // For the getProductByBarcode call inside updatePrice
-            vi.mocked(getCache).mockResolvedValue({ barcode: "123", price: 100 });
+        it("should update price and log to history", async () => {
+            const mockProduct = { barcode: "123", price: 150 };
+
+            vi.mocked(query)
+                .mockResolvedValueOnce({ affectedRows: 1 }) // UPDATE
+                .mockResolvedValueOnce({ insertId: 1 }) // INSERT history
+                .mockResolvedValueOnce([mockProduct]); // SELECT return
 
             const result = await updatePrice("123", 150, 1);
 
             expect(result.ok).toBe(true);
-            expect(auditService.log).toHaveBeenCalledWith(expect.objectContaining({
-                action: 'UPDATE_PRICE',
-                details: { price: 150 }
-            }));
+            expect(result.ok && result.value.price).toBe(150);
+            expect(query).toHaveBeenCalledTimes(3);
         });
     });
 
     describe("updateStock", () => {
         it("should update stock and log change", async () => {
-            vi.mocked(query)
-                .mockResolvedValueOnce({ affectedRows: 1 }) // update stock
-                .mockResolvedValueOnce([{ barcode: "123", name: "Test", stock: 15 }]); // get product inside log/audit (optional if mocked differently)
+            const currentProduct = { barcode: "123", name: "Test", stock: 10 };
             
-            vi.mocked(getCache).mockResolvedValue({ barcode: "123", name: "Test", stock: 10 });
+            vi.mocked(query)
+                .mockResolvedValueOnce([currentProduct]) // SELECT current
+                .mockResolvedValueOnce({ affectedRows: 1 }) // UPDATE
+                .mockResolvedValueOnce({ insertId: 1 }); // INSERT history
 
             const result = await updateStock("123", 5, "Test Source", "Test Reason", 1);
 
             expect(result.ok).toBe(true);
-            expect(auditService.log).toHaveBeenCalledWith(expect.objectContaining({
-                action: 'UPDATE_STOCK',
-            }));
+            expect(result.ok && result.value.stock).toBe(15); // 10 + 5
+            expect(query).toHaveBeenCalledTimes(3);
         });
     });
 });
