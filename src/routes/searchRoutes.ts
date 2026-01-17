@@ -2,7 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { logger } from "../logger.js";
 import { requireAdminKey } from "../middleware/adminKey.js";
-import { validateQuery } from "../validation.js";
+import { validateQuery } from "../validation/middleware.js";
 // REMOVED: import { googleSearch } from "../marketplaces/api/googleSearch.js";
 import { universalProductSearch } from "../services/search/searchAggregator.js";
 import multer from "multer";

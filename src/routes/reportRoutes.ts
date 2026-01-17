@@ -12,7 +12,7 @@ import {
 } from "../services/reportService.js";
 import { getSalesRecords } from "../services/salesStore.js";
 import { normalizeMarketplaceName } from "../utils/marketplace.js";
-import { validateQuery } from "../validation.js";
+import { validateQuery } from "../validation/middleware.js";
 
 const router = Router();
 

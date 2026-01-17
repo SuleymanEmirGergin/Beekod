@@ -83,9 +83,10 @@ describe("ProductService", () => {
     describe("updateStock", () => {
         it("should update stock and log change", async () => {
             vi.mocked(query)
-                .mockResolvedValueOnce({ affectedRows: 1 }) // update stock
-                .mockResolvedValueOnce([{ barcode: "123", name: "Test", stock: 15 }]); // get product inside log/audit (optional if mocked differently)
-            
+                .mockResolvedValueOnce([{ barcode: "123", name: "Test", stock: 10 }]) // 1. Get current
+                .mockResolvedValueOnce({ affectedRows: 1 }) // 2. Update
+                .mockResolvedValueOnce({ insertId: 1 }); // 3. History
+
             vi.mocked(getCache).mockResolvedValue({ barcode: "123", name: "Test", stock: 10 });
 
             const result = await updateStock("123", 5, "Test Source", "Test Reason", 1);

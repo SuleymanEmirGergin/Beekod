@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireAdminKey } from "../middleware/adminKey.js";
 import { query } from "../db.js";
 import { logger } from "../logger.js";
-import { validateQuery } from "../validation.js";
+import { validateQuery } from "../validation/middleware.js";
 
 type RateLimitRow = {
   rate_key: string;

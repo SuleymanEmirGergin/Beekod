@@ -13,6 +13,10 @@ import {
   ToolContext 
 } from '../../../src/ai/tools/index.js';
 
+vi.mock('../../../src/db.js', () => ({
+  query: vi.fn().mockResolvedValue([]),
+}));
+
 // Mock context for tests
 const mockContext: ToolContext = {
   tenantId: 'test-tenant',

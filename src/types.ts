@@ -51,6 +51,7 @@ export interface ProductPrice {
   id: number;
   barcode: string;
   price: number;
+  currency: string;
   price_type: 'standard' | 'campaign' | 'discount';
   start_date?: Date;
   end_date?: Date;

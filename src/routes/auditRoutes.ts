@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { auditService } from '../services/product/auditService.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { z } from 'zod';
-import { validateQuery } from '../validation.js';
+import { validateQuery } from '../validation/middleware.js';
 
 const router = Router();
 

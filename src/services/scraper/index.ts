@@ -42,7 +42,8 @@ const scraperRegistry: Record<string, BaseScraper> = {
  * Get scraper by site name
  */
 export function getScraper(siteName: string): BaseScraper | undefined {
-    return scraperRegistry[siteName];
+    const key = Object.keys(scraperRegistry).find(k => k.toLowerCase() === siteName.toLowerCase());
+    return key ? scraperRegistry[key] : undefined;
 }
 
 /**

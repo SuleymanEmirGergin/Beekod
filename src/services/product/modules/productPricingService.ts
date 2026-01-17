@@ -1,7 +1,9 @@
-import { query } from "../../../db.js";
+import { query, QueryResult } from "../../../db.js";
+import { RowDataPacket } from "mysql2";
 import { Product, ProductPrice } from "../../../types.js";
 import { logger } from "../../../logger.js";
 import { ok, fail, Result } from "../../../utils/result.js";
+import { auditService } from "../auditService.js";
 
 /**
  * Add a new price history record
@@ -42,7 +44,7 @@ export async function getProductPrices(barcode: string): Promise<ProductPrice[]>
     ORDER BY priority DESC, start_date DESC
   `;
   try {
-    const rows = await query(sql, [barcode]);
+    const rows = await query<RowDataPacket[]>(sql, [barcode]);
     return rows as ProductPrice[];
   } catch (error) {
     logger.error("getProductPrices.error", { error, barcode });
@@ -87,9 +89,17 @@ export async function updatePrice(barcode: string, price: number, userId?: numbe
         [barcode, barcode, `Price updated to ${price}`, userId]
       );
     }
+
+    auditService.log({
+      userId,
+      action: 'UPDATE_PRICE',
+      entityType: 'product',
+      entityId: barcode,
+      details: { price }
+    });
     
     // Return updated product
-    const rows = await query("SELECT * FROM products WHERE barcode = ?", [barcode]);
+    const rows = await query<RowDataPacket[]>("SELECT * FROM products WHERE barcode = ?", [barcode]);
     return ok(rows[0] as Product);
   } catch (error) {
     logger.error("updatePrice.error", { error, barcode });

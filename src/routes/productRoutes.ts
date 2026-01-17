@@ -5,7 +5,7 @@ import { config } from "../config.js";
 import { logger } from "../logger.js";
 import { requireAdminKey } from "../middleware/adminKey.js";
 import { requireJsonBody } from "../middleware/requireJsonBody.js";
-import { validateBody, validateQuery } from "../validation.js";
+import { validateBody, validateQuery } from "../validation/middleware.js";
 import { exportProductsCsv } from "../services/product/exportService.js";
 import { importProductsFromFile, importProductFromUrl } from "../services/product/importService.js";
 import { generateQrCode } from "../services/product/qrService.js";
@@ -192,6 +192,7 @@ const productCreateSchema = z.object({
   product_type: z.enum(["standard", "packet", "digital"]).optional(),
   preparation_days: numberLike.optional(),
   translations: z.record(z.string(), z.any()).optional(),
+  costPrice: numberLike.optional(),
 });
 
 const priceUpdateSchema = z.object({
@@ -481,7 +482,7 @@ router.post("/", requireAdminKey, validateBody(productCreateSchema), async (req,
       brand: req.body.brand,
       product_code: req.body.product_code,
       vat_rate: req.body.vat_rate,
-      unit: req.body.unit,
+      // unit: req.body.unit, // removed as it is not in Product interface
       images: req.body.images,
       attributes: req.body.attributes,
       cargo_company: req.body.cargo_company,

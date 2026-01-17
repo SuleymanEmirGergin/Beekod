@@ -1,5 +1,5 @@
-import "./env.js";
-import { query } from "./src/db.js";
+import "../../env.js";
+import { query } from "../../src/db.js";
 import bcrypt from "bcrypt";
 
 async function main() {

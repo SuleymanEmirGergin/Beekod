@@ -1,5 +1,5 @@
 import { createPool } from 'mysql2/promise';
-import { config } from './src/config';
+import { config } from '../../src/config.js';
 
 async function fixSchema() {
   console.log('Connecting to database...');

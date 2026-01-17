@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { authService } from '../services/authService.js';
 import { authenticate, authorize } from '../middleware/auth.js';
-import { validateBody } from '../validation.js';
+import { validateBody } from '../validation/middleware.js';
 import { query } from '../db.js';
 
 export const authRouter = Router();

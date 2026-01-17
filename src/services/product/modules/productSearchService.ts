@@ -1,7 +1,9 @@
-import { query } from "../../../db.js";
+import { query, QueryResult } from "../../../db.js";
+import { RowDataPacket } from "mysql2";
 import { Product } from "../../../types.js";
 import { logger } from "../../../logger.js";
 import { ok, fail, Result } from "../../../utils/result.js";
+import { getCache, setCache } from "../cacheService.js";
 
 /**
  * Product Search and Retrieval Service Module
@@ -9,11 +11,18 @@ import { ok, fail, Result } from "../../../utils/result.js";
 
 export async function getProductByBarcode(barcode: string): Promise<Result<Product>> {
   try {
-    const rows = await query("SELECT * FROM products WHERE barcode = ?", [barcode]);
+    const cached = await getCache(`product:${barcode}`);
+    if (cached) return ok(cached as Product);
+
+    const rows = await query<RowDataPacket[]>("SELECT * FROM products WHERE barcode = ?", [barcode]);
     if (rows.length === 0) {
       return fail(new Error("Product not found"));
     }
-    return ok(rows[0] as Product);
+
+    const product = rows[0] as Product;
+    await setCache(`product:${barcode}`, product, 3600);
+
+    return ok(product);
   } catch (error) {
     logger.error("getProductByBarcode.error", { error, barcode });
     return fail(error instanceof Error ? error : new Error(String(error)));
@@ -22,7 +31,7 @@ export async function getProductByBarcode(barcode: string): Promise<Result<Produ
 
 export async function getAllProducts(limit = 50): Promise<Result<Product[]>> {
   try {
-    const rows = await query("SELECT * FROM products ORDER BY created_at DESC LIMIT ?", [limit]);
+    const rows = await query<RowDataPacket[]>("SELECT * FROM products ORDER BY created_at DESC LIMIT ?", [limit]);
     return ok(rows as Product[]);
   } catch (error) {
     return fail(error instanceof Error ? error : new Error(String(error)));
@@ -32,7 +41,7 @@ export async function getAllProducts(limit = 50): Promise<Result<Product[]>> {
 export async function searchProductsByName(name: string, limit = 5): Promise<Result<Product[]>> {
    try {
     const searchTerm = `%${name}%`;
-    const rows = await query(
+    const rows = await query<RowDataPacket[]>(
       "SELECT * FROM products WHERE name LIKE ? OR barcode LIKE ? LIMIT ?",
       [searchTerm, searchTerm, limit]
     );
@@ -47,7 +56,7 @@ export async function getProductNames(barcodes: string[]): Promise<Record<string
   try {
     // Basic implementation
     const placeholders = barcodes.map(() => "?").join(",");
-    const rows = await query(`SELECT barcode, name FROM products WHERE barcode IN (${placeholders})`, barcodes);
+    const rows = await query<RowDataPacket[]>(`SELECT barcode, name FROM products WHERE barcode IN (${placeholders})`, barcodes);
     
     return (rows as {barcode:string; name:string}[]).reduce((acc, row) => {
       acc[row.barcode] = row.name;
@@ -63,7 +72,7 @@ export async function suggestCategories(name: string): Promise<Result<string[]>>
   try {
     // Simple implementation: look for existing categories in products with similar names
     const searchTerm = `%${name.split(" ")[0]}%`;
-    const rows = await query(
+    const rows = await query<RowDataPacket[]>(
         "SELECT DISTINCT category FROM products WHERE name LIKE ? AND category IS NOT NULL LIMIT 5",
         [searchTerm]
     );

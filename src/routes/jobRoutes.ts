@@ -4,7 +4,7 @@ import { requireAdminKey } from "../middleware/adminKey.js";
 import { requireJsonBody } from "../middleware/requireJsonBody.js";
 import { logger } from "../logger.js";
 import { enqueueJob, getDeadLetters, getJobById, getJobStats, getJobs } from "../services/jobQueue.js";
-import { validateBody } from "../validation.js";
+import { validateBody } from "../validation/middleware.js";
 
 const router = Router();
 

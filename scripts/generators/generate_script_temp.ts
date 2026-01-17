@@ -1,5 +1,5 @@
-import { generateVideoScript } from "./src/services/videoService.js";
-import { logger } from "./src/logger.js";
+import { generateVideoScript } from "../../src/services/videoService.js";
+import { logger } from "../../src/logger.js";
 
 async function generateTestScript() {
     const dummyProduct = {

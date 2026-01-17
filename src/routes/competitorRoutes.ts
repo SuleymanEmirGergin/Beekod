@@ -2,7 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { logger } from "../logger.js";
 import { getMarketplaceListings } from "../services/marketplace/marketplaceStore.js";
-import { validateParams } from "../validation.js";
+import { validateParams } from "../validation/middleware.js";
 
 const router = Router();
 

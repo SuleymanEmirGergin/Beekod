@@ -28,6 +28,13 @@ export interface ProfitMarginEntry {
   total_sold: number;
 }
 
+export interface MarketplacePerformanceEntry {
+    marketplace: string;
+    totalOrders: number;
+    totalRevenue: number;
+    averageOrderValue: number;
+}
+
 export async function getRevenueTimeline(days: number = 30): Promise<TimelineEntry[]> {
   try {
     const rows = await query(`
@@ -87,5 +94,25 @@ export async function getProductPerformance(barcode: string): Promise<any | null
         return (rows as any[])[0] || null;
     } catch (e) {
         return null;
+    }
+}
+
+export async function getMarketplacePerformance(): Promise<MarketplacePerformanceEntry[]> {
+    try {
+        const rows = await query(`
+            SELECT
+                source as marketplace,
+                COUNT(*) as totalOrders,
+                SUM(total_amount) as totalRevenue,
+                AVG(total_amount) as averageOrderValue
+            FROM orders
+            WHERE status != 'cancelled'
+            GROUP BY source
+            ORDER BY totalRevenue DESC
+        `);
+        return rows as MarketplacePerformanceEntry[];
+    } catch (e) {
+        logger.error("getMarketplacePerformance.error", { error: e });
+        return [];
     }
 }

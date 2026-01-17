@@ -5,7 +5,7 @@ import { config } from "../config.js";
 import { logger } from "../logger.js";
 import { requireAdminKey } from "../middleware/adminKey.js";
 import { requireJsonBody } from "../middleware/requireJsonBody.js";
-import { validateBody, validateQuery } from "../validation.js";
+import { validateBody, validateQuery } from "../validation/middleware.js";
 import { exportSalesCsv } from "../services/product/exportService.js";
 import {
   clearSalesRecords,
