@@ -1,7 +1,9 @@
-import { query } from "../../../db.js";
+import { query, QueryResult } from "../../../db.js";
+import { RowDataPacket } from "mysql2";
 import { Product } from "../../../types.js";
 import { logger } from "../../../logger.js";
 import { ok, fail, Result } from "../../../utils/result.js";
+import { auditService } from "../auditService.js";
 
 /**
  * Stock Management Service Module
@@ -19,7 +21,7 @@ export async function updateStock(
 ): Promise<Result<Product>> {
   try {
     // 1. Get current
-    const rows = await query("SELECT * FROM products WHERE barcode = ?", [barcode]);
+    const rows = await query<RowDataPacket[]>("SELECT * FROM products WHERE barcode = ?", [barcode]);
     if (!rows.length) return fail(new Error("Ürün bulunamadı"));
     
     const currentStock = (rows[0] as Product).stock;
@@ -33,6 +35,14 @@ export async function updateStock(
       "INSERT INTO stock_history (barcode, quantity_change, new_stock, source, reason, user_id) VALUES (?, ?, ?, ?, ?, ?)",
       [barcode, quantityChange, newStock, source, reason, userId || null]
     );
+
+    auditService.log({
+        userId,
+        action: 'UPDATE_STOCK',
+        entityType: 'product',
+        entityId: barcode,
+        details: { quantityChange, newStock, source, reason }
+    });
 
     return ok({ ...(rows[0] as Product), stock: newStock });
   } catch (error) {
@@ -52,7 +62,7 @@ export async function setStock(
   userId?: number
 ): Promise<Result<Product>> {
   try {
-    const rows = await query("SELECT * FROM products WHERE barcode = ?", [barcode]);
+    const rows = await query<RowDataPacket[]>("SELECT * FROM products WHERE barcode = ?", [barcode]);
     if (!rows.length) return fail(new Error("Ürün bulunamadı"));
     
     const currentStock = (rows[0] as Product).stock;
@@ -86,7 +96,7 @@ export async function getLowStockProducts(threshold: number, limit = 50): Promis
       ORDER BY stock ASC 
       LIMIT ?
     `;
-    const rows = await query(sql, [threshold, limit]);
+    const rows = await query<RowDataPacket[]>(sql, [threshold, limit]);
     return ok(rows as Product[]);
   } catch (error) {
     return fail(error instanceof Error ? error : new Error(String(error)));
