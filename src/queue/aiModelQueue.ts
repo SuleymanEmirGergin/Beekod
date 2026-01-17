@@ -23,23 +23,36 @@ export interface AIModelResult {
   error?: string;
 }
 
+import { isRedisEnabled } from './config.js';
+
 /**
  * AI Model generation queue (Virtual Try-On, etc.)
  */
-export const aiModelQueue = new Queue<AIModelJobData, AIModelResult>('ai-model-generation', {
-  connection: redisConnection,
-  defaultJobOptions: {
-    ...defaultJobOptions,
-    attempts: 2,
-  },
-});
+export const aiModelQueue = isRedisEnabled() 
+  ? new Queue<AIModelJobData, AIModelResult>('ai-model-generation', {
+      connection: redisConnection,
+      defaultJobOptions: {
+        ...defaultJobOptions,
+        attempts: 2,
+      },
+    })
+  : ({
+      add: async () => { logger.warn('ai_model_queue.disabled'); return {} as any; },
+      close: async () => {},
+      on: () => {},
+    } as unknown as Queue<AIModelJobData, AIModelResult>);
 
 /**
  * Queue events for monitoring
  */
-const aiModelQueueEvents = new QueueEvents('ai-model-generation', {
-  connection: redisConnection,
-});
+const aiModelQueueEvents = isRedisEnabled()
+  ? new QueueEvents('ai-model-generation', {
+      connection: redisConnection,
+    })
+  : ({
+      on: () => {},
+      close: async () => {},
+    } as unknown as QueueEvents);
 
 aiModelQueueEvents.on('completed', ({ jobId, returnvalue }) => {
   const result = returnvalue as unknown as AIModelResult | undefined;

@@ -4,13 +4,22 @@ import { logger } from '../logger.js';
 /**
  * Redis connection configuration for BullMQ
  */
+export function isRedisEnabled() {
+  return (process.env.REDIS_ENABLED ?? "true").toLowerCase() !== "false";
+}
+
+/**
+ * Redis connection configuration for BullMQ
+ */
 export const redisConnection: ConnectionOptions = {
   host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
+  port: parseInt(process.env.REDIS_PORT || '6380'),
   password: process.env.REDIS_PASSWORD,
   maxRetriesPerRequest: null, // Required for BullMQ
   enableReadyCheck: false,
   retryStrategy(times: number) {
+    if (!isRedisEnabled()) return null;
+
     if (times > 10) {
       logger.error('queue.redis.max_retries', { times });
       return null; // Stop retrying
@@ -20,6 +29,7 @@ export const redisConnection: ConnectionOptions = {
     return delay;
   },
 };
+
 
 /**
  * Default job options for all queues

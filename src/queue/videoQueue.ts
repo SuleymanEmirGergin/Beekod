@@ -24,23 +24,36 @@ export interface VideoGenerationResult {
   error?: string;
 }
 
+import { isRedisEnabled } from './config.js';
+
 /**
  * Video generation queue
  */
-export const videoQueue = new Queue<VideoGenerationJobData, VideoGenerationResult>('video-generation', {
-  connection: redisConnection,
-  defaultJobOptions: {
-    ...defaultJobOptions,
-    attempts: 2, // Video generation is expensive, limit retries
-  },
-});
+export const videoQueue = isRedisEnabled()
+  ? new Queue<VideoGenerationJobData, VideoGenerationResult>('video-generation', {
+      connection: redisConnection,
+      defaultJobOptions: {
+        ...defaultJobOptions,
+        attempts: 2, // Video generation is expensive, limit retries
+      },
+    })
+  : ({
+      add: async () => { logger.warn('video_queue.disabled'); return {} as any; },
+      close: async () => {},
+      on: () => {},
+    } as unknown as Queue<VideoGenerationJobData, VideoGenerationResult>);
 
 /**
  * Queue events for monitoring
  */
-const videoQueueEvents = new QueueEvents('video-generation', {
-  connection: redisConnection,
-});
+const videoQueueEvents = isRedisEnabled()
+  ? new QueueEvents('video-generation', {
+      connection: redisConnection,
+    })
+  : ({
+      on: () => {},
+      close: async () => {},
+    } as unknown as QueueEvents);
 
 videoQueueEvents.on('completed', ({ jobId, returnvalue }) => {
   const result = returnvalue as unknown as VideoGenerationResult | undefined;

@@ -144,3 +144,20 @@ export interface ConsolidatedInventoryItem {
   maxPrice: number;
   totalStock: number;
 }
+
+export enum PricingStrategy {
+  MATCH_COMPETITOR = 'MATCH_COMPETITOR', // Rakiple aynı fiyat
+  BEAT_COMPETITOR = 'BEAT_COMPETITOR',   // Rakibi X miktar geç
+  PROFIT_MAXIMIZER = 'PROFIT_MAXIMIZER', // En düşük bizsek kârı maksimize et
+  MANUAL = 'MANUAL'                      // Otomatik müdahale etme
+}
+
+export interface RepricingConfig {
+  barcode: string;
+  enabled: boolean;
+  min_price: number;      // Asla altına inme (Maliyet + Min Kâr)
+  max_price: number;      // Asla üstüne çıkma
+  strategy: PricingStrategy;
+  beat_amount?: number;   // Örn: 0.50 TL altına in
+  target_margin?: number; // Hedeflenen kâr marjı (0.20 = %20)
+}

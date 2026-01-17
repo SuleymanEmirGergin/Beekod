@@ -40,18 +40,14 @@ services:
     expose:
       - "6379"
     # Development için gerekirse uncomment et:
-    # ports:
-    #   - "6379:6379"
+    ports:
+      - "6380:6379"
     volumes:
       - redis_data:/data
     networks:
       - beekod-network
     healthcheck:
-<<<<<<< HEAD
       test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD}", "ping"]
-=======
-      test: [ "CMD", "redis-cli", "ping" ]
->>>>>>> 6901a4280378b282c9841f0d0516659efe72d59e
       interval: 10s
       timeout: 3s
       retries: 5

@@ -40,6 +40,7 @@ import {
   Edit,
   Trash2,
   Zap,
+  Bot,
   RefreshCw,
   History,
   Sparkles,
@@ -48,6 +49,7 @@ import {
 } from 'lucide-react';
 import { generateBulkSocialContent } from '../services/social';
 import { ForecastingWidget } from '../components/Analytics/ForecastingWidget';
+import { RepricerSettingsModal } from '../components/Repricer/RepricerSettingsModal';
 
 interface InventoryManagementScreenProps {
   onNavigate: (screen: string) => void;
@@ -78,6 +80,7 @@ export function InventoryManagementScreen({ onNavigate }: InventoryManagementScr
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [stockHistory, setStockHistory] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [selectedProductForRepricer, setSelectedProductForRepricer] = useState<Product | null>(null);
   const [selectedProductForHistory, setSelectedProductForHistory] = useState<Product | null>(null);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [isBulkSyncing, setIsBulkSyncing] = useState(false);
@@ -731,6 +734,13 @@ export function InventoryManagementScreen({ onNavigate }: InventoryManagementScr
                           )}
                         </button>
                         <button
+                          onClick={() => setSelectedProductForRepricer(product)}
+                          className="p-1.5 hover:bg-purple-50 rounded-md transition-colors"
+                          title="AI Repricer Config"
+                        >
+                          <Bot className="w-3.5 h-3.5 text-purple-600" />
+                        </button>
+                        <button
                           onClick={() => handleSyncProduct(product)}
                           disabled={isSyncing !== null}
                           className="p-1.5 hover:bg-green-50 rounded-md transition-colors"
@@ -851,6 +861,17 @@ export function InventoryManagementScreen({ onNavigate }: InventoryManagementScr
         history={stockHistory}
         loading={historyLoading}
       />
+
+      {selectedProductForRepricer && (
+        <RepricerSettingsModal
+          isOpen={true}
+          onClose={() => setSelectedProductForRepricer(null)}
+          barcode={selectedProductForRepricer.barcode}
+          productName={selectedProductForRepricer.name}
+          currentPrice={Number(selectedProductForRepricer.price) || 0}
+          costPrice={Number(selectedProductForRepricer.costPrice) || 0}
+        />
+      )}
 
       {/* QR Code Modal */}
       {showQRModal && currentQR && (

@@ -2,7 +2,7 @@ import { createClient } from "redis";
 import { logger } from "./logger.js";
 
 const redisHost = process.env.REDIS_HOST?.trim() || "localhost";
-const redisPort = parseInt(process.env.REDIS_PORT || "6379");
+const redisPort = parseInt(process.env.REDIS_PORT || "6380");
 const redisPassword = process.env.REDIS_PASSWORD?.trim();
 const redisPrefix = process.env.REDIS_PREFIX?.trim() || "beekod";
 
@@ -16,6 +16,16 @@ export function getRedisPrefix() {
 }
 
 export async function getRedisClient(): Promise<RedisClient | null> {
+  const redisEnabled = (process.env.REDIS_ENABLED ?? "true") !== "false";
+  
+  if (!redisEnabled) {
+    if ((global as any)._redisWarned !== true) {
+      logger.warn("redis.disabled_by_config");
+      (global as any)._redisWarned = true;
+    }
+    return null;
+  }
+
   // ⚠️ PRODUCTION: Redis password zorunlu!
   if (process.env.NODE_ENV === 'production' && !redisPassword) {
     logger.error("redis.config_error", { message: "REDIS_PASSWORD is required in production!" });

@@ -54,6 +54,8 @@ import { analyticsRouter } from "./routes/analyticsRoutes.js";
 import { configRouter } from "./routes/configRoutes.js";
 import { profileRouter } from "./routes/profileRoutes.js";
 import { invoiceRouter } from "./routes/invoiceRoutes.js";
+import { repricerRouter } from "./routes/repricerRoutes.js";
+import { repricerService } from "./services/ai/repricerService.js";
 import { socketService } from "./services/socketService.js";
 import { startScheduler } from "./services/jobQueue.js";
 import { startStockAlertJob, stopStockAlertJob } from "./services/alertService.js";
@@ -147,6 +149,7 @@ app.use("/api/campaigns", campaignRouter);
 app.use("/api/video-analytics", videoAnalyticsRouter);
 app.use("/api/revenue", revenueRouter);
 app.use("/api/feedback", feedbackRouter);
+app.use("/api/repricer", repricerRouter);
 app.use("/api/trendyol", trendyolRouter); // ✅ Trendyol Category API
 app.use("/api/n11", n11Router); // ✅ N11 Category API
 app.use("/api/hepsiburada", hepsiburadaRouter); // ✅ Hepsiburada API
@@ -189,6 +192,7 @@ Sentry.setupExpressErrorHandler(app);
 app.use(errorHandler);
 
 startScheduler();
+repricerService.ensureTableExists();
 startStockAlertJob();
 
 let server: Server | undefined;
