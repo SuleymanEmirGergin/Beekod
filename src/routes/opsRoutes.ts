@@ -27,8 +27,28 @@ router.get("/inspect", requireAdminKey, async (req, res) => {
       limit: config.db.pool.connectionLimit
     };
 
+    // Heuristic Health Score
+    // 0 = Dead, 1 = Degraded, 2 = Healthy
+    let healthScore = 2;
+    const issues: string[] = [];
+
+    if (queueStats.total > 1000 && queueStats.byStatus.queued > 500) {
+        healthScore = 1;
+        issues.push("queue_backlog_high");
+    }
+
+    if (dbStats.active !== "unknown" && Number(dbStats.active) >= config.db.pool.connectionLimit) {
+        healthScore = 1;
+        issues.push("db_pool_saturated");
+    }
+
     res.json({
       status: "ok",
+      health: {
+          score: healthScore, // 2=Good, 1=Warning, 0=Critical
+          label: healthScore === 2 ? "Healthy" : "Degraded",
+          issues
+      },
       timestamp: new Date().toISOString(),
       queue: queueStats,
       cache: cacheStats,
