@@ -29,15 +29,14 @@ export class YurticiProvider implements ICargoProvider {
                 }
             });
 
-            const parser = new XMLParser();
+            const parser = new XMLParser({
+                ignoreAttributes: false,
+                removeNsprefix: true
+            });
             const result = parser.parse(response.data);
 
-            // Parse logic would go here depending on real WSDL structure
-            // Assuming simplified response for this implementation
-            // In a real scenario, we'd navigate the SOAP envelope
-
-            // Placeholder for parsing logic:
-            const trackingNumber = result?.['soap:Envelope']?.['soap:Body']?.createShipmentResponse?.trackingNumber;
+            // Navigate parsed object (prefixes removed)
+            const trackingNumber = result?.Envelope?.Body?.createShipmentResponse?.trackingNumber;
 
             if (!trackingNumber) throw new Error("No tracking number in response");
 

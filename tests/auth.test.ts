@@ -29,6 +29,14 @@ vi.mock('../src/services/jobQueue.js', () => ({
     startScheduler: vi.fn(),
 }));
 
+// Mock video/ai queues (legacy path)
+vi.mock('../src/queue/index.js', () => ({
+    videoQueue: { add: vi.fn(), close: vi.fn() },
+    aiModelQueue: { add: vi.fn(), close: vi.fn() },
+    redisConnection: {},
+    defaultJobOptions: {},
+}));
+
 // Mock alert service
 vi.mock('../src/services/alertService.js', () => ({
     startStockAlertJob: vi.fn(),
