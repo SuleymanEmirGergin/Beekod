@@ -5,6 +5,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { config } from "../config.js";
 import { query } from "../db.js";
+import { queue } from "../services/queue/index.js";
 import { logger } from "../logger.js";
 import { validateQuery } from "../validation.js";
 
@@ -18,6 +19,7 @@ const healthQuerySchema = z
 
 router.get("/health", validateQuery(healthQuerySchema), async (req, res) => {
   let dbOk = true;
+  let redisOk = true;
   let storageOk = true;
   const storagePath = path.resolve(config.images.storagePath);
 
@@ -29,6 +31,13 @@ router.get("/health", validateQuery(healthQuerySchema), async (req, res) => {
   }
 
   try {
+    (await queue.client).ping();
+  } catch (error) {
+    redisOk = false;
+    logger.error("health.redis_failed", { requestId: res.locals?.requestId, err: error });
+  }
+
+  try {
     await fsPromises.mkdir(storagePath, { recursive: true });
     await fsPromises.access(storagePath, fs.constants.W_OK);
   } catch (error) {
@@ -36,7 +45,7 @@ router.get("/health", validateQuery(healthQuerySchema), async (req, res) => {
     logger.error("health.storage_failed", { requestId: res.locals?.requestId, err: error });
   }
 
-  const ok = dbOk && storageOk;
+  const ok = dbOk && redisOk && storageOk;
   const status = ok ? "ok" : "degraded";
   const wantsProm = req.query.format === "prom" || req.headers.accept?.includes("text/plain");
 
@@ -48,6 +57,7 @@ router.get("/health", validateQuery(healthQuerySchema), async (req, res) => {
       "# HELP beekod_health_component Health status by component (1=ok, 0=error).",
       "# TYPE beekod_health_component gauge",
       `beekod_health_component{component="db"} ${dbOk ? 1 : 0}`,
+      `beekod_health_component{component="redis"} ${redisOk ? 1 : 0}`,
       `beekod_health_component{component="storage"} ${storageOk ? 1 : 0}`,
     ];
     return res
@@ -59,6 +69,7 @@ router.get("/health", validateQuery(healthQuerySchema), async (req, res) => {
   return res.status(ok ? 200 : 503).json({
     status,
     db: dbOk ? "ok" : "error",
+    redis: redisOk ? "ok" : "error",
     storage: storageOk ? "ok" : "error",
     storagePath,
     uptimeSeconds: Math.floor(process.uptime()),

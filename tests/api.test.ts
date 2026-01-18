@@ -36,6 +36,17 @@ vi.mock('../src/queue/index.js', () => ({
     defaultJobOptions: {},
 }));
 
+// Mock main queue (new path)
+vi.mock('../src/services/queue/index.js', () => ({
+    queue: {
+        client: { ping: vi.fn().mockResolvedValue('PONG') },
+        close: vi.fn(),
+        add: vi.fn(),
+    },
+    worker: { close: vi.fn() },
+    addJob: vi.fn(),
+}));
+
 // Mock alert service
 vi.mock('../src/services/alertService.js', () => ({
     startStockAlertJob: vi.fn(),

@@ -56,6 +56,8 @@ import { profileRouter } from "./routes/profileRoutes.js";
 import { invoiceRouter } from "./routes/invoiceRoutes.js";
 import { socketService } from "./services/socketService.js";
 import { startScheduler } from "./services/jobQueue.js";
+import { queue, worker } from "./services/queue/index.js";
+import { pool } from "./db.js";
 import { startStockAlertJob, stopStockAlertJob } from "./services/alertService.js";
 import questionRouter from "./routes/questionRoutes.js";
 import { intelligenceRouter } from "./routes/intelligenceRoutes.js";
@@ -194,13 +196,29 @@ startStockAlertJob();
 let server: Server | undefined;
 
 if (process.env.NODE_ENV !== 'test') {
-  server = app.listen(config.port, () => {
-    logger.info("server.listen", { port: config.port });
-    // Initialize socket service with the http server instance
-    socketService.initialize(server!);
-    // Set server timeout to 5 minutes to handle long polling AI tasks
-    server!.setTimeout(300000);
-  });
+  const startServer = async () => {
+    try {
+      // Pre-flight checks
+      logger.info("server.startup_check_db");
+      const dbCheck = await pool.getConnection();
+      dbCheck.release();
+
+      logger.info("server.startup_check_redis");
+      (await queue.client).ping();
+
+      server = app.listen(config.port, () => {
+        logger.info("server.listen", { port: config.port });
+        // Initialize socket service with the http server instance
+        socketService.initialize(server!);
+        // Set server timeout to 5 minutes to handle long polling AI tasks
+        server!.setTimeout(300000);
+      });
+    } catch (error) {
+      logger.error("server.startup_failed", { error });
+      process.exit(1);
+    }
+  };
+  startServer();
 }
 
 export { app };
@@ -208,7 +226,24 @@ export { app };
 registerProcessHandlers(async (signal) => {
   logger.info("server.shutdown", { signal });
   stopStockAlertJob();
-  await new Promise<void>((resolve) => {
-    server!.close(() => resolve());
-  });
+
+  // Graceful shutdown of components
+  if (worker) {
+    logger.info("server.shutdown.worker");
+    await worker.close();
+  }
+
+  if (queue) {
+    logger.info("server.shutdown.queue");
+    await queue.close();
+  }
+
+  logger.info("server.shutdown.db");
+  await pool.end();
+
+  if (server) {
+    await new Promise<void>((resolve) => {
+      server!.close(() => resolve());
+    });
+  }
 });

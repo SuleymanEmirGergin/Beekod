@@ -14,3 +14,19 @@ export const connection: ConnectionOptions = {
 };
 
 export const QUEUE_NAME = 'beekod-jobs';
+
+export const defaultJobOptions = {
+  attempts: 3,
+  backoff: {
+    type: 'exponential',
+    delay: 1000,
+  },
+  removeOnComplete: {
+    age: 24 * 3600, // Keep completed jobs for 24 hours
+    count: 1000,    // Max 1000 completed jobs
+  },
+  removeOnFail: {
+    age: 7 * 24 * 3600, // Keep failed jobs for 7 days (for debugging)
+    count: 5000,        // Max 5000 failed jobs
+  },
+};

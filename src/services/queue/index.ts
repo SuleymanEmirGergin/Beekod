@@ -1,9 +1,12 @@
 import { Queue, Worker, Job } from 'bullmq';
-import { connection, QUEUE_NAME } from './config.js';
+import { connection, QUEUE_NAME, defaultJobOptions } from './config.js';
 import { jobProcessor } from './jobProcessor.js';
 import { logger } from '../../logger.js';
 
-export const queue = new Queue(QUEUE_NAME, { connection });
+export const queue = new Queue(QUEUE_NAME, {
+  connection,
+  defaultJobOptions
+});
 
 export const worker = new Worker(QUEUE_NAME, jobProcessor, {
   connection,
