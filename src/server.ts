@@ -12,6 +12,7 @@ import { logger } from "./core/logging/index.js";
 import { imageRouter, productImageRouter } from "./images/imageRoutes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { requestContext } from "./middleware/requestContext.js";
+import { profiler } from "./middleware/profiler.js";
 import { handleResultMiddleware } from "./middleware/handleResult.js";
 import { rateLimit } from "./middleware/rateLimit.js";
 import { securityHeaders } from "./middleware/securityHeaders.js";
@@ -110,6 +111,7 @@ app.use(
 app.use(express.json({ limit: config.server.jsonBodyLimit }));
 app.use(express.urlencoded({ extended: true, limit: config.server.urlEncodedBodyLimit }));
 app.use(requestContext);
+app.use(profiler);
 app.use(handleResultMiddleware);
 app.use(securityHeaders);
 const publicBase = config.images.publicBase;
