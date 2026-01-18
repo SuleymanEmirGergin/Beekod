@@ -44,12 +44,20 @@ async function flood() {
   console.log(`- Slow Requests (>500ms): ${slow}`);
   console.log(`- RPS: ${((completed + errors) / (DURATION_MS / 1000)).toFixed(1)}`);
 
-  if (errors > (completed * 0.1)) {
-      console.error("❌ High failure rate!");
+  const failureRate = errors / (completed + errors || 1);
+  const slowRate = slow / (completed + errors || 1);
+
+  if (failureRate > 0.05) {
+      console.error(`❌ FAILURE: Error rate ${(failureRate * 100).toFixed(1)}% exceeds 5% threshold.`);
       process.exit(1);
-  } else {
-      console.log("✅ Load test passed (stability check).");
   }
+
+  if (slowRate > 0.10) {
+      console.error(`❌ FAILURE: Slow request rate ${(slowRate * 100).toFixed(1)}% exceeds 10% threshold.`);
+      process.exit(1);
+  }
+
+  console.log("✅ Load test passed (Latency & Error Rate within limits).");
 }
 
 flood();
