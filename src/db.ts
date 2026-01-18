@@ -1,6 +1,7 @@
 import mysql from "mysql2/promise";
 import { config } from "./config.js";
 import { logger } from "./logger.js";
+import { incrementQueryCount } from "./lib/context.js";
 
 const { db } = config;
 
@@ -60,6 +61,7 @@ export async function query<T>(sql: string, params?: unknown[], connection?: mys
 
   return executeWithRetry(async () => {
     try {
+      incrementQueryCount();
       const [rows] = await runner.query({
         sql,
         timeout: timeoutMs,

@@ -19,7 +19,8 @@ export type JobType =
   | "ai.high_priority_sync"
   | "ai.low_priority_sync"
   | "social.check_scheduled"
-  | "social.post";
+  | "social.post"
+  | "maintenance.cleanup";
 
 export type JobStatus = "queued" | "running" | "done" | "failed";
 
@@ -126,6 +127,9 @@ export async function jobProcessor(job: Job) {
             const success = await postNow(payload.postId);
             if (!success) throw new Error("social_post_failed");
             result = { success: true };
+        } else if (type === "maintenance.cleanup") {
+            const { maintenanceService } = await import("../maintenanceService.js");
+            result = await maintenanceService.cleanupAuditLogs();
         }
 
         logger.info("queue.process_job_success", { jobId: job.id, type });

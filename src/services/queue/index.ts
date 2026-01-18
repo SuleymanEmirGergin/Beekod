@@ -53,4 +53,6 @@ export async function initRepeatedJobs() {
   await addRepeat("ai.auto_pricing", process.env.SCHEDULER_AI_PRICING_MINUTES);
   await addRepeat("ai.health_check", process.env.SCHEDULER_AI_HEALTH_MINUTES, 720);
   await addRepeat("ai.price_comparison", process.env.SCHEDULER_PRICE_COMPARISON_MINUTES, 360);
+  // Run maintenance every 24 hours (1440 minutes) by default
+  await addRepeat("maintenance.cleanup", process.env.SCHEDULER_MAINTENANCE_MINUTES, 1440);
 }
