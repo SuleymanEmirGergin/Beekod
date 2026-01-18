@@ -5,6 +5,7 @@ import { performLiveUpdate, LiveUpdatePayload } from '../marketplaceLiveRetry.js
 import { performPublish } from '../marketplace/marketplacePublishService.js';
 import { addJob } from './index.js';
 import { runWithRequestId } from '../../lib/context.js';
+import { idempotency } from '../../utils/idempotency.js';
 
 export type JobType =
   | "cache.refresh"
@@ -27,6 +28,16 @@ export async function jobProcessor(job: Job) {
   return runWithRequestId(job.id, async () => {
       const { type, payload } = job.data as { type: JobType; payload: any };
       logger.info("queue.process_job_start", { jobId: job.id, type });
+
+      // Idempotency Check for specific job types
+      const idempotencyKey = payload?.idempotencyKey || (payload?.barcode ? `${type}:${payload.barcode}` : null);
+      if (idempotencyKey) {
+          const isLocked = await idempotency.checkAndLock("job", idempotencyKey);
+          if (isLocked) {
+              logger.warn("queue.job_skipped_idempotency", { jobId: job.id, type, idempotencyKey });
+              return { skipped: true, reason: "idempotency_lock" };
+          }
+      }
 
       try {
         let result: unknown = null;
