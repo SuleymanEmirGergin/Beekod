@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test.describe.skip('Products', () => {
+test.describe('Products', () => {
   test.beforeEach(async ({ page }) => {
     // Mock Auth Check
     await page.route('*/**/api/auth/me', async (route) => {

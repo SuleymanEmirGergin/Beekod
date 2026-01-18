@@ -4,7 +4,7 @@ import prettierConfig from "eslint-config-prettier";
 
 export default [
     {
-        ignores: ["dist/**", "node_modules/**", "scripts/**", "Beekod UI/**"],
+        ignores: ["dist/**", "node_modules/**", "scripts/**", "BeekodFrontend/**"],
     },
     {
         files: ["src/**/*.ts", "src/**/*.tsx"],

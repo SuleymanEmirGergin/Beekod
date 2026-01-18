@@ -154,13 +154,11 @@ export async function generateQRCode(barcode: string): Promise<string> {
 }
 
 // ==========================================
-// Consoldated Inventory Logic (Legacy migration)
+// Consoldated Inventory Logic
 // ==========================================
 import { ConsolidatedInventoryItem } from "../../types.js";
 
 export async function getConsolidatedInventory(): Promise<Result<ConsolidatedInventoryItem[]>> {
-    // This joins local products with marketplace data
-    // Improved query using LEFT JOIN to get everything
     try {
         const sql = `
             SELECT 
@@ -169,18 +167,19 @@ export async function getConsolidatedInventory(): Promise<Result<ConsolidatedInv
             FROM products p
             ORDER BY p.updated_at DESC
         `;
-        const rows = await query(sql);
+        const rows = await query<any[]>(sql);
         
         // Map to ConsolidatedInventoryItem
-        const items: ConsolidatedInventoryItem[] = (rows as any[]).map(r => ({
+        // Real implementation would join with marketplace_listings table if it existed
+        // For now, we return local data which is the source of truth
+        const items: ConsolidatedInventoryItem[] = rows.map(r => ({
             barcode: r.barcode,
             title: r.title,
-            marketplaces: [], // Populated by separate marketplace sync logic if needed
-            details: [], // Formerly marketplace_data
-            minPrice: r.price, // Default to local price
-            maxPrice: r.price, // Default to local price
+            marketplaces: [], // TODO: Populate from marketplace_listings
+            details: [],
+            minPrice: r.price,
+            maxPrice: r.price,
             totalStock: r.stock,
-            // image: r.image // Not in interface but useful?
         }));
         
         return ok(items);

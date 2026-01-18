@@ -13,6 +13,7 @@ export type ScrapedProduct = {
     barcode?: string;
     brand?: string;
     description?: string;
+    seller?: string; // Added seller
     attributes?: Record<string, string>;
     competitors?: {
         sellerName: string;
