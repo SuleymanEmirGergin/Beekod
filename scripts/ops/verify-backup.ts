@@ -1,7 +1,13 @@
 import mysql from 'mysql2/promise';
-import { logger } from '../../src/logger.js';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import fs from 'fs';
+
+const execAsync = promisify(exec);
 
 async function verifyBackup() {
+  const backupFile = process.env.BACKUP_FILE;
+
   const config = {
     host: process.env.VERIFY_DB_HOST || 'localhost',
     user: process.env.VERIFY_DB_USER || 'root',
@@ -9,7 +15,31 @@ async function verifyBackup() {
     database: process.env.VERIFY_DB_NAME || 'verify_restore',
   };
 
-  console.log(`🔍 Verifying backup restoration in ${config.database}...`);
+  console.log(`🔍 Starting Backup Verification for ${config.database}...`);
+
+  // Step 0: Restore if backup file provided
+  if (backupFile) {
+      if (!fs.existsSync(backupFile)) {
+          console.error(`❌ Backup file not found: ${backupFile}`);
+          process.exit(1);
+      }
+
+      console.log(`📥 Restoring from ${backupFile}...`);
+      try {
+          // Create DB first
+          await execAsync(`mysql -h ${config.host} -u ${config.user} ${config.password ? `-p${config.password}` : ''} -e "DROP DATABASE IF EXISTS ${config.database}; CREATE DATABASE ${config.database};"`);
+
+          // Import dump
+          const cmd = `mysql -h ${config.host} -u ${config.user} ${config.password ? `-p${config.password}` : ''} ${config.database} < ${backupFile}`;
+          await execAsync(cmd);
+          console.log("✅ Restore complete.");
+      } catch (e: any) {
+          console.error("❌ Restore Failed:", e.message);
+          process.exit(1);
+      }
+  } else {
+      console.log("ℹ️ No BACKUP_FILE provided, verifying existing database state.");
+  }
 
   let connection;
   try {
