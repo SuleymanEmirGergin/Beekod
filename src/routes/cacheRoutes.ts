@@ -2,8 +2,14 @@ import { Router } from "express";
 import { requireAdminKey } from "../middleware/adminKey.js";
 import { resetMarketplaceCache } from "../services/marketplace/marketplaceStore.js";
 import { resetSalesCache } from "../services/salesStore.js";
+import { cacheMetrics } from "../services/cache/metrics.js";
 
 const router = Router();
+
+router.get("/cache/stats", requireAdminKey, async (_req, res) => {
+  const stats = await cacheMetrics.getStats();
+  res.json({ stats });
+});
 
 router.post("/cache/marketplace/reset", requireAdminKey, (_req, res) => {
   resetMarketplaceCache();
