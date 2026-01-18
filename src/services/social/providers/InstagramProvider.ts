@@ -1,8 +1,12 @@
 import { ISocialProvider, SocialPostPayload, SocialPostResult } from "./ISocialProvider.js";
 import { logger } from "../../../logger.js";
+import axios from "axios";
 
 export class InstagramProvider implements ISocialProvider {
-    private simulate = true;
+    private simulate = process.env.NODE_ENV !== 'production' && !process.env.INSTAGRAM_ACCESS_TOKEN;
+    private accessToken = process.env.INSTAGRAM_ACCESS_TOKEN;
+    private accountId = process.env.INSTAGRAM_ACCOUNT_ID;
+    private apiBase = "https://graph.facebook.com/v19.0";
 
     getName(): string {
         return "Instagram";
@@ -22,9 +26,51 @@ export class InstagramProvider implements ISocialProvider {
             };
         }
 
-        // TODO: Implement Real Graph API here
-        // 1. Upload media to container
-        // 2. Publish container
-        return { success: false, error: "Real API not implemented" };
+        if (!this.accessToken || !this.accountId) {
+            return { success: false, error: "Instagram credentials not configured" };
+        }
+
+        try {
+            // 1. Create Media Container
+            const containerRes = await axios.post(`${this.apiBase}/${this.accountId}/media`, null, {
+                params: {
+                    image_url: payload.mediaUrls?.[0], // Only single image for now
+                    caption: payload.content,
+                    access_token: this.accessToken
+                }
+            });
+
+            if (!containerRes.data.id) {
+                throw new Error("Failed to create media container");
+            }
+
+            const creationId = containerRes.data.id;
+
+            // 2. Publish Media
+            const publishRes = await axios.post(`${this.apiBase}/${this.accountId}/media_publish`, null, {
+                params: {
+                    creation_id: creationId,
+                    access_token: this.accessToken
+                }
+            });
+
+            if (!publishRes.data.id) {
+                throw new Error("Failed to publish media");
+            }
+
+            return {
+                success: true,
+                postId: publishRes.data.id,
+                platformId: publishRes.data.id,
+                url: `https://instagram.com/p/${publishRes.data.id}` // URL is guessable or retrievable via permalink field
+            };
+
+        } catch (error: any) {
+            logger.error("Instagram.postContent.error", { error: error.response?.data || error.message });
+            return {
+                success: false,
+                error: error.response?.data?.error?.message || error.message
+            };
+        }
     }
 }

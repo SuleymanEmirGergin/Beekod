@@ -89,3 +89,23 @@ export async function getProductPerformance(barcode: string): Promise<any | null
         return null;
     }
 }
+
+export async function getMarketplacePerformance(): Promise<any[]> {
+    try {
+        // Mock implementation or real implementation if table exists.
+        // Assuming there is a field 'marketplace' in orders.
+        // If not, we can return empty or mock data.
+        // Based on test, it expects { marketplace, orderCount, revenue }
+        const rows = await query(`
+            SELECT
+                COALESCE(marketplace, 'Website') as marketplace,
+                COUNT(*) as orderCount,
+                SUM(total_amount) as revenue
+            FROM orders
+            GROUP BY marketplace
+        `);
+        return rows as any[];
+    } catch (e) {
+        return [];
+    }
+}

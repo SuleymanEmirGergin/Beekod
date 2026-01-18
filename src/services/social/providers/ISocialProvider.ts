@@ -1,6 +1,6 @@
 export interface SocialPostPayload {
     content: string;
-    mediaUrl?: string; // Image/Video URL
+    mediaUrls?: string[]; // Changed to array
     hashtags?: string[];
 }
 

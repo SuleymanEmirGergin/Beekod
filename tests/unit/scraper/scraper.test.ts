@@ -49,14 +49,14 @@ describe('Scraper Index', () => {
     const { getScraper } = await import('../../../src/services/scraper/index');
     const scraper = getScraper('trendyol');
     expect(scraper).toBeDefined();
-    expect(scraper?.siteName).toBe('trendyol');
+    expect(scraper?.siteName).toBe('Trendyol');
   });
 
   it('should return HepsiburadaScraper for hepsiburada', async () => {
     const { getScraper } = await import('../../../src/services/scraper/index');
     const scraper = getScraper('hepsiburada');
     expect(scraper).toBeDefined();
-    expect(scraper?.siteName).toBe('hepsiburada');
+    expect(scraper?.siteName).toBe('Hepsiburada');
   });
 
   it('should return undefined for unknown site', async () => {

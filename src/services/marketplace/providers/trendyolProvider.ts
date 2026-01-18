@@ -16,6 +16,9 @@ import {
 import { requestJson } from "../httpClient.js";
 import { BaseMarketplaceProvider } from "./baseProvider.js";
 import { ok, fail, Result } from "../../../utils/result.js";
+import { CircuitBreaker } from "../../../utils/circuitBreaker.js";
+
+const circuitBreaker = new CircuitBreaker("TrendyolAPI", { failureThreshold: 5, resetTimeout: 60000 });
 
 type TrendyolResponse = {
   success?: boolean;
@@ -781,36 +784,38 @@ export class TrendyolProvider extends BaseMarketplaceProvider {
     const userAgent = process.env.TRENDYOL_USER_AGENT?.trim() || `beekod/${supplierId}`;
 
     try {
-      const responseData = await requestJson<TrendyolResponse | Record<string, unknown> | string>(url, {
-        method,
-        headers: {
-          Authorization: `Basic ${auth}`,
-          "Content-Type": "application/json",
-          "User-Agent": userAgent,
-        },
-        body: body != null && method !== "GET" ? JSON.stringify(body) : undefined,
+      return await circuitBreaker.execute(async () => {
+        const responseData = await requestJson<TrendyolResponse | Record<string, unknown> | string>(url, {
+          method,
+          headers: {
+            Authorization: `Basic ${auth}`,
+            "Content-Type": "application/json",
+            "User-Agent": userAgent,
+          },
+          body: body != null && method !== "GET" ? JSON.stringify(body) : undefined,
+        });
+
+        const parsed = typeof responseData === "object" ? (responseData as TrendyolResponse) : null;
+        const requestId = parsed?.batchRequestId;
+        const message = parsed?.errorMessage || "ok";
+
+        const finalResult = {
+          ok: true,
+          status: "ok" as const,
+          message,
+          requestId,
+          data: responseData,
+        };
+
+        logMarketplaceEvent(this.name, "request", {
+          status: finalResult.status,
+          message: finalResult.message,
+          barcode,
+          requestId,
+        });
+
+        return finalResult;
       });
-
-      const parsed = typeof responseData === "object" ? (responseData as TrendyolResponse) : null;
-      const requestId = parsed?.batchRequestId;
-      const message = parsed?.errorMessage || "ok";
-
-      const finalResult = {
-        ok: true,
-        status: "ok" as const,
-        message,
-        requestId,
-        data: responseData,
-      };
-
-      logMarketplaceEvent(this.name, "request", {
-        status: finalResult.status,
-        message: finalResult.message,
-        barcode,
-        requestId,
-      });
-
-      return finalResult;
     } catch (error: unknown) {
       const err = error as { message?: string };
       const errorMsg = err.message || String(error);

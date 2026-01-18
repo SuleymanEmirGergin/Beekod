@@ -24,7 +24,7 @@ export async function addProductPrice(price: Omit<ProductPrice, "id" | "created_
   ];
   
   try {
-    const result = await query(sql, params);
+    const result = await query<any>(sql, params);
     return (result as any).insertId;
   } catch (error) {
     logger.error("addProductPrice.error", { error, barcode: price.barcode });
@@ -42,8 +42,8 @@ export async function getProductPrices(barcode: string): Promise<ProductPrice[]>
     ORDER BY priority DESC, start_date DESC
   `;
   try {
-    const rows = await query(sql, [barcode]);
-    return rows as ProductPrice[];
+    const rows = await query<ProductPrice[]>(sql, [barcode]);
+    return rows;
   } catch (error) {
     logger.error("getProductPrices.error", { error, barcode });
     return [];
@@ -60,7 +60,7 @@ export async function deleteProductPrice(id: updatePrice_id_type): Promise<boole
 
   const sql = "DELETE FROM product_prices WHERE id = ?";
   try {
-    const result = await query(sql, [priceId]);
+    const result = await query<any>(sql, [priceId]);
     return (result as any).affectedRows > 0;
   } catch (error) {
     logger.error("deleteProductPrice.error", { error, id });
@@ -74,7 +74,7 @@ export async function deleteProductPrice(id: updatePrice_id_type): Promise<boole
 export async function updatePrice(barcode: string, price: number, userId?: number): Promise<Result<Product>> {
   try {
     const sql = "UPDATE products SET price = ?, updated_at = NOW() WHERE barcode = ?";
-    const result = await query(sql, [price, barcode]);
+    const result = await query<any>(sql, [price, barcode]);
     
     if ((result as any).affectedRows === 0) {
       return fail(new Error("Product not found"));
@@ -82,14 +82,14 @@ export async function updatePrice(barcode: string, price: number, userId?: numbe
 
     // Log update
     if (userId) {
-       await query(
+       await query<any>(
         "INSERT INTO stock_history (barcode, quantity_change, new_stock, source, reason, user_id) VALUES (?, 0, (SELECT stock FROM products WHERE barcode = ?), 'Start Price Update', ?, ?)",
         [barcode, barcode, `Price updated to ${price}`, userId]
       );
     }
     
     // Return updated product
-    const rows = await query("SELECT * FROM products WHERE barcode = ?", [barcode]);
+    const rows = await query<Product[]>("SELECT * FROM products WHERE barcode = ?", [barcode]);
     return ok(rows[0] as Product);
   } catch (error) {
     logger.error("updatePrice.error", { error, barcode });

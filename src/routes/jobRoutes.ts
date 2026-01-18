@@ -4,6 +4,7 @@ import { requireAdminKey } from "../middleware/adminKey.js";
 import { requireJsonBody } from "../middleware/requireJsonBody.js";
 import { logger } from "../logger.js";
 import { enqueueJob, getDeadLetters, getJobById, getJobStats, getJobs } from "../services/jobQueue.js";
+import { queueManagement } from "../services/queue/management.js";
 import { validateBody } from "../validation.js";
 
 const router = Router();
@@ -42,11 +43,32 @@ router.get("/jobs/dead-letter", requireAdminKey, async (req, res) => {
   const limitRaw = Number(req.query.limit ?? 50);
   const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 200) : 50;
   try {
-    const items = await getDeadLetters(limit);
+    const items = await queueManagement.getDeadLetterJobs(0, limit);
     res.json({ items });
   } catch (error) {
     logger.error("jobs.dead_letter_failed", { requestId: res.locals?.requestId, err: error });
     res.status(500).json({ error: "dead_letter_list_failed" });
+  }
+});
+
+router.post("/jobs/retry-all", requireAdminKey, async (req, res) => {
+  try {
+    const result = await queueManagement.retryAllFailed();
+    res.json(result);
+  } catch (error) {
+    logger.error("jobs.retry_all_failed", { requestId: res.locals?.requestId, err: error });
+    res.status(500).json({ error: "retry_all_failed" });
+  }
+});
+
+router.post("/jobs/:id/retry", requireAdminKey, async (req, res) => {
+  const id = req.params.id;
+  try {
+    const result = await queueManagement.retryJob(id);
+    res.json(result);
+  } catch (error) {
+    logger.error("jobs.retry_failed", { requestId: res.locals?.requestId, jobId: id, err: error });
+    res.status(500).json({ error: "retry_failed" });
   }
 });
 

@@ -1,6 +1,7 @@
 import mysql from "mysql2/promise";
 import { config } from "./config.js";
 import { logger } from "./logger.js";
+import { incrementQueryCount } from "./lib/context.js";
 
 const { db } = config;
 
@@ -28,7 +29,80 @@ logger.info("db.connect", {
 
 export type QueryResult = mysql.RowDataPacket[] | mysql.ResultSetHeader;
 
-export async function query<T>(sql: string, params?: unknown[]): Promise<T> {
-  const [rows] = await pool.query(sql, params);
-  return rows as T;
+// Helper for retry logic
+async function executeWithRetry<T>(operation: () => Promise<T>, attempts = 3): Promise<T> {
+  let attempt = 1;
+  while (true) {
+    try {
+      return await operation();
+    } catch (error: any) {
+      const isDeadlock = error.code === 'ER_LOCK_DEADLOCK' || error.errno === 1213;
+      const isLockTimeout = error.code === 'ER_LOCK_WAIT_TIMEOUT' || error.errno === 1205;
+
+      if ((isDeadlock || isLockTimeout) && attempt < attempts) {
+        const delay = Math.pow(2, attempt) * 100 + Math.random() * 100;
+        logger.warn("db.retry", { code: error.code, attempt, delay });
+        await new Promise(resolve => setTimeout(resolve, delay));
+        attempt++;
+        continue;
+      }
+      throw error;
+    }
+  }
+}
+
+// Allow running queries on a specific connection (for transactions)
+export async function query<T>(sql: string, params?: unknown[], connection?: mysql.PoolConnection): Promise<T> {
+  const start = Date.now();
+
+  // Set a hard timeout for all queries (default 10s)
+  const timeoutMs = 10000;
+  const runner = connection || pool;
+
+  return executeWithRetry(async () => {
+    try {
+      incrementQueryCount();
+      const [rows] = await runner.query({
+        sql,
+        timeout: timeoutMs,
+        values: params
+      });
+
+      const duration = Date.now() - start;
+      if (duration > 2000) {
+        logger.warn("db.slow_query", { duration, sql: sql.substring(0, 200) });
+      }
+
+      return rows as T;
+    } catch (error: any) {
+      if (error.code === 'PROTOCOL_SEQUENCE_TIMEOUT') {
+        logger.error("db.query_timeout", { sql: sql.substring(0, 200), timeout: timeoutMs });
+      }
+      throw error;
+    }
+  });
+}
+
+/**
+ * Execute a function within a transaction.
+ * Automatically handles BEGIN, COMMIT, and ROLLBACK.
+ * Includes retry logic for deadlocks.
+ */
+export async function withTransaction<T>(
+  callback: (connection: mysql.PoolConnection) => Promise<T>
+): Promise<T> {
+  return executeWithRetry(async () => {
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+      const result = await callback(connection);
+      await connection.commit();
+      return result;
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  });
 }

@@ -1,11 +1,51 @@
 import * as winston from "winston";
 import * as path from "path";
+import { getRequestId } from "./lib/context.js";
 
 const logDir = "logs";
 
 const level = process.env.LOG_LEVEL || "info";
 
+// Custom format to inject requestId
+const injectRequestId = winston.format((info) => {
+  const requestId = getRequestId();
+  if (requestId) {
+    info.requestId = requestId;
+  }
+  return info;
+});
+
+// Secrets redaction
+const SENSITIVE_KEYS = [
+  "password", "token", "secret", "key", "authorization", "api_key", "access_token", "refresh_token", "client_secret"
+];
+
+const redactSecrets = winston.format((info) => {
+  const redact = (obj: any): any => {
+    if (!obj || typeof obj !== "object") return obj;
+
+    // Clone to avoid mutating original reference if needed,
+    // but winston info usually safe to mutate or already copied.
+    // For performance, we mutate the info object fields directly where possible
+    // but deep cloning might be expensive.
+    // Winston "json" format stringifies, so we need to ensure the object passed to it is redacted.
+
+    for (const key in obj) {
+      if (SENSITIVE_KEYS.some(k => key.toLowerCase().includes(k))) {
+        obj[key] = "[REDACTED]";
+      } else if (typeof obj[key] === "object") {
+        obj[key] = redact(obj[key]);
+      }
+    }
+    return obj;
+  };
+
+  return redact(info);
+});
+
 const format = winston.format.combine(
+  injectRequestId(),
+  redactSecrets(),
   winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
   winston.format.json(),
 );
@@ -14,10 +54,6 @@ export const logger = winston.createLogger({
   level,
   format,
   transports: [
-    //
-    // - Write all logs with importance level of `error` or less to `error.log`
-    // - Write all logs with importance level of `info` or less to `combined.log`
-    //
     new winston.transports.File({ filename: path.join(logDir, "error.log"), level: "error" }),
     new winston.transports.File({ filename: path.join(logDir, "combined.log") }),
   ],
@@ -29,10 +65,6 @@ export const chatLogger = winston.createLogger({
   transports: [new winston.transports.File({ filename: path.join(logDir, "chat_analytics.log") })],
 });
 
-//
-// If we're not in production then log to the `console` with the format:
-// `${info.level}: ${info.message} JSON.stringify({ ...rest }) `
-//
 if (process.env.NODE_ENV !== "production") {
   logger.add(
     new winston.transports.Console({
@@ -40,7 +72,3 @@ if (process.env.NODE_ENV !== "production") {
     }),
   );
 }
-
-// Wrapper to maintain exact compatibility if needed, though Winston matches closely
-// The existing usage is logger.info("message", { meta })
-// Winston supports logger.info("message", meta object)

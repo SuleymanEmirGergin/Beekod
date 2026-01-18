@@ -66,7 +66,7 @@ export type CreateShipmentArgs = z.infer<typeof createShipmentArgsSchema>;
  */
 export const analyticsQueryArgsSchema = z.object({
   nl: z.string().min(1).max(500).optional(),
-  queryType: z.enum(['daily_sales', 'top_products', 'revenue_trend', 'order_stats', 'stock_alerts']).optional(),
+  queryType: z.enum(['DASHBOARD', 'REVENUE', 'TOP_PRODUCTS', 'INVENTORY']).optional(),
 });
 
 export type AnalyticsQueryArgs = z.infer<typeof analyticsQueryArgsSchema>;

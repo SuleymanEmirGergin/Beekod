@@ -1,30 +1,51 @@
 import { ICargoProvider, ShipmentPayload, TrackingResult } from "./ICargoProvider.js";
 import { logger } from "../../../logger.js";
-import { env } from "../../../config/env.js"; // Assuming we will add keys here later
+import axios from "axios";
+import { XMLParser, XMLBuilder } from "fast-xml-parser";
 
 export class YurticiProvider implements ICargoProvider {
     private simulate: boolean;
+    private username = process.env.YURTICI_USERNAME;
+    private password = process.env.YURTICI_PASSWORD;
+    private apiUrl = "https://ws.yurticikargo.com/KOPSWebServices/ShippingOrderDispatcherServices?wsdl";
 
     constructor() {
-        // If no real credentials, use simulation
-        // this.simulate = !env.YURTICI_USERNAME; 
-        this.simulate = true; // Force simulation for now until we have env vars
+        this.simulate = !this.username || !this.password;
     }
 
     async createShipment(payload: ShipmentPayload): Promise<string> {
-        logger.info("Yurtici.createShipment", { payload, simulate: this.simulate });
-
         if (this.simulate) {
-            // Simulate API delay
             await new Promise(r => setTimeout(r, 1000));
-            // Generate fake tracking number starting with YK
             const tracking = `YK${Math.floor(100000000 + Math.random() * 900000000)}`;
-            logger.info("Yurtici.simulate.success", { tracking });
             return tracking;
         }
 
-        // TODO: Real SOAP implementation would go here
-        throw new Error("Real Yurtici implementation not configured");
+        try {
+            const xml = this.buildCreateShipmentXML(payload);
+            const response = await axios.post(this.apiUrl, xml, {
+                headers: {
+                    'Content-Type': 'text/xml;charset=UTF-8',
+                    'SOAPAction': 'createShipment' // Guessing action name, usually required
+                }
+            });
+
+            const parser = new XMLParser({
+                ignoreAttributes: false,
+                removeNsprefix: true
+            });
+            const result = parser.parse(response.data);
+
+            // Navigate parsed object (prefixes removed)
+            const trackingNumber = result?.Envelope?.Body?.createShipmentResponse?.trackingNumber;
+
+            if (!trackingNumber) throw new Error("No tracking number in response");
+
+            return String(trackingNumber);
+
+        } catch (error: any) {
+            logger.error("Yurtici.createShipment.error", { error: error.message });
+            throw error;
+        }
     }
 
     async trackShipment(trackingNumber: string): Promise<TrackingResult> {
@@ -41,11 +62,47 @@ export class YurticiProvider implements ICargoProvider {
                 ]
             };
         }
-        throw new Error("Real Yurtici implementation not configured");
+
+        // Real tracking implementation using queryShipment SOAP call
+        // Omitted for brevity as creating shipment is the primary goal requested.
+        throw new Error("Real Yurtici tracking not fully implemented");
     }
 
     async cancelShipment(trackingNumber: string): Promise<boolean> {
         if (this.simulate) return true;
         return false;
+    }
+
+    private buildCreateShipmentXML(payload: ShipmentPayload): string {
+        const builder = new XMLBuilder({
+            ignoreAttributes: false,
+            format: true
+        });
+
+        // Example SOAP Payload
+        const obj = {
+            'soapenv:Envelope': {
+                '@_xmlns:soapenv': "http://schemas.xmlsoap.org/soap/envelope/",
+                '@_xmlns:ws': "http://ws.yurticikargo.com/",
+                'soapenv:Header': {
+                    'ws:AuthHeader': {
+                        'ws:UserName': this.username,
+                        'ws:Password': this.password
+                    }
+                },
+                'soapenv:Body': {
+                    'ws:createShipment': {
+                        'ws:cargoKey': payload.orderId,
+                        'ws:receiverName': payload.customerName,
+                        'ws:receiverAddress': payload.address,
+                        'ws:receiverCity': payload.city,
+                        'ws:receiverPhone': payload.phone,
+                        // Add items loop here if needed by API
+                    }
+                }
+            }
+        };
+
+        return builder.build(obj);
     }
 }

@@ -1,20 +1,10 @@
 import type { NextFunction, Request, Response } from "express";
 import crypto from "crypto";
-import { AsyncLocalStorage } from "async_hooks";
 import { logger } from "../logger.js";
 import { recordRequest } from "../metrics.js";
+import { runWithRequestId } from "../lib/context.js";
 
 type JsonBody = Record<string, unknown> | unknown[];
-
-type RequestContextStore = {
-  requestId: string;
-};
-
-const requestStore = new AsyncLocalStorage<RequestContextStore>();
-
-export function getRequestId() {
-  return requestStore.getStore()?.requestId;
-}
 
 export function requestContext(req: Request, res: Response, next: NextFunction) {
   const requestId = crypto.randomUUID();
@@ -55,7 +45,6 @@ export function requestContext(req: Request, res: Response, next: NextFunction) 
       durationMs: duration,
     });
     logger.info("request.completed", {
-      requestId,
       method: req.method,
       path: req.originalUrl,
       statusCode: res.statusCode,
@@ -63,5 +52,5 @@ export function requestContext(req: Request, res: Response, next: NextFunction) 
     });
   });
 
-  return requestStore.run({ requestId }, () => next());
+  return runWithRequestId(requestId, () => next());
 }

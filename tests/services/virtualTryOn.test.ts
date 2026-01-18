@@ -1,10 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { generateVirtualTryOn, pollTryOnResult } from '../../src/services/virtualTryOnService.js';
-import * as WiroService from '../../src/services/wiroService.js';
+import { runVirtualTryOn } from '../../src/services/visualIntelligenceService.js';
 
-vi.mock('../../src/services/wiroService.js', () => ({
+vi.mock('../../src/services/visualIntelligenceService.js', () => ({
     runVirtualTryOn: vi.fn(),
-    getTaskDetail: vi.fn(),
+}));
+
+// Mock logger
+vi.mock('../../src/logger.js', () => ({
+    logger: {
+        info: vi.fn(),
+        error: vi.fn(),
+        warn: vi.fn(),
+        debug: vi.fn(),
+    },
 }));
 
 describe('Virtual Try-On Service', () => {
@@ -12,40 +21,28 @@ describe('Virtual Try-On Service', () => {
         vi.clearAllMocks();
     });
 
-    it('should successfully start a VTO task', async () => {
-        vi.mocked(WiroService.runVirtualTryOn).mockResolvedValue({
-            taskid: 'task-123',
-            socketaccesstoken: 'token-123',
-            status: 'queued'
-        });
+    it('should successfully generate VTO result', async () => {
+        const mockUrl = 'http://example.com/result.jpg';
+        vi.mocked(runVirtualTryOn).mockResolvedValue(mockUrl);
 
         const result = await generateVirtualTryOn('human.jpg', 'clothes.jpg');
 
-        expect(result.taskId).toBe('task-123');
-        expect(result.token).toBe('token-123');
-        expect(result.status).toBe('queued');
-        expect(WiroService.runVirtualTryOn).toHaveBeenCalledWith('human.jpg', 'clothes.jpg');
+        expect(result.status).toBe('complete');
+        expect(result.imageUrl).toBe(mockUrl);
+        expect(runVirtualTryOn).toHaveBeenCalledWith('human.jpg', 'clothes.jpg', 'tops');
     });
 
-    it('should poll and return image URL when done', async () => {
-        vi.mocked(WiroService.getTaskDetail).mockResolvedValue({
-            status: 'done',
-            output: ['http://example.com/result.jpg']
-        });
+    it('should handle errors gracefully', async () => {
+        vi.mocked(runVirtualTryOn).mockRejectedValue(new Error('Fal.ai error'));
 
-        const result = await pollTryOnResult('token-123');
+        const result = await generateVirtualTryOn('human.jpg', 'clothes.jpg');
 
-        expect(result).toBe('http://example.com/result.jpg');
-        expect(WiroService.getTaskDetail).toHaveBeenCalledWith('token-123');
+        expect(result.status).toBe('error');
+        expect(result.error).toContain('Fal.ai error');
     });
 
-    it('should return null when polling fails or is not done', async () => {
-        vi.mocked(WiroService.getTaskDetail).mockResolvedValue({
-            status: 'processing'
-        });
-
+    it('should return null for deprecated polling', async () => {
         const result = await pollTryOnResult('token-123');
-
         expect(result).toBeNull();
     });
 });

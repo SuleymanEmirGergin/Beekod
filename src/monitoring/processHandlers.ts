@@ -1,6 +1,6 @@
 import * as Sentry from "@sentry/node";
 import { logger } from "../logger.js";
-import { getRequestId } from "../middleware/requestContext.js";
+import { getRequestId } from "../lib/context.js";
 import { recordProcessIssue } from "../metrics.js";
 
 type ShutdownHook = (signal: string) => Promise<void> | void;
@@ -9,11 +9,21 @@ let shuttingDown = false;
 
 function buildMeta(error: unknown) {
   const err = error instanceof Error ? error : new Error(String(error));
+  // Safely attempt to get requestId, defaulting to undefined if function unavailable (e.g. during test teardown)
+  let requestId: string | undefined;
+  try {
+    if (typeof getRequestId === 'function') {
+        requestId = getRequestId();
+    }
+  } catch (e) {
+    // Ignore error accessing context during shutdown
+  }
+
   return {
     name: err.name,
     message: err.message,
     stack: err.stack,
-    requestId: getRequestId(),
+    requestId,
   };
 }
 

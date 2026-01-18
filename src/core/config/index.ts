@@ -87,6 +87,23 @@ export function logConfigStatus(logger: {
   // Log marketplace mode
   logger.info("config.marketplace_mode", { mode: config.marketplace.mode });
 
+  // Log Critical Subsystems
+  logger.info("config.subsystems", {
+    db: {
+        host: config.db.host,
+        poolSize: config.db.pool.connectionLimit
+    },
+    redis: {
+        host: process.env.REDIS_HOST || "localhost",
+        port: process.env.REDIS_PORT || "6379",
+        tls: process.env.REDIS_TLS === "true"
+    },
+    scheduler: {
+        enabled: (process.env.SCHEDULER_ENABLED ?? "false").toLowerCase() === "true",
+        maintenanceInterval: process.env.SCHEDULER_MAINTENANCE_MINUTES || "1440 (default)",
+    }
+  });
+
   // Log rate limit store
   const rateLimitStore = process.env.RATE_LIMIT_STORE
     ? process.env.RATE_LIMIT_STORE.toLowerCase() === "redis"

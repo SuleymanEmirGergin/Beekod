@@ -1,0 +1,45 @@
+name: Docker E2E Verification
+
+on:
+  push:
+    branches: [ main, master, production ]
+  pull_request:
+    branches: [ main, master, production ]
+  workflow_dispatch:
+
+jobs:
+  docker-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create .env file
+        run: |
+          cp .env.example .env
+          echo "DB_PASSWORD=root_password" >> .env
+          echo "REDIS_PASSWORD=redis_password" >> .env
+          echo "ADMIN_KEY=Threem123" >> .env
+
+      - name: Start Docker Stack
+        run: docker compose up -d
+
+      - name: Wait for Healthchecks
+        run: |
+          timeout 60s bash -c 'until docker compose ps | grep "healthy"; do sleep 5; done' || (docker compose logs && exit 1)
+
+      - name: Verify Backend Health
+        run: |
+          curl --fail --retry 5 --retry-delay 2 http://localhost:3000/health
+
+      - name: Verify Ops Inspector
+        run: |
+          curl --fail --retry 5 --retry-delay 2 -H "x-admin-key: Threem123" http://localhost:3000/api/ops/inspect
+
+      - name: Run Schema Integrity Check (Containerized)
+        run: |
+          docker compose exec -T backend npm run test:schema
+
+      - name: Stop Stack
+        if: always()
+        run: docker compose down -v
