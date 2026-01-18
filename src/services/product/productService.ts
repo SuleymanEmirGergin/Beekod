@@ -41,46 +41,42 @@ export async function upsertProduct(input: {
   alert_threshold?: number;
 }): Promise<Result<Product>> {
   try {
-    const existing = await getProductByBarcode(input.barcode);
     const imageUrl = input.image || input.imageUrl;
 
-    if (existing.ok) {
-      // Update
-      const updates: any = {};
-      if (input.name) updates.name = input.name;
-      if (input.category) updates.category = input.category;
-      if (input.description) updates.description = input.description;
-      if (input.price !== undefined) updates.price = input.price;
-      if (input.stock !== undefined) updates.stock = input.stock;
-      if (input.currency) updates.currency = input.currency;
-      if (imageUrl) updates.image = imageUrl;
-      if (input.alert_threshold) updates.alert_threshold = input.alert_threshold;
+    // Use Atomic Upsert (INSERT ... ON DUPLICATE KEY UPDATE) to prevent race conditions
+    // This is safer than Read-Then-Write
+    const sql = `
+      INSERT INTO products
+      (barcode, name, category, description, price, stock, currency, brand, image, alert_threshold, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+      ON DUPLICATE KEY UPDATE
+        name = VALUES(name),
+        category = VALUES(category),
+        description = VALUES(description),
+        price = VALUES(price),
+        stock = VALUES(stock),
+        currency = VALUES(currency),
+        brand = VALUES(brand),
+        image = VALUES(image),
+        alert_threshold = VALUES(alert_threshold),
+        updated_at = NOW()
+    `;
 
-      await updateProduct(input.barcode, updates);
-      return getProductByBarcode(input.barcode);
-    } else {
-      // Insert
-      const sql = `
-        INSERT INTO products 
-        (barcode, name, category, description, price, stock, currency, brand, image, alert_threshold, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
-      `;
-      const params = [
-        input.barcode,
-        input.name,
-        input.category || null,
-        input.description || null,
-        input.price,
-        input.stock,
-        input.currency || "TRY",
-        input.brand || null,
-        imageUrl || null,
-        input.alert_threshold || 10
-      ];
-      
-      await query(sql, params);
-      return getProductByBarcode(input.barcode);
-    }
+    const params = [
+      input.barcode,
+      input.name,
+      input.category || null,
+      input.description || null,
+      input.price,
+      input.stock,
+      input.currency || "TRY",
+      input.brand || null,
+      imageUrl || null,
+      input.alert_threshold || 10
+    ];
+
+    await query(sql, params);
+    return getProductByBarcode(input.barcode);
   } catch (error) {
     logger.error("upsertProduct.error", { error, barcode: input.barcode });
     return fail(error instanceof Error ? error : new Error(String(error)));

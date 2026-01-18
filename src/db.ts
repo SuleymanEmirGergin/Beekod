@@ -28,14 +28,16 @@ logger.info("db.connect", {
 
 export type QueryResult = mysql.RowDataPacket[] | mysql.ResultSetHeader;
 
-export async function query<T>(sql: string, params?: unknown[]): Promise<T> {
+// Allow running queries on a specific connection (for transactions)
+export async function query<T>(sql: string, params?: unknown[], connection?: mysql.PoolConnection): Promise<T> {
   const start = Date.now();
 
   // Set a hard timeout for all queries (default 10s)
   const timeoutMs = 10000;
+  const runner = connection || pool;
 
   try {
-    const [rows] = await pool.query({
+    const [rows] = await runner.query({
       sql,
       timeout: timeoutMs,
       values: params
@@ -52,5 +54,26 @@ export async function query<T>(sql: string, params?: unknown[]): Promise<T> {
       logger.error("db.query_timeout", { sql: sql.substring(0, 200), timeout: timeoutMs });
     }
     throw error;
+  }
+}
+
+/**
+ * Execute a function within a transaction.
+ * Automatically handles BEGIN, COMMIT, and ROLLBACK.
+ */
+export async function withTransaction<T>(
+  callback: (connection: mysql.PoolConnection) => Promise<T>
+): Promise<T> {
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const result = await callback(connection);
+    await connection.commit();
+    return result;
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
   }
 }
