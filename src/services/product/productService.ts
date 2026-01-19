@@ -8,6 +8,7 @@ import { query } from "../../db.js";
 import { Product } from "../../types.js";
 import { logger } from "../../logger.js";
 import { ok, fail, Result } from "../../utils/result.js";
+import { VersionConflictError } from "../../errors/VersionConflictError.js";
 
 // Re-export specific modules
 export * from "./modules/productSearchService.js";
@@ -39,6 +40,7 @@ export async function upsertProduct(input: {
   preparation_days?: number;
   product_type?: 'standard' | 'packet' | 'digital';
   alert_threshold?: number;
+  version?: number; // Optimistic Lock
 }): Promise<Result<Product>> {
   try {
     const existing = await getProductByBarcode(input.barcode);
@@ -56,7 +58,21 @@ export async function upsertProduct(input: {
       if (imageUrl) updates.image = imageUrl;
       if (input.alert_threshold) updates.alert_threshold = input.alert_threshold;
 
-      await updateProduct(input.barcode, updates);
+      // Optimistic Locking Check
+      if (input.version !== undefined) {
+          if (existing.value.version !== input.version) {
+              return fail(new VersionConflictError());
+          }
+          // Pass version to updateProduct for atomic check-and-set
+          updates.version = input.version;
+      }
+
+      const updated = await updateProduct(input.barcode, updates);
+      if (!updated && input.version !== undefined) {
+          // If updated is false, it might mean the version check failed in the SQL (race condition)
+          return fail(new VersionConflictError());
+      }
+
       return getProductByBarcode(input.barcode);
     } else {
       // Insert
@@ -88,20 +104,33 @@ export async function upsertProduct(input: {
 }
 
 /**
- * Basic Update Product
+ * Basic Update Product (Supports Optimistic Locking)
  */
 export async function updateProduct(
   barcode: string,
-  updates: Partial<Product>
+  updates: Partial<Product> & { version?: number }
 ): Promise<boolean> {
+  // Extract version for WHERE clause if present
+  const currentVersion = updates.version;
+  delete updates.version; // Don't set version explicitly in the SET clause like 'version = ?'
+
   const keys = Object.keys(updates).filter(k => k !== 'barcode' && k !== 'id' && (updates as any)[k] !== undefined);
   if (keys.length === 0) return false;
 
-  const setClause = keys.map(k => `${k} = ?`).join(", ");
+  // Build SET clause (always increment version)
+  const setClause = keys.map(k => `${k} = ?`).join(", ") + ", version = version + 1";
   const values = keys.map(k => (updates as any)[k]);
+
+  // WHERE Clause
+  let sql = `UPDATE products SET ${setClause}, updated_at = NOW() WHERE barcode = ?`;
   values.push(barcode);
 
-  const sql = `UPDATE products SET ${setClause}, updated_at = NOW() WHERE barcode = ?`;
+  // Optimistic Lock Check
+  if (currentVersion !== undefined) {
+      sql += " AND version = ?";
+      values.push(currentVersion);
+  }
+
   try {
     const result = await query(sql, values);
     return (result as any).affectedRows > 0;
