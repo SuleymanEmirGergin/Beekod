@@ -1,6 +1,6 @@
 
-import { syncPriceStock } from "./syncService.js";
-import { logger } from "../../logger.js";
+import { syncPriceStock } from "../../marketplace/syncService.js";
+import { logger } from "../../../logger.js";
 
 /**
  * @deprecated Use syncWorker or enqueueSyncJob instead.

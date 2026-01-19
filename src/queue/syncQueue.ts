@@ -15,13 +15,13 @@ export interface SyncJobData {
 
 export const syncWorker = new Worker<SyncJobData>(
     'sync-inventory',
-    syncProcessor, // Use extracted processor
+    syncProcessor,
     {
         connection: redisConnection,
-        concurrency: 5,
+        concurrency: 5, // Process 5 products in parallel
         limiter: {
             max: 100,
-            duration: 60000
+            duration: 60000 // Global rate limit: 100 jobs/min
         },
         removeOnComplete: { count: 1000 },
         removeOnFail: { count: 1000 }

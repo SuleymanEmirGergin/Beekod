@@ -3,6 +3,7 @@ import { Queue } from 'bullmq';
 import { redisConnection } from '../../queue/config.js';
 import { SyncJobData } from '../../queue/syncQueue.js'; // Import type
 import { logger } from '../../logger.js';
+import crypto from 'crypto';
 
 // Define the queue
 export const syncQueue = new Queue<SyncJobData>('sync-inventory', {
@@ -13,32 +14,37 @@ export const syncQueue = new Queue<SyncJobData>('sync-inventory', {
             type: 'exponential',
             delay: 1000
         },
-        removeOnComplete: 100,
-        removeOnFail: 500
+        removeOnComplete: 1000,
+        removeOnFail: 5000
     }
 });
+
+/**
+ * Generates a deterministic job ID for idempotency.
+ * Combines barcode, targets, and a time bucket (e.g. 5 seconds) to dedup rapid duplicate requests.
+ */
+function generateJobId(data: SyncJobData): string {
+    const targetsKey = data.targets ? data.targets.sort().join(',') : 'all';
+    // 5-second idempotency window
+    const timeBucket = Math.floor(Date.now() / 5000);
+    const raw = `${data.barcode}:${targetsKey}:${timeBucket}`;
+    return crypto.createHash('md5').update(raw).digest('hex');
+}
 
 /**
  * Enqueue a sync job for a product
  */
 export async function enqueueSyncJob(data: SyncJobData): Promise<string> {
-    // Idempotency: Use barcode as job ID to prevent duplicate jobs for same product in queue
-    // But we might want multiple updates if price changes rapidly.
-    // Better: Allow duplicates but debounce? Or just simple append.
-    // Requirement says: "Add idempotency keys to prevent duplicate sync storms"
-    // Using barcode + timestamp suffix or just barcode (if we want to dedup pending jobs).
-    // If we use just barcode as jobId, BullMQ deduplicates only if active/waiting?
-    // Actually, explicit deduplication is better handled by checking queue state or specialized Redis key.
-    // For simplicity and effectiveness in BullMQ, using a jobId derived from data content + time window could work,
-    // OR letting BullMQ handle it if we want to update the payload of existing job?
+    const jobId = generateJobId(data);
 
-    // Simplest robust approach:
-    // If a job for this barcode is already 'waiting' or 'active', do not add another unless payload is different?
-    // For high throughput, we just add it. The worker concurrency limit helps.
-    // Strict idempotency: prevent *identical* request in short window.
+    // BullMQ deduplicates automatically if jobId matches an active/waiting/delayed job state?
+    // Actually, adding a job with same ID while one exists in any state (even completed/failed if not removed) might act differently depending on BullMQ version.
+    // Usually it returns the existing job if present.
+    // Our configuration removes completed jobs (count: 1000), so older completed jobs won't block new ones eventually.
+    // But short-term (5s window), this prevents spamming the queue.
 
-    const jobId = await syncQueue.add('sync', data, {
-        jobId: `sync-${data.barcode}-${Date.now()}` // Unique ID for every request for now to ensure it runs
+    await syncQueue.add('sync', data, {
+        jobId: jobId
     });
 
     logger.info("sync.enqueued", { jobId, barcode: data.barcode });
