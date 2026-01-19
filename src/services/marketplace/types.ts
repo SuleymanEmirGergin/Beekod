@@ -1,137 +1,25 @@
-import { MarketplaceListing } from "../../types.js";
-import { Result } from "../../utils/result.js";
 
-export { MarketplaceListing };
+import { MarketplaceListing, MarketplaceActionResult, MarketplaceListResult, MarketplaceOrderResult, MarketplaceReviewResult, MarketplaceConfigStatus, MarketplaceTokenStatus, MarketplaceProductPayload, MarketplaceUpdatePayload } from "../../types.js";
+import { Result } from "../../../utils/result.js";
 
-export type MarketplaceName = "Amazon" | "Trendyol" | "Hepsiburada" | "N11" | "Ciceksepeti" | "PttAVM" | "Pazarama" | "Shopify" | "Woocommerce";
-
-export type MarketplaceActionStatus = "ok" | "queued" | "not_configured" | "failed";
-
-export type MarketplaceActionResult = {
-  status: MarketplaceActionStatus;
-  message: string;
-  requestId?: string;
-  data?: unknown;
-};
-
-export type MarketplaceListResult = {
-  status: MarketplaceActionStatus;
-  message: string;
-  items: MarketplaceListing[];
-};
-
-export type MarketplaceMode = "mock" | "live";
-
-export type MarketplaceConfigStatus = {
-  mode: MarketplaceMode;
-  missing: string[];
-  configured: boolean;
-};
-
-export type MarketplaceTokenStatus = {
-  status: "missing" | "valid" | "expired" | "unknown";
-  expiresAt?: string;
-};
-
-export type MarketplaceProductPayload = {
-  barcode: string;
-  name: string;
-  price: number;
-  stock: number;
-  currency: string;
-  images?: string[] | Array<{ url: string }>;
-  // Extended fields for product creation
-  sku?: string;
-  categoryId?: string | number;
-  brand?: string;
-  listPrice?: number;
-  vat?: number;
-  description?: string;
-  attributes?: Record<string, string | number>;
-};
-
-export type MarketplaceUpdatePayload = {
-  barcode: string;
-  price?: number;
-  stock?: number;
-  active?: boolean;
-  title?: string;
-};
-
-export type MarketplaceOrderItem = {
-  sku?: string;
-  barcode: string;
-  name: string;
-  price?: number;
-  unitPrice?: number;
-  totalPrice?: number;
-  quantity: number;
-  image?: string;
-  status?: string;
-  statusCode?: number;
-};
-
-export type MarketplaceOrder = {
-  marketplace: MarketplaceName;
-  orderNumber: string;
-  orderId?: string;
-  customerName?: string;
-  customerEmail?: string;
-  customerPhone?: string;
-  customerAddress?: string;
-  // Structured customer info (new)
-  customer?: {
-    name?: string;
-    email?: string;
-    phone?: string;
-  };
-  // Structured shipping address (new)
-  shippingAddress?: {
-    fullAddress?: string;
-    city?: string;
-    district?: string;
-    postalCode?: string;
-  };
-  // Cargo info (new)
-  cargoInfo?: {
-    cargoCompany?: string;
-    trackingNumber?: string;
-  };
-  items: MarketplaceOrderItem[];
-  totalAmount: number;
-  currency: string;
-  orderDate: string;
-  status: string;
-  statusCode?: number;
-  deliveryType?: string;
-};
-
-export type MarketplaceOrderResult = {
-  status: MarketplaceActionStatus;
-  message: string;
-  orders: MarketplaceOrder[];
-};
-
-export type ProductReview = {
-  id?: string;
-  reviewerName?: string;
-  rating: number;
-  comment: string;
-  date: string;
-  platform: string;
-};
-
-export type MarketplaceReviewResult = {
-  status: MarketplaceActionStatus;
-  message: string;
-  reviews: ProductReview[];
-};
+// Add Health Check Result Type
+export interface AdapterHealthResult {
+    marketplace: string;
+    status: "healthy" | "degraded" | "unhealthy" | "not_configured";
+    latencyMs?: number;
+    details?: string;
+    timestamp: string;
+}
 
 export type MarketplaceProvider = {
-  name: MarketplaceName;
+  name: string; // Use string loosely or specific union if strict
   getConfigStatus: () => MarketplaceConfigStatus;
   getTokenStatus: () => MarketplaceTokenStatus;
   isConfigured: () => boolean;
+
+  // New Health Check Method
+  healthCheck: () => Promise<AdapterHealthResult>;
+
   refreshToken: () => Promise<Result<MarketplaceActionResult>>;
   upsertProduct: (payload: MarketplaceProductPayload) => Promise<Result<MarketplaceActionResult>>;
   updateListing: (payload: MarketplaceUpdatePayload) => Promise<Result<MarketplaceActionResult>>;

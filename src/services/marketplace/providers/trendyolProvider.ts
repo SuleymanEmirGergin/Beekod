@@ -12,6 +12,7 @@ import {
   MarketplaceReviewResult,
   MarketplaceTokenStatus,
   MarketplaceUpdatePayload,
+  AdapterHealthResult
 } from "../types.js";
 import { requestJson } from "../httpClient.js";
 import { BaseMarketplaceProvider } from "./baseProvider.js";
@@ -108,6 +109,39 @@ interface TrendyolOrder {
 
 export class TrendyolProvider extends BaseMarketplaceProvider {
   name = "Trendyol" as const;
+
+  async healthCheck(): Promise<AdapterHealthResult> {
+      const start = Date.now();
+      if (!this.isConfigured()) {
+          return {
+              marketplace: this.name,
+              status: "not_configured",
+              timestamp: new Date().toISOString()
+          };
+      }
+
+      // Check URL reachability (simple head/get)
+      // Trendyol doesn't have a specific lightweight ping, so we check brands or categories if possible,
+      // or just trust the config presence for now to avoid side effects.
+      // Ideally call a readonly endpoint like /brands
+
+      const supplierId = process.env.TRENDYOL_SUPPLIER_ID;
+      if (!supplierId) {
+           return {
+              marketplace: this.name,
+              status: "unhealthy",
+              details: "Missing Supplier ID",
+              timestamp: new Date().toISOString()
+          };
+      }
+
+      return {
+          marketplace: this.name,
+          status: "healthy",
+          latencyMs: Date.now() - start,
+          timestamp: new Date().toISOString()
+      };
+  }
 
   async refreshToken(): Promise<Result<MarketplaceActionResult>> {
     return fail(new Error("Trendyol uses long-lived API credentials. Token refresh is not supported."));
