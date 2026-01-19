@@ -8,6 +8,7 @@ export class QualityRejectedError extends InternalError {
     constructor(message: string, public score: number) {
         super(message);
         this.name = "QualityRejectedError";
+        this.statusCode = 422;
     }
 }
 

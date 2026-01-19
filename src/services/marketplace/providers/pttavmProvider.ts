@@ -59,6 +59,41 @@ export class PttavmProvider extends BaseMarketplaceProvider {
     return this.isConfigured() ? { status: "unknown" } : { status: "missing" };
   }
 
+  async healthCheck(): Promise<AdapterHealthResult> {
+    const start = Date.now();
+    const checks: Array<{ name: string; ok: boolean; message?: string }> = [];
+
+    const config = this.getConfigStatus();
+    const isConfigured = config.configured;
+    checks.push({
+      name: "Configuration",
+      ok: isConfigured,
+      message: isConfigured ? "Settings loaded" : `Missing: ${config.missing?.join(", ")}`
+    });
+
+    const auth = this.getAuth();
+    if (isConfigured) {
+        checks.push({ name: "Auth", ok: !!auth, message: auth ? "Creds Present" : "Missing Creds" });
+    }
+
+    const configStatus = isConfigured ? "READY" : "NOT_READY";
+    const capabilityStatus = "READY";
+
+    const overallStatus = (configStatus === "READY" && capabilityStatus === "READY" && checks.every(c => c.ok))
+      ? "READY"
+      : (configStatus === "READY" ? "PARTIAL" : "NOT_READY");
+
+    return {
+      marketplace: this.name,
+      status: overallStatus,
+      configStatus,
+      capabilityStatus,
+      checks,
+      latencyMs: Date.now() - start,
+      timestamp: new Date().toISOString()
+    };
+  }
+
   async refreshToken(): Promise<Result<MarketplaceActionResult>> {
     return fail(new Error("PttAVM uses username/password. Token refresh is not supported."));
   }

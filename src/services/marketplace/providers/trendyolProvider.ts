@@ -111,36 +111,45 @@ export class TrendyolProvider extends BaseMarketplaceProvider {
   name = "Trendyol" as const;
 
   async healthCheck(): Promise<AdapterHealthResult> {
-      const start = Date.now();
-      if (!this.isConfigured()) {
-          return {
-              marketplace: this.name,
-              status: "not_configured",
-              timestamp: new Date().toISOString()
-          };
-      }
+    const start = Date.now();
+    const checks: Array<{ name: string; ok: boolean; message?: string }> = [];
 
-      // Check URL reachability (simple head/get)
-      // Trendyol doesn't have a specific lightweight ping, so we check brands or categories if possible,
-      // or just trust the config presence for now to avoid side effects.
-      // Ideally call a readonly endpoint like /brands
+    // 1. Config Check
+    const config = this.getConfigStatus();
+    const isConfigured = config.configured;
+    checks.push({
+      name: "Configuration",
+      ok: isConfigured,
+      message: isConfigured ? "Settings loaded" : `Missing: ${config.missing?.join(", ")}`
+    });
 
-      const supplierId = process.env.TRENDYOL_SUPPLIER_ID;
-      if (!supplierId) {
-           return {
-              marketplace: this.name,
-              status: "unhealthy",
-              details: "Missing Supplier ID",
-              timestamp: new Date().toISOString()
-          };
-      }
+    // 2. Credential Check (Supplier ID specifically for Trendyol)
+    const supplierId = process.env.TRENDYOL_SUPPLIER_ID;
+    if (isConfigured) {
+      checks.push({ name: "Supplier ID", ok: !!supplierId, message: supplierId ? "Present" : "Missing Supplier ID" });
+    }
 
-      return {
-          marketplace: this.name,
-          status: "healthy",
-          latencyMs: Date.now() - start,
-          timestamp: new Date().toISOString()
-      };
+    // 3. Connectivity/Capability Check (Optional ping)
+    // For now, we assume if config is good, we are ready.
+    // In future we can add a lightweight API call here.
+
+    // Determine overall statuses
+    const configStatus = isConfigured ? "READY" : "NOT_READY";
+    const capabilityStatus = "READY"; // Assuming implemented
+
+    const overallStatus = (configStatus === "READY" && capabilityStatus === "READY" && checks.every(c => c.ok))
+      ? "READY"
+      : (configStatus === "READY" ? "PARTIAL" : "NOT_READY");
+
+    return {
+      marketplace: this.name,
+      status: overallStatus,
+      configStatus,
+      capabilityStatus,
+      checks,
+      latencyMs: Date.now() - start,
+      timestamp: new Date().toISOString()
+    };
   }
 
   async refreshToken(): Promise<Result<MarketplaceActionResult>> {

@@ -15,11 +15,11 @@ export class ModelService {
         return (rows as any)[0] || null;
     }
 
-    async getRandomModel(gender: string): Promise<BaseModel | null> {
-        // Deterministic random selection could be seeded, but here we just pick one from DB
-        // to replace the hardcoded array.
+    async getDefaultModel(gender: string): Promise<BaseModel | null> {
+        // Deterministic fallback (ordered by ID) to replace random selection.
+        // This ensures the pipeline is reproducible.
         const rows = await query(
-            "SELECT * FROM base_models WHERE gender = ? AND is_active = 1 ORDER BY RAND() LIMIT 1",
+            "SELECT * FROM base_models WHERE gender = ? AND is_active = 1 ORDER BY id ASC LIMIT 1",
             [gender]
         );
         return (rows as any)[0] || null;

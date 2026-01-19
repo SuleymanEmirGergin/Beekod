@@ -2,17 +2,23 @@
 import { MarketplaceListing, MarketplaceActionResult, MarketplaceListResult, MarketplaceOrderResult, MarketplaceReviewResult, MarketplaceConfigStatus, MarketplaceTokenStatus, MarketplaceProductPayload, MarketplaceUpdatePayload } from "../../types.js";
 import { Result } from "../../../utils/result.js";
 
+export type MarketplaceId = "trendyol" | "hepsiburada" | "ciceksepeti" | "pazarama" | "pttavm" | "n11";
+export type ReadinessStatus = "READY" | "PARTIAL" | "NOT_READY";
+
 // Add Health Check Result Type
 export interface AdapterHealthResult {
-    marketplace: string;
-    status: "healthy" | "degraded" | "unhealthy" | "not_configured";
+    marketplace: MarketplaceId;
+    status: ReadinessStatus; // Worst of config & capability
+    configStatus: ReadinessStatus;
+    capabilityStatus: ReadinessStatus;
+    checks: Array<{ name: string; ok: boolean; message?: string }>;
     latencyMs?: number;
-    details?: string;
+    details?: Record<string, unknown>;
     timestamp: string;
 }
 
 export type MarketplaceProvider = {
-  name: string; // Use string loosely or specific union if strict
+  name: string; // Internal display name (can be capitalized)
   getConfigStatus: () => MarketplaceConfigStatus;
   getTokenStatus: () => MarketplaceTokenStatus;
   isConfigured: () => boolean;

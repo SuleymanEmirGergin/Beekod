@@ -94,7 +94,7 @@ export const generateTryOnVideo = async (
     mannequinUrl = model.imageUrl;
   } else {
     const gender = options?.gender || detectGenderFromCategory(product.category);
-    const model = await modelService.getRandomModel(gender);
+    const model = await modelService.getDefaultModel(gender);
     mannequinUrl = model?.imageUrl || "https://via.placeholder.com/800x1200?text=Default+Model"; // Fallback
   }
 

@@ -29,6 +29,43 @@ export class HepsiburadaProvider extends BaseMarketplaceProvider {
     return { status: "unknown" };
   }
 
+  async healthCheck(): Promise<AdapterHealthResult> {
+    const start = Date.now();
+    const checks: Array<{ name: string; ok: boolean; message?: string }> = [];
+
+    // 1. Config Check
+    const config = this.getConfigStatus();
+    const isConfigured = config.configured;
+    checks.push({
+      name: "Configuration",
+      ok: isConfigured,
+      message: isConfigured ? "Settings loaded" : `Missing: ${config.missing?.join(", ")}`
+    });
+
+    // 2. Credentials
+    const merchantId = process.env.HEPSIBURADA_MERCHANT_ID;
+    if (isConfigured) {
+      checks.push({ name: "Merchant ID", ok: !!merchantId, message: merchantId ? "Present" : "Missing Merchant ID" });
+    }
+
+    const configStatus = isConfigured ? "READY" : "NOT_READY";
+    const capabilityStatus = "READY";
+
+    const overallStatus = (configStatus === "READY" && capabilityStatus === "READY" && checks.every(c => c.ok))
+      ? "READY"
+      : (configStatus === "READY" ? "PARTIAL" : "NOT_READY");
+
+    return {
+      marketplace: this.name,
+      status: overallStatus,
+      configStatus,
+      capabilityStatus,
+      checks,
+      latencyMs: Date.now() - start,
+      timestamp: new Date().toISOString()
+    };
+  }
+
   isConfigured() {
     return this.getConfigStatus().configured;
   }
