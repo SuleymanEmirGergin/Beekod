@@ -1,0 +1,51 @@
+
+<html>
+<head>
+    <title>Trendyol Mock Product</title>
+</head>
+<body>
+    <div class="product-container">
+        <h1 class="pr-nm">Mock Trendyol Dress</h1>
+        <div class="pr-cpt">
+            <span>Detailed description of the dress.</span>
+        </div>
+        <div class="prc-dsc">
+            <span class="prc-slg">500 TL</span>
+        </div>
+        <div class="attr-wrapper">
+            <li class="detail-attr-item">
+                <span>Beden:</span>
+                <span>M</span>
+            </li>
+            <li class="detail-attr-item">
+                <span>Renk:</span>
+                <span>Kırmızı</span>
+            </li>
+        </div>
+        <div class="product-slide">
+            <img src="http://img.com/dress.jpg" alt="Dress Image">
+        </div>
+    </div>
+    <script>
+        window.__PRODUCT_DETAIL_APP_INITIAL_STATE__ = {
+            product: {
+                name: "Mock Trendyol Dress",
+                price: {
+                    sellingPrice: 500,
+                    currency: "TRY"
+                },
+                images: ["http://img.com/dress.jpg"],
+                category: {
+                    name: "Elbise"
+                },
+                attributes: [
+                    { key: { name: "Beden" }, value: { name: "M" } },
+                    { key: { name: "Renk" }, value: { name: "Kırmızı" } }
+                ],
+                url: "http://trendyol.com/dress",
+                merchant: { name: "MockSeller" }
+            }
+        };
+    </script>
+</body>
+</html>

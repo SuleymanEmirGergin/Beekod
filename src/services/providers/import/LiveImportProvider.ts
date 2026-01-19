@@ -50,25 +50,41 @@ export class LiveImportProvider implements IImportProvider {
         };
     }
 
-    async importProduct(url: string, providerId?: "shopify" | "woocommerce"): Promise<ImportResult> {
+    async importProduct(url: string, providerId?: "shopify" | "woocommerce", options?: Partial<ImportDraft>): Promise<ImportResult> {
         // Full Import Flow: Scrape -> Map -> AI Optimize -> DB Save -> Store Push
-        // Leveraging getImportDraft for consistency
+        // Leveraging getImportDraft for consistency if options not provided, else using options
 
         let draft: ImportDraft;
-        try {
-            draft = await this.getImportDraft(url);
-        } catch (error: any) {
-            return {
-                success: false,
-                provider: providerId || "none",
-                productName: "",
-                error: error.message || "Taslak oluşturulamadı"
-            };
+
+        if (options && options.title) {
+            // User provided edited draft
+            draft = {
+                title: options.title,
+                description: options.description || "",
+                price: options.price || 0,
+                currency: options.currency || "TRY",
+                images: options.images || [],
+                sourceUrl: url,
+                provider: "manual", // or derive from url
+                needsManualMapping: false,
+                attributes: options.attributes,
+                categorySuggestion: options.categorySuggestion,
+                raw: options.raw
+            } as ImportDraft;
+        } else {
+            try {
+                draft = await this.getImportDraft(url);
+            } catch (error: any) {
+                return {
+                    success: false,
+                    provider: providerId || "none",
+                    productName: "",
+                    error: error.message || "Taslak oluşturulamadı"
+                };
+            }
         }
 
         // AI Optimization
-        // Note: productScraper returns ScrapedProduct which rewriteProductContent expects.
-        // draft.raw should be castable back if we kept it compliant, but rewriteProductContent takes ScrapedProduct.
         // We can reconstruct a ScrapedProduct-like object from draft or use draft.raw
 
         const scrapedProductLike: any = draft.raw || {
@@ -82,7 +98,7 @@ export class LiveImportProvider implements IImportProvider {
         };
 
         const optimized = await rewriteProductContent(scrapedProductLike);
-        const specTable = generateHtmlSpecTable(draft.attributes);
+        const specTable = generateHtmlSpecTable(draft.attributes || {});
 
         let finalDescription = `${optimized.description}`;
         if (optimized.insights) {

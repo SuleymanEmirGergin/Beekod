@@ -2,8 +2,8 @@ import { Router } from "express";
 import { z } from "zod";
 import { ImportProviderFactory } from "../services/providers/ImportProviderFactory.js";
 import { sendSuccessResponse, sendErrorResponse } from "../utils/responseHelper.js";
-import { upsertProduct } from '../services/product/productService.js';
 import { logger } from "../logger.js";
+import { ImportError } from "../errors/ImportErrors.js";
 
 const router = Router();
 
@@ -14,10 +14,11 @@ const PreviewSchema = z.object({
 });
 
 router.post("/preview", async (req, res) => {
+    const traceId = (req as any).traceId || `req-${Date.now()}`;
     try {
         const { url } = PreviewSchema.parse(req.body);
 
-        // SSRF koruması - internal IP'leri blokla
+        // SSRF protection
         const urlObj = new URL(url);
         const hostname = urlObj.hostname.toLowerCase();
 
@@ -35,6 +36,8 @@ router.post("/preview", async (req, res) => {
 
         // Use Factory Pattern for Live/Mock support
         const provider = ImportProviderFactory.getProvider();
+        logger.info("preview.start", { traceId, url });
+
         const draft = await provider.getImportDraft(url);
 
         return sendSuccessResponse(res, {
@@ -58,7 +61,11 @@ router.post("/preview", async (req, res) => {
         });
 
     } catch (error: any) {
-        logger.error("product_import_preview_failed", { error: error.message, stack: error.stack, url: req.body.url });
+        logger.error("product_import_preview_failed", { traceId, error: error.message, stack: error.stack, url: req.body.url });
+
+        if (error instanceof ImportError) {
+            return sendErrorResponse({ res, statusCode: error.statusCode, message: error.message, error: error.code });
+        }
 
         if (error.response && (error.response.status === 403 || error.response.status === 429)) {
             return sendErrorResponse({ res, statusCode: 502, message: "Pazaryeri erişimi engellendi", error: "MARKETPLACE_BLOCK" });
@@ -69,59 +76,67 @@ router.post("/preview", async (req, res) => {
 });
 
 // POST /api/product-import/import
-// Imports a product from external URL with snapshot data
+// Imports a product using the provider pipeline (supports options for overrides)
 const ImportSchema = z.object({
     sourceUrl: z.string().url(),
-    title: z.string().min(1),
-    category: z.string().optional(),
+    providerId: z.enum(["shopify", "woocommerce"]).optional(),
+
+    // Optional overrides from UI edit
+    title: z.string().optional(),
+    category: z.string().optional(), // Maps to categorySuggestion.name
     price: z.preprocess((val) => (typeof val === 'string' ? Number(val.replace(',', '.')) : val), z.number()).optional(),
     currency: z.string().optional(),
-    stock: z.preprocess((val) => Number(val), z.number().int().nonnegative()).optional(),
-    barcode: z.string().optional(),
     description: z.string().optional(),
-    imageUrl: z.string().url().optional()
+    imageUrl: z.string().url().optional(),
+    attributes: z.record(z.string()).optional()
 });
 
 router.post("/import", async (req, res) => {
-    logger.info("product_import_request", { payload: req.body });
+    const traceId = (req as any).traceId || `req-${Date.now()}`;
+    logger.info("product_import_request", { traceId, payload: req.body });
+
     try {
         const data = ImportSchema.parse(req.body);
-        const urlObj = new URL(data.sourceUrl);
 
-        // Barcode yoksa otomatik generate et (WEB- prefix ile)
-        const barcode = data.barcode || `WEB-${Date.now()}`;
-
-        // Ürün oluştur - yeni alanlar eklenecek (Phase 4'te schema update)
-        const product = await upsertProduct({
-            barcode,
-            name: data.title,
-            category: data.category,
-            price: data.price || 0,
-            stock: data.stock || 0,
-            currency: data.currency || "TRY",
+        // Transform schema to ImportDraft options
+        const options = {
+            title: data.title,
+            price: data.price,
+            currency: data.currency,
             description: data.description,
-            imageUrl: data.imageUrl,
             images: data.imageUrl ? [data.imageUrl] : undefined,
-            // Yeni alanlar (schema update sonrası aktif olacak)
-            sourceUrl: data.sourceUrl,
-            sourceSite: urlObj.hostname,
-            snapshotPrice: data.price,
-            snapshotCurrency: data.currency,
-            snapshotAt: new Date()
-        } as any); // Type assertion - schema update sonrası kaldırılacak
+            attributes: data.attributes,
+            categorySuggestion: data.category ? { name: data.category, id: "manual", confidence: 1, source: "manual" as const } : undefined
+        };
 
-        return sendSuccessResponse(res, { product });
+        const provider = ImportProviderFactory.getProvider();
+        const result = await provider.importProduct(data.sourceUrl, data.providerId, options);
+
+        if (!result.success) {
+            return sendErrorResponse({
+                res,
+                statusCode: 500,
+                message: result.error || "İçe aktarma başarısız",
+                error: "IMPORT_FAILED"
+            });
+        }
+
+        return sendSuccessResponse(res, {
+            product: {
+                localId: result.localId,
+                name: result.productName,
+                provider: result.provider
+            },
+            editUrl: result.editUrl
+        });
+
     } catch (error: any) {
         if (error instanceof z.ZodError) {
-            logger.warn("product_import_validation_failed", { errors: error.errors, body: req.body });
+            logger.warn("product_import_validation_failed", { traceId, errors: error.errors });
             return sendErrorResponse({ res, statusCode: 400, message: "Doğrulama başarısız (" + error.errors[0]?.message + ")", error: "INVALID_DATA" });
         }
 
-        logger.error("product_import_failed", { error: error.message, code: error.code, stack: error.stack });
-
-        if (error.code && error.code.startsWith('ER_')) {
-            return sendErrorResponse({ res, statusCode: 500, message: "Veritabanı Hatası (" + error.code + ")", error: "DB_ERROR" });
-        }
+        logger.error("product_import_failed", { traceId, error: error.message, stack: error.stack });
 
         return sendErrorResponse({ res, statusCode: 500, message: "İçe aktarma başarısız: " + (error.message || "Bilinmeyen hata"), error: "IMPORT_FAILED" });
     }

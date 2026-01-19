@@ -25,7 +25,8 @@ export interface IImportProvider {
      * Import a product from a specific URL (Full Scrape -> Save -> Push).
      * @param url The product URL.
      * @param providerId Optional provider ID (e.g., 'shopify', 'woocommerce').
+     * @param options Optional overrides for the import (title, price, attributes, etc.).
      * @returns A promise resolving to the import result.
      */
-    importProduct(url: string, providerId?: "shopify" | "woocommerce"): Promise<ImportResult>;
+    importProduct(url: string, providerId?: "shopify" | "woocommerce", options?: Partial<ImportDraft>): Promise<ImportResult>;
 }
