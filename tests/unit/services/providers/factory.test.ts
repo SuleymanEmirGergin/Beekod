@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { SearchProviderFactory } from "../../../../src/services/providers/SearchProviderFactory";
 import { MockSearchProvider } from "../../../../src/services/providers/search/MockSearchProvider";
+import { LiveSearchProvider } from "../../../../src/services/providers/search/LiveSearchProvider";
 import { ImportProviderFactory } from "../../../../src/services/providers/ImportProviderFactory";
 import { MockImportProvider } from "../../../../src/services/providers/import/MockImportProvider";
 
@@ -29,9 +30,10 @@ describe("Provider Factories", () => {
         expect(provider).toBeInstanceOf(MockSearchProvider);
     });
 
-    it("SearchProviderFactory throws when set to false (Live not implemented yet)", () => {
+    it("SearchProviderFactory returns LiveSearchProvider when false", () => {
         process.env.USE_MOCK_SEARCH = 'false';
-        expect(() => SearchProviderFactory.getProvider()).toThrowError(/not yet implemented/);
+        const provider = SearchProviderFactory.getProvider();
+        expect(provider).toBeInstanceOf(LiveSearchProvider);
     });
 
     it("ImportProviderFactory returns MockImportProvider by default", () => {
