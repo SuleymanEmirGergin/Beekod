@@ -9,8 +9,39 @@ import { getAllIntegrations } from "../../marketplace/integrationService.js";
 import { ShopifyConnector } from "../../connectors/shopifyConnector.js";
 import { WooConnector } from "../../connectors/wooConnector.js";
 import { Buffer } from "buffer";
+import { ImportDraft } from "../../dto/import.js";
 
 export class MockImportProvider implements IImportProvider {
+
+    async getImportDraft(url: string): Promise<ImportDraft> {
+        // Simple deterministic draft for Mock
+        const u = new URL(url);
+        const query = u.searchParams.get('q') || "Ürün";
+
+        let title = "Örnek Ürün";
+        let price = 1000;
+
+        if (query.toLowerCase().includes("iphone")) {
+            title = "Apple iPhone 15 128GB";
+            price = 54000;
+        } else if (query.toLowerCase().includes("samsung")) {
+            title = "Samsung Galaxy S24";
+            price = 45000;
+        }
+
+        return {
+            title,
+            description: "Bu bir örnek ürün taslağıdır.",
+            price,
+            currency: "TRY",
+            images: ["https://via.placeholder.com/400"],
+            sourceUrl: url,
+            provider: "mock",
+            needsManualMapping: false,
+            attributes: { "Marka": "Apple", "Model": "iPhone 15" },
+            categorySuggestion: { id: "1", name: "Cep Telefonu", confidence: 1.0, source: "default" }
+        };
+    }
 
     async importProduct(url: string, providerId?: "shopify" | "woocommerce"): Promise<ImportResult> {
         logger.info("mock_import.start", { url, providerId });

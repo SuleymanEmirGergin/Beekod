@@ -1,9 +1,7 @@
 
 import { IImportProvider } from "../interfaces.js";
 import { MockImportProvider } from "./import/MockImportProvider.js";
-
-// TODO: Implement LiveImportProvider in Phase 2
-// import { LiveImportProvider } from "./import/LiveImportProvider.js";
+import { LiveImportProvider } from "./import/LiveImportProvider.js";
 
 export class ImportProviderFactory {
     static getProvider(): IImportProvider {
@@ -13,9 +11,6 @@ export class ImportProviderFactory {
             return new MockImportProvider();
         }
 
-        // Return LiveImportProvider when implemented
-        // return new LiveImportProvider();
-
-        throw new Error("LiveImportProvider not yet implemented. Set USE_MOCK_IMPORT=true.");
+        return new LiveImportProvider();
     }
 }

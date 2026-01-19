@@ -1,12 +1,9 @@
 import { Router } from "express";
 import { z } from "zod";
-import { googleSearchService } from "../services/search/googleSearchService.js";
-import { scrapeProductFromUrl } from "../services/productScraper.js";
+import { ImportProviderFactory } from "../services/providers/ImportProviderFactory.js";
 import { sendSuccessResponse, sendErrorResponse } from "../utils/responseHelper.js";
 import { upsertProduct } from '../services/product/productService.js';
 import { logger } from "../logger.js";
-import fs from "fs/promises";
-import path from "path";
 
 const router = Router();
 
@@ -36,108 +33,30 @@ router.post("/preview", async (req, res) => {
             return sendErrorResponse({ res, statusCode: 400, message: "Geçersiz URL", error: "SSRF_BLOCKED" });
         }
 
-        const scraped = await scrapeProductFromUrl(url);
-        if (!scraped) {
-            return sendErrorResponse({ res, statusCode: 404, message: "Ürün bilgileri çekilemedi", error: "SCRAPE_FAILED" });
-        }
-
-        const details = {
-            title: scraped.name,
-            description: scraped.description,
-            price: scraped.price,
-            currency: scraped.currency,
-            image: scraped.imageUrl,
-            category: scraped.category,
-            attributes: scraped.attributes,
-            barcode: scraped.barcode,
-            snippet: scraped.description
-        };
-
-        // --- NEW: Attribute Mapping & Normalization ---
-        try {
-            const mappingsPath = path.resolve(process.cwd(), "data/marketplace-mappings.json");
-            const mappingsData = await fs.readFile(mappingsPath, "utf-8");
-            const mappings = JSON.parse(mappingsData);
-
-            // 1. Identify Provider (e.g. Trendyol)
-            let providerKey = null;
-            for (const [key, config] of Object.entries(mappings) as any) {
-                if (config.domains.some((d: string) => urlObj.hostname.includes(d))) {
-                    providerKey = key;
-                    break;
-                }
-            }
-
-            if (providerKey && details.attributes) {
-                const config = mappings[providerKey];
-                const normalizedAttributes: Record<string, string> = {};
-
-                // 2. Normalize Attributes
-                for (const [rawKey, rawValue] of Object.entries(details.attributes)) {
-                    let finalKey = rawKey;
-
-                    // Check synonyms
-                    if (config.attributeSynonyms) {
-                        for (const [canonicalKey, synonyms] of Object.entries(config.attributeSynonyms)) {
-                            // @ts-ignore
-                            if (synonyms.some(s => s.toLowerCase() === rawKey.toLowerCase())) {
-                                finalKey = canonicalKey;
-                                break;
-                            }
-                        }
-                    }
-
-                    // 3. Normalize Values
-                    let finalValue = String(rawValue);
-                    if (config.valueNormalizers && config.valueNormalizers[finalKey]) {
-                        const normType = config.valueNormalizers[finalKey];
-                        if (normType === "gb") {
-                            finalValue = finalValue.replace(/gb|gigabyte/gi, "").trim() + " GB";
-                        } else if (normType === "inch") {
-                            finalValue = finalValue.replace(/inch|inç|"/gi, "").trim() + " inç";
-                        } else if (normType === "number") {
-                            finalValue = finalValue.replace(/[^0-9]/g, "");
-                        }
-                    }
-
-                    normalizedAttributes[finalKey] = finalValue;
-                }
-
-                // 4. Description Template
-                if (config.descriptionTemplate && config.descriptionTemplate.appendBulletsFromAttributes) {
-                    let bullets = "\n\n<ul>";
-                    const order = config.descriptionTemplate.bulletOrder || Object.keys(normalizedAttributes);
-
-                    // Add ordered items first
-                    order.forEach((key: string) => {
-                        if (normalizedAttributes[key]) {
-                            bullets += `<li><strong>${key}:</strong> ${normalizedAttributes[key]}</li>`;
-                        }
-                    });
-
-                    bullets += "</ul>";
-                    details.snippet = (details.snippet || "") + bullets;
-                }
-
-                details.attributes = normalizedAttributes;
-            }
-        } catch (err) {
-            logger.warn("marketplace_mapping_failed", { err });
-        }
-        // ----------------------------------------------
+        // Use Factory Pattern for Live/Mock support
+        const provider = ImportProviderFactory.getProvider();
+        const draft = await provider.getImportDraft(url);
 
         return sendSuccessResponse(res, {
-            title: details.title || "Ürün",
-            price: details.price,
-            currency: details.currency || "TRY",
-            image: details.image,
-            snippet: details.snippet,
-            site: urlObj.hostname,
-            sourceUrl: url,
-            categoryKey: details.category, // Mapped category
-            attributes: details.attributes,
-            prefillAttributes: details.attributes // ✅ Requested by user
+            title: draft.title || "Ürün",
+            price: draft.price,
+            currency: draft.currency || "TRY",
+            image: draft.images[0], // Primary image
+            images: draft.images,
+            snippet: draft.description,
+            site: new URL(draft.sourceUrl).hostname,
+            sourceUrl: draft.sourceUrl,
+
+            // Auto-filled suggestions
+            categoryKey: draft.categorySuggestion?.name,
+            categoryId: draft.categorySuggestion?.id,
+            attributes: draft.attributes,
+            prefillAttributes: draft.attributes,
+
+            needsManualMapping: draft.needsManualMapping,
+            variants: draft.variants
         });
+
     } catch (error: any) {
         logger.error("product_import_preview_failed", { error: error.message, stack: error.stack, url: req.body.url });
 
@@ -145,7 +64,7 @@ router.post("/preview", async (req, res) => {
             return sendErrorResponse({ res, statusCode: 502, message: "Pazaryeri erişimi engellendi", error: "MARKETPLACE_BLOCK" });
         }
 
-        return sendErrorResponse({ res, statusCode: 500, message: "Önizleme başarısız", error: "PREVIEW_FAILED" });
+        return sendErrorResponse({ res, statusCode: 500, message: "Önizleme başarısız: " + (error.message || "Unknown"), error: "PREVIEW_FAILED" });
     }
 });
 
