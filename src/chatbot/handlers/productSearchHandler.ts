@@ -36,50 +36,27 @@ export class ProductSearchHandler implements ChatHandler {
         logger.info("productSearchHandler.searching", { query });
 
         try {
-            // Use real marketplace scraping
-            const { unifiedMarketplaceSearch } = await import(
-                "../../services/search/unifiedMarketplaceSearch.js"
+            // Use ProductSearchService (Factory Pattern)
+            const { productSearchService } = await import(
+                "../../services/productSearchService.js"
             );
 
-            const result = await unifiedMarketplaceSearch(query, entities);
+            const productCards = await productSearchService.searchProducts(query);
 
-            if (!result.ok) {
-                return {
-                    success: false,
-                    message: `Arama sırasında hata oluştu: ${result.error.message}`,
-                };
-            }
-
-            const foundProducts = result.value;
-
-            if (foundProducts.length === 0) {
+            if (productCards.length === 0) {
                 return {
                     success: true,
                     message: `🔍 **"${query}"** için pazaryerlerinde sonuç bulunamadı.\n\nFarklı bir arama terimi deneyin.`,
                 };
             }
 
-            // Convert to ProductCard format with real images
-            const productCards: ProductCard[] = foundProducts.map((p) => ({
-                barcode: p.barcode,
-                name: p.title,
-                price: p.price,
-                currency: p.currency || "TRY",
-                stock: p.stockCount,
-                image: p.image,       // Real marketplace image URL
-                imageUrl: p.image,    // Fallback field
-                marketplace: p.marketplace as MarketplaceName,
-                url: p.url,
-                canImport: true,
-            }));
-
             // Build response message
-            let responseMessage = `🔍 **"${query}"** için **${foundProducts.length}** sonuç bulundu:\n\n`;
+            let responseMessage = `🔍 **"${query}"** için **${productCards.length}** sonuç bulundu:\n\n`;
             responseMessage += "Kartlardan ürün detaylarını inceleyebilir, beğendiğinizi **Mağazama Ekle** ile ekleyebilirsiniz.";
 
             logger.info("productSearchHandler.success", {
                 query,
-                resultCount: foundProducts.length,
+                resultCount: productCards.length,
             });
 
             return {

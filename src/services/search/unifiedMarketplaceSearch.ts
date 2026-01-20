@@ -1,9 +1,9 @@
-import { scrapeMarketplace } from "../webScraperService.js";
 import { logger } from "../../logger.js";
 import { ChatEntity } from "../../chatbot/types.js";
 import { ok, fail, Result } from "../../utils/result.js";
 import { SearchResultItem } from "./types.js";
 import { MarketplaceName } from "../marketplace/types.js";
+import { SearchProviderFactory } from "../providers/SearchProviderFactory.js";
 
 export type SearchResult = SearchResultItem & {
   source: "api" | "scraper" | "adapter";
@@ -16,7 +16,7 @@ const CACHE_TTL = 15 * 60 * 1000; // 15 minutes
 
 /**
  * Unified marketplace search combining Google CSE and web scraping.
- * Uses CSE for broad coverage and scraping for high-confidence site data.
+ * Refactored to use SearchProviderFactory for robust execution.
  */
 export async function unifiedMarketplaceSearch(
   query: string,
@@ -37,106 +37,27 @@ export async function unifiedMarketplaceSearch(
     logger.info("unified_search.start", { query, sanitizedQuery });
     const processedQuery = sanitizedQuery;
 
-    const targetMarketplaces = [
-      { name: "Trendyol", site: "trendyol.com" },
-      { name: "Hepsiburada", site: "hepsiburada.com" },
-      { name: "N11", site: "n11.com" },
-      { name: "Ciceksepeti", site: "ciceksepeti.com" },
-      { name: "Pazarama", site: "pazarama.com" },
-      { name: "PttAVM", site: "pttavm.com" },
-    ];
+    // 1. Fetch from SearchProvider (Live or Mock)
+    const provider = SearchProviderFactory.getProvider();
+    const productCards = await provider.search(processedQuery);
 
-    // 1. Fetch from Adapters (Rich Data)
-    const adapterResults: SearchResult[] = [];
-    try {
-      const { universalProductSearch } = await import("./searchAggregator.js");
-      const { results } = await universalProductSearch(processedQuery);
-      adapterResults.push(
-        ...results.map((r: any) => ({
-          title: r.title,
-          price: r.price,
-          currency: r.currency || "TL",
-          url: r.url,
-          marketplace: r.marketplace as MarketplaceName,
-          source: "adapter" as const,
-          inStock: r.inStock ?? true,
-          brand: r.brand,
-          description: r.description,
-          barcode: r.barcode,
-          stockCount: r.stockCount,
-          attributes: r.attributes,
-          variants: r.variants,
-          image: r.imageUrl || r.image,
-        })),
-      );
-    } catch (e) {
-      logger.warn("unified_search.adapters_failed", { error: e });
-    }
+    const providerResults: SearchResult[] = productCards.map(card => ({
+        marketplace: (card.marketplace || "Genel Web") as MarketplaceName,
+        title: card.name,
+        price: card.price,
+        currency: card.currency,
+        url: card.url || "",
+        imageUrl: card.imageUrl || card.image,
+        image: card.imageUrl || card.image,
+        source: "adapter" as const,
+        inStock: (card.stock || 0) > 0,
+        stockCount: card.stock
+    }));
 
-    // Process in chunks of 3 to avoid rate limits/timeouts
-    const resultsPerSite: SearchResult[][] = [];
-    const chunkSize = 3;
-
-    for (let i = 0; i < targetMarketplaces.length; i += chunkSize) {
-      const chunk = targetMarketplaces.slice(i, i + chunkSize);
-
-      const chunkResults = await Promise.all(
-        chunk.map(async (mp) => {
-          try {
-            const { googleSearchService } = await import("./googleSearchService.js");
-            if (!googleSearchService.isConfigured()) return [];
-
-            // Targeted search: "query site:domain"
-            const siteQuery = `${processedQuery} site:${mp.site}`;
-            const candidates = await googleSearchService.findProduct(siteQuery, false);
-
-            let googleResults: SearchResult[] = [];
-            if (candidates.length > 0) {
-              googleResults = candidates.map((c) => ({
-                title: c.title,
-                price: c.price ?? 0,
-                currency: c.currency ?? "TL",
-                url: c.link,
-                image: c.image || "",
-                marketplace: mp.name as MarketplaceName,
-                source: "api" as const,
-                inStock: true,
-              }));
-            }
-
-            // Aggressive Scraping: If we have few results or missing images, always scrape
-            const needsMore = googleResults.length < 3 || googleResults.some(r => r.price === 0 || !r.image);
-            
-            if (needsMore) {
-              const scrapeRes = await scrapeMarketplace(mp.name, processedQuery, {
-                maxResults: 10,
-                timeout: 20000, 
-              }).catch(() => []);
-
-              if (scrapeRes.length > 0) {
-                const scraperMapped = scrapeRes.map((r: any) => ({
-                  ...r,
-                  marketplace: mp.name as MarketplaceName,
-                  source: "scraper" as const,
-                }));
-                // Merge and deduplicate by URL (Scraper usually has better/fresher price/image)
-                return [...scraperMapped, ...googleResults];
-              }
-            }
-            return googleResults;
-          } catch (err) {
-            logger.warn("unified_search.site_failed", { site: mp.name, error: err });
-            return [];
-          }
-        }),
-      );
-      resultsPerSite.push(...chunkResults);
-    }
-
-    const products = Array.from(new Map([
-      ...adapterResults,
-      ...(resultsPerSite.flat()),
-    ].map(r => [new URL(r.url).origin + new URL(r.url).pathname, r])).values());
+    // Deduplicate by URL
+    const products = Array.from(new Map(
+        providerResults.map(r => [r.url ? (new URL(r.url).origin + new URL(r.url).pathname) : r.title, r])
+    ).values());
 
     // FALLBACK: If no products found in marketplaces (e.g. "iPhone 17"), try general web search
     if (products.length === 0) {

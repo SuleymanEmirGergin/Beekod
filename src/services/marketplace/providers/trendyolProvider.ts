@@ -12,6 +12,7 @@ import {
   MarketplaceReviewResult,
   MarketplaceTokenStatus,
   MarketplaceUpdatePayload,
+  AdapterHealthResult
 } from "../types.js";
 import { requestJson } from "../httpClient.js";
 import { BaseMarketplaceProvider } from "./baseProvider.js";
@@ -108,6 +109,48 @@ interface TrendyolOrder {
 
 export class TrendyolProvider extends BaseMarketplaceProvider {
   name = "Trendyol" as const;
+
+  async healthCheck(): Promise<AdapterHealthResult> {
+    const start = Date.now();
+    const checks: Array<{ name: string; ok: boolean; message?: string }> = [];
+
+    // 1. Config Check
+    const config = this.getConfigStatus();
+    const isConfigured = config.configured;
+    checks.push({
+      name: "Configuration",
+      ok: isConfigured,
+      message: isConfigured ? "Settings loaded" : `Missing: ${config.missing?.join(", ")}`
+    });
+
+    // 2. Credential Check (Supplier ID specifically for Trendyol)
+    const supplierId = process.env.TRENDYOL_SUPPLIER_ID;
+    if (isConfigured) {
+      checks.push({ name: "Supplier ID", ok: !!supplierId, message: supplierId ? "Present" : "Missing Supplier ID" });
+    }
+
+    // 3. Connectivity/Capability Check (Optional ping)
+    // For now, we assume if config is good, we are ready.
+    // In future we can add a lightweight API call here.
+
+    // Determine overall statuses
+    const configStatus = isConfigured ? "READY" : "NOT_READY";
+    const capabilityStatus = "READY"; // Assuming implemented
+
+    const overallStatus = (configStatus === "READY" && capabilityStatus === "READY" && checks.every(c => c.ok))
+      ? "READY"
+      : (configStatus === "READY" ? "PARTIAL" : "NOT_READY");
+
+    return {
+      marketplace: this.name,
+      status: overallStatus,
+      configStatus,
+      capabilityStatus,
+      checks,
+      latencyMs: Date.now() - start,
+      timestamp: new Date().toISOString()
+    };
+  }
 
   async refreshToken(): Promise<Result<MarketplaceActionResult>> {
     return fail(new Error("Trendyol uses long-lived API credentials. Token refresh is not supported."));

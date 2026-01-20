@@ -8,6 +8,8 @@ import { query } from "../../db.js";
 import { Product } from "../../types.js";
 import { logger } from "../../logger.js";
 import { ok, fail, Result } from "../../utils/result.js";
+import { VersionConflictError } from "../../errors/VersionConflictError.js";
+import { enqueueSyncJob } from "../queue/syncProducer.js";
 
 // Re-export specific modules
 export * from "./modules/productSearchService.js";
@@ -39,6 +41,7 @@ export async function upsertProduct(input: {
   preparation_days?: number;
   product_type?: 'standard' | 'packet' | 'digital';
   alert_threshold?: number;
+  version?: number; // Optimistic Lock
 }): Promise<Result<Product>> {
   try {
     const existing = await getProductByBarcode(input.barcode);
@@ -56,7 +59,21 @@ export async function upsertProduct(input: {
       if (imageUrl) updates.image = imageUrl;
       if (input.alert_threshold) updates.alert_threshold = input.alert_threshold;
 
-      await updateProduct(input.barcode, updates);
+      // Optimistic Locking Check
+      if (input.version !== undefined) {
+          if (existing.value.version !== input.version) {
+              return fail(new VersionConflictError());
+          }
+          // Pass version to updateProduct for atomic check-and-set
+          updates.version = input.version;
+      }
+
+      const updated = await updateProduct(input.barcode, updates);
+      if (!updated && input.version !== undefined) {
+          // If updated is false, it might mean the version check failed in the SQL (race condition)
+          return fail(new VersionConflictError());
+      }
+
       return getProductByBarcode(input.barcode);
     } else {
       // Insert
@@ -79,6 +96,15 @@ export async function upsertProduct(input: {
       ];
       
       await query(sql, params);
+
+      // Enqueue Sync Job for new products
+      enqueueSyncJob({
+          barcode: input.barcode,
+          price: input.price,
+          stock: input.stock,
+          targets: ["all"]
+      }).catch(err => logger.error("upsertProduct.sync_enqueue_failed", { error: err, barcode: input.barcode }));
+
       return getProductByBarcode(input.barcode);
     }
   } catch (error) {
@@ -88,23 +114,54 @@ export async function upsertProduct(input: {
 }
 
 /**
- * Basic Update Product
+ * Basic Update Product (Supports Optimistic Locking)
  */
 export async function updateProduct(
   barcode: string,
-  updates: Partial<Product>
+  updates: Partial<Product> & { version?: number }
 ): Promise<boolean> {
+  // Extract version for WHERE clause if present
+  const currentVersion = updates.version;
+  delete updates.version; // Don't set version explicitly in the SET clause like 'version = ?'
+
   const keys = Object.keys(updates).filter(k => k !== 'barcode' && k !== 'id' && (updates as any)[k] !== undefined);
   if (keys.length === 0) return false;
 
-  const setClause = keys.map(k => `${k} = ?`).join(", ");
+  // Build SET clause (always increment version)
+  const setClause = keys.map(k => `${k} = ?`).join(", ") + ", version = version + 1";
   const values = keys.map(k => (updates as any)[k]);
+
+  // WHERE Clause
+  let sql = `UPDATE products SET ${setClause}, updated_at = NOW() WHERE barcode = ?`;
   values.push(barcode);
 
-  const sql = `UPDATE products SET ${setClause}, updated_at = NOW() WHERE barcode = ?`;
+  // Optimistic Lock Check
+  if (currentVersion !== undefined) {
+      sql += " AND version = ?";
+      values.push(currentVersion);
+  }
+
   try {
     const result = await query(sql, values);
-    return (result as any).affectedRows > 0;
+    const success = (result as any).affectedRows > 0;
+
+    if (success && (updates.price !== undefined || updates.stock !== undefined)) {
+        // Enqueue Sync Job for updates
+        // Fetch latest state to ensure consistency or use provided values if we trust them.
+        // To be safe, we use getProductByBarcode to get the full authoritative state.
+        getProductByBarcode(barcode).then(res => {
+            if (res.ok) {
+                enqueueSyncJob({
+                    barcode,
+                    price: res.value.price,
+                    stock: res.value.stock,
+                    targets: ["all"]
+                }).catch(err => logger.error("updateProduct.sync_enqueue_failed", { error: err, barcode }));
+            }
+        });
+    }
+
+    return success;
   } catch (error) {
     logger.error("updateProduct.error", { error, barcode });
     return false;

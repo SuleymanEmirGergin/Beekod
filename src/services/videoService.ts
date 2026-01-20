@@ -3,21 +3,16 @@ import { logger } from "../logger.js";
 import { runVirtualTryOn, generateProductVideo } from "./visualIntelligenceService.js";
 import { NotFoundError, InternalError } from "../errors/AppError.js";
 import { getGeminiProvider } from "../ai/providers/gemini/GeminiProvider.js";
+import { modelService } from "./media/modelService.js";
+import { qualityGateService, QualityRejectedError } from "./media/qualityGateService.js";
 
-// Mannequin stock images for virtual try-on
-const MANNEQUIN_IMAGES = {
-  male: [
-    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=1200&fit=crop",
-    "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800&h=1200&fit=crop",
-  ],
-  female: [
-    "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&h=1200&fit=crop",
-    "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&h=1200&fit=crop",
-  ],
-  neutral: [
-    "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=800&h=1200&fit=crop",
-  ]
-};
+export class VideoFailedError extends InternalError {
+  constructor(message: string) {
+    super(message);
+    this.name = "VideoFailedError";
+    this.statusCode = 503;
+  }
+}
 
 export interface VideoScript {
   title: string;
@@ -35,15 +30,6 @@ export interface VideoScript {
   hashtags: string[];
   bgMusicStyle?: string;
   overlayText?: string;
-}
-
-/**
- * Helper: Select a random mannequin image based on gender
- */
-function selectMannequin(gender: 'male' | 'female' | 'neutral'): string {
-  const images = MANNEQUIN_IMAGES[gender] || MANNEQUIN_IMAGES.neutral;
-  const randomIndex = Math.floor(Math.random() * images.length);
-  return images[randomIndex];
 }
 
 /**
@@ -79,10 +65,11 @@ function buildMotionPrompt(vibe: string, _category?: string): string {
  * Main function: Generate video using Fal.ai virtual try-on workflow
  * 
  * Flow:
- * 1. Select mannequin based on product category
+ * 1. Select mannequin based on product category (or ID)
  * 2. Run virtual try-on using Fal.ai IDM-VTON
- * 3. Convert try-on result to video using Fal.ai Kling
- * 4. Return video URL
+ * 3. Validate Quality (Quality Gate)
+ * 4. Convert try-on result to video using Fal.ai Kling
+ * 5. Return video URL
  */
 export const generateTryOnVideo = async (
   barcode: string,
@@ -99,9 +86,19 @@ export const generateTryOnVideo = async (
   const product = productResult.value;
 
   // 2. Select appropriate mannequin
-  const gender = options?.gender || detectGenderFromCategory(product.category);
-  const mannequinUrl = selectMannequin(gender);
-  logger.info("video.mannequin_selected", { gender, mannequinUrl });
+  let mannequinUrl: string;
+
+  if (options?.baseModelId) {
+    const model = await modelService.getBaseModel(options.baseModelId);
+    if (!model) throw new NotFoundError(`Base model ${options.baseModelId} not found`);
+    mannequinUrl = model.imageUrl;
+  } else {
+    const gender = options?.gender || detectGenderFromCategory(product.category);
+    const model = await modelService.getDefaultModel(gender);
+    mannequinUrl = model?.imageUrl || "https://via.placeholder.com/800x1200?text=Default+Model"; // Fallback
+  }
+
+  logger.info("video.mannequin_selected", { mannequinUrl });
 
   // 3. Get product image
   const productImage = (product.images && product.images.length > 0)
@@ -116,12 +113,29 @@ export const generateTryOnVideo = async (
   logger.info("video.try_on_start", { barcode, mannequin: mannequinUrl, product: productImage });
   const tryOnImageUrl = await runVirtualTryOn(mannequinUrl, productImage, "tops");
 
-  // 5. Build motion prompt based on vibe
+  // 5. Quality Gate
+  try {
+    await qualityGateService.validate(tryOnImageUrl);
+  } catch (error: any) {
+    if (error.name === "QualityRejectedError") {
+      logger.warn("video.quality_rejected", { score: error.score, url: tryOnImageUrl });
+      // Retry logic could go here (e.g. try different seed), for now we fail or just log
+      // Requirement says: retry up to 1 time.
+      // Simple retry logic implementation:
+      logger.info("video.quality_retry", { barcode });
+      const retryUrl = await runVirtualTryOn(mannequinUrl, productImage, "tops"); // Ideally pass new seed
+      await qualityGateService.validate(retryUrl); // If fails again, it throws
+    } else {
+      throw error;
+    }
+  }
+
+  // 6. Build motion prompt based on vibe
   const vibe = options?.vibe || "dynamic";
   const motionPrompt = buildMotionPrompt(vibe, product.category);
   logger.info("video.motion_prompt", { vibe, prompt: motionPrompt });
 
-  // 6. Convert try-on image to video using Fal.ai Kling
+  // 7. Convert try-on image to video using Fal.ai Kling
   logger.info("video.image_to_video_start", { tryOnImage: tryOnImageUrl });
   const videoResult = await generateProductVideo(tryOnImageUrl, motionPrompt);
 
@@ -243,6 +257,11 @@ export const generateVideoScript = async (
 const PEXELS_API_KEY = process.env.PEXELS_API_KEY || "563492ad6f917000010000019056d3d4554247898864315264875321";
 
 export const generateVideoMedia = async (barcode: string, _script: VideoScript): Promise<{ url: string }> => {
+  // Check Feature Flag
+  if (process.env.ENABLE_STOCK_VIDEO_FALLBACK !== 'true') {
+      throw new VideoFailedError("Stock video fallback is disabled");
+  }
+
   const productResult = await getProductByBarcode(barcode);
   if (!productResult.ok) throw new NotFoundError("Product not found");
   const product = productResult.value;

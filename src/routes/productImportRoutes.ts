@@ -1,12 +1,9 @@
 import { Router } from "express";
 import { z } from "zod";
-import { googleSearchService } from "../services/search/googleSearchService.js";
-import { scrapeProductFromUrl } from "../services/productScraper.js";
+import { ImportProviderFactory } from "../services/providers/ImportProviderFactory.js";
 import { sendSuccessResponse, sendErrorResponse } from "../utils/responseHelper.js";
-import { upsertProduct } from '../services/product/productService.js';
 import { logger } from "../logger.js";
-import fs from "fs/promises";
-import path from "path";
+import { ImportError } from "../errors/ImportErrors.js";
 
 const router = Router();
 
@@ -17,10 +14,11 @@ const PreviewSchema = z.object({
 });
 
 router.post("/preview", async (req, res) => {
+    const traceId = (req as any).traceId || `req-${Date.now()}`;
     try {
         const { url } = PreviewSchema.parse(req.body);
 
-        // SSRF koruması - internal IP'leri blokla
+        // SSRF protection
         const urlObj = new URL(url);
         const hostname = urlObj.hostname.toLowerCase();
 
@@ -36,173 +34,109 @@ router.post("/preview", async (req, res) => {
             return sendErrorResponse({ res, statusCode: 400, message: "Geçersiz URL", error: "SSRF_BLOCKED" });
         }
 
-        const scraped = await scrapeProductFromUrl(url);
-        if (!scraped) {
-            return sendErrorResponse({ res, statusCode: 404, message: "Ürün bilgileri çekilemedi", error: "SCRAPE_FAILED" });
-        }
+        // Use Factory Pattern for Live/Mock support
+        const provider = ImportProviderFactory.getProvider();
+        logger.info("preview.start", { traceId, url });
 
-        const details = {
-            title: scraped.name,
-            description: scraped.description,
-            price: scraped.price,
-            currency: scraped.currency,
-            image: scraped.imageUrl,
-            category: scraped.category,
-            attributes: scraped.attributes,
-            barcode: scraped.barcode,
-            snippet: scraped.description
-        };
-
-        // --- NEW: Attribute Mapping & Normalization ---
-        try {
-            const mappingsPath = path.resolve(process.cwd(), "data/marketplace-mappings.json");
-            const mappingsData = await fs.readFile(mappingsPath, "utf-8");
-            const mappings = JSON.parse(mappingsData);
-
-            // 1. Identify Provider (e.g. Trendyol)
-            let providerKey = null;
-            for (const [key, config] of Object.entries(mappings) as any) {
-                if (config.domains.some((d: string) => urlObj.hostname.includes(d))) {
-                    providerKey = key;
-                    break;
-                }
-            }
-
-            if (providerKey && details.attributes) {
-                const config = mappings[providerKey];
-                const normalizedAttributes: Record<string, string> = {};
-
-                // 2. Normalize Attributes
-                for (const [rawKey, rawValue] of Object.entries(details.attributes)) {
-                    let finalKey = rawKey;
-
-                    // Check synonyms
-                    if (config.attributeSynonyms) {
-                        for (const [canonicalKey, synonyms] of Object.entries(config.attributeSynonyms)) {
-                            // @ts-ignore
-                            if (synonyms.some(s => s.toLowerCase() === rawKey.toLowerCase())) {
-                                finalKey = canonicalKey;
-                                break;
-                            }
-                        }
-                    }
-
-                    // 3. Normalize Values
-                    let finalValue = String(rawValue);
-                    if (config.valueNormalizers && config.valueNormalizers[finalKey]) {
-                        const normType = config.valueNormalizers[finalKey];
-                        if (normType === "gb") {
-                            finalValue = finalValue.replace(/gb|gigabyte/gi, "").trim() + " GB";
-                        } else if (normType === "inch") {
-                            finalValue = finalValue.replace(/inch|inç|"/gi, "").trim() + " inç";
-                        } else if (normType === "number") {
-                            finalValue = finalValue.replace(/[^0-9]/g, "");
-                        }
-                    }
-
-                    normalizedAttributes[finalKey] = finalValue;
-                }
-
-                // 4. Description Template
-                if (config.descriptionTemplate && config.descriptionTemplate.appendBulletsFromAttributes) {
-                    let bullets = "\n\n<ul>";
-                    const order = config.descriptionTemplate.bulletOrder || Object.keys(normalizedAttributes);
-
-                    // Add ordered items first
-                    order.forEach((key: string) => {
-                        if (normalizedAttributes[key]) {
-                            bullets += `<li><strong>${key}:</strong> ${normalizedAttributes[key]}</li>`;
-                        }
-                    });
-
-                    bullets += "</ul>";
-                    details.snippet = (details.snippet || "") + bullets;
-                }
-
-                details.attributes = normalizedAttributes;
-            }
-        } catch (err) {
-            logger.warn("marketplace_mapping_failed", { err });
-        }
-        // ----------------------------------------------
+        const draft = await provider.getImportDraft(url);
 
         return sendSuccessResponse(res, {
-            title: details.title || "Ürün",
-            price: details.price,
-            currency: details.currency || "TRY",
-            image: details.image,
-            snippet: details.snippet,
-            site: urlObj.hostname,
-            sourceUrl: url,
-            categoryKey: details.category, // Mapped category
-            attributes: details.attributes,
-            prefillAttributes: details.attributes // ✅ Requested by user
+            title: draft.title || "Ürün",
+            price: draft.price,
+            currency: draft.currency || "TRY",
+            image: draft.images[0], // Primary image
+            images: draft.images,
+            snippet: draft.description,
+            site: new URL(draft.sourceUrl).hostname,
+            sourceUrl: draft.sourceUrl,
+
+            // Auto-filled suggestions
+            categoryKey: draft.categorySuggestion?.name,
+            categoryId: draft.categorySuggestion?.id,
+            attributes: draft.attributes,
+            prefillAttributes: draft.attributes,
+
+            needsManualMapping: draft.needsManualMapping,
+            variants: draft.variants
         });
+
     } catch (error: any) {
-        logger.error("product_import_preview_failed", { error: error.message, stack: error.stack, url: req.body.url });
+        logger.error("product_import_preview_failed", { traceId, error: error.message, stack: error.stack, url: req.body.url });
+
+        if (error instanceof ImportError) {
+            return sendErrorResponse({ res, statusCode: error.statusCode, message: error.message, error: error.code });
+        }
 
         if (error.response && (error.response.status === 403 || error.response.status === 429)) {
             return sendErrorResponse({ res, statusCode: 502, message: "Pazaryeri erişimi engellendi", error: "MARKETPLACE_BLOCK" });
         }
 
-        return sendErrorResponse({ res, statusCode: 500, message: "Önizleme başarısız", error: "PREVIEW_FAILED" });
+        return sendErrorResponse({ res, statusCode: 500, message: "Önizleme başarısız: " + (error.message || "Unknown"), error: "PREVIEW_FAILED" });
     }
 });
 
 // POST /api/product-import/import
-// Imports a product from external URL with snapshot data
+// Imports a product using the provider pipeline (supports options for overrides)
 const ImportSchema = z.object({
     sourceUrl: z.string().url(),
-    title: z.string().min(1),
-    category: z.string().optional(),
+    providerId: z.enum(["shopify", "woocommerce"]).optional(),
+
+    // Optional overrides from UI edit
+    title: z.string().optional(),
+    category: z.string().optional(), // Maps to categorySuggestion.name
     price: z.preprocess((val) => (typeof val === 'string' ? Number(val.replace(',', '.')) : val), z.number()).optional(),
     currency: z.string().optional(),
-    stock: z.preprocess((val) => Number(val), z.number().int().nonnegative()).optional(),
-    barcode: z.string().optional(),
     description: z.string().optional(),
-    imageUrl: z.string().url().optional()
+    imageUrl: z.string().url().optional(),
+    attributes: z.record(z.string()).optional()
 });
 
 router.post("/import", async (req, res) => {
-    logger.info("product_import_request", { payload: req.body });
+    const traceId = (req as any).traceId || `req-${Date.now()}`;
+    logger.info("product_import_request", { traceId, payload: req.body });
+
     try {
         const data = ImportSchema.parse(req.body);
-        const urlObj = new URL(data.sourceUrl);
 
-        // Barcode yoksa otomatik generate et (WEB- prefix ile)
-        const barcode = data.barcode || `WEB-${Date.now()}`;
-
-        // Ürün oluştur - yeni alanlar eklenecek (Phase 4'te schema update)
-        const product = await upsertProduct({
-            barcode,
-            name: data.title,
-            category: data.category,
-            price: data.price || 0,
-            stock: data.stock || 0,
-            currency: data.currency || "TRY",
+        // Transform schema to ImportDraft options
+        const options = {
+            title: data.title,
+            price: data.price,
+            currency: data.currency,
             description: data.description,
-            imageUrl: data.imageUrl,
             images: data.imageUrl ? [data.imageUrl] : undefined,
-            // Yeni alanlar (schema update sonrası aktif olacak)
-            sourceUrl: data.sourceUrl,
-            sourceSite: urlObj.hostname,
-            snapshotPrice: data.price,
-            snapshotCurrency: data.currency,
-            snapshotAt: new Date()
-        } as any); // Type assertion - schema update sonrası kaldırılacak
+            attributes: data.attributes,
+            categorySuggestion: data.category ? { name: data.category, id: "manual", confidence: 1, source: "manual" as const } : undefined
+        };
 
-        return sendSuccessResponse(res, { product });
+        const provider = ImportProviderFactory.getProvider();
+        const result = await provider.importProduct(data.sourceUrl, data.providerId, options);
+
+        if (!result.success) {
+            return sendErrorResponse({
+                res,
+                statusCode: 500,
+                message: result.error || "İçe aktarma başarısız",
+                error: "IMPORT_FAILED"
+            });
+        }
+
+        return sendSuccessResponse(res, {
+            product: {
+                localId: result.localId,
+                name: result.productName,
+                provider: result.provider
+            },
+            editUrl: result.editUrl
+        });
+
     } catch (error: any) {
         if (error instanceof z.ZodError) {
-            logger.warn("product_import_validation_failed", { errors: error.errors, body: req.body });
+            logger.warn("product_import_validation_failed", { traceId, errors: error.errors });
             return sendErrorResponse({ res, statusCode: 400, message: "Doğrulama başarısız (" + error.errors[0]?.message + ")", error: "INVALID_DATA" });
         }
 
-        logger.error("product_import_failed", { error: error.message, code: error.code, stack: error.stack });
-
-        if (error.code && error.code.startsWith('ER_')) {
-            return sendErrorResponse({ res, statusCode: 500, message: "Veritabanı Hatası (" + error.code + ")", error: "DB_ERROR" });
-        }
+        logger.error("product_import_failed", { traceId, error: error.message, stack: error.stack });
 
         return sendErrorResponse({ res, statusCode: 500, message: "İçe aktarma başarısız: " + (error.message || "Bilinmeyen hata"), error: "IMPORT_FAILED" });
     }
