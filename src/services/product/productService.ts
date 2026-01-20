@@ -9,6 +9,7 @@ import { Product } from "../../types.js";
 import { logger } from "../../logger.js";
 import { ok, fail, Result } from "../../utils/result.js";
 import { VersionConflictError } from "../../errors/VersionConflictError.js";
+import { enqueueSyncJob } from "../queue/syncProducer.js";
 
 // Re-export specific modules
 export * from "./modules/productSearchService.js";
@@ -95,6 +96,15 @@ export async function upsertProduct(input: {
       ];
       
       await query(sql, params);
+
+      // Enqueue Sync Job for new products
+      enqueueSyncJob({
+          barcode: input.barcode,
+          price: input.price,
+          stock: input.stock,
+          targets: ["all"]
+      }).catch(err => logger.error("upsertProduct.sync_enqueue_failed", { error: err, barcode: input.barcode }));
+
       return getProductByBarcode(input.barcode);
     }
   } catch (error) {
@@ -133,7 +143,25 @@ export async function updateProduct(
 
   try {
     const result = await query(sql, values);
-    return (result as any).affectedRows > 0;
+    const success = (result as any).affectedRows > 0;
+
+    if (success && (updates.price !== undefined || updates.stock !== undefined)) {
+        // Enqueue Sync Job for updates
+        // Fetch latest state to ensure consistency or use provided values if we trust them.
+        // To be safe, we use getProductByBarcode to get the full authoritative state.
+        getProductByBarcode(barcode).then(res => {
+            if (res.ok) {
+                enqueueSyncJob({
+                    barcode,
+                    price: res.value.price,
+                    stock: res.value.stock,
+                    targets: ["all"]
+                }).catch(err => logger.error("updateProduct.sync_enqueue_failed", { error: err, barcode }));
+            }
+        });
+    }
+
+    return success;
   } catch (error) {
     logger.error("updateProduct.error", { error, barcode });
     return false;
