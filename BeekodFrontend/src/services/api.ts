@@ -45,7 +45,7 @@ api.interceptors.request.use(
     }
 
     // Add admin key for backend authentication
-    config.headers['x-admin-key'] = 'Threem123';
+    config.headers['x-admin-key'] = '325f0006ad5d9f4e8b2c1a7e3d6f9b8c4e2a1f7d3b9c5e8a2f6d4b1c7e9a3f5d';
 
     return config;
   },
