@@ -46,6 +46,17 @@ This document summarizes the audit and refactoring of the AI-powered e-commerce 
     *   **Concurrency:** Configured global concurrency limit (5 parallel jobs) and rate limiting (100 jobs/min) to protect external APIs.
     *   **Resilience:** `LiveSearchProvider` and Sync Workers now share the same robust infrastructure.
 
+## 5. Adapter Readiness
+**Status: VERIFIED**
+
+*   **Audit:**
+    *   Marketplace providers lacked a consistent way to report their configuration and operational status.
+*   **Actions Taken:**
+    *   **Standardization:** Implemented `healthCheck()` across all 6 providers:
+        *   Trendyol, Hepsiburada, N11, Ciceksepeti, Pazarama, PttAVM.
+    *   **Deterministic Runner:** Created `AdapterTestRunner` to execute checks in a fixed order and return typed `AdapterHealthResult` objects.
+    *   **Reporting:** Readiness is now explicitly categorized as READY, PARTIAL, or NOT_READY based on configuration and capability checks.
+
 ## Remaining Recommendations
 1.  **Granular Rate Limiting:** Currently, rate limiting is global. Future iterations should implement per-marketplace limiters (e.g., separate queues or limiters for Trendyol vs Hepsiburada).
 2.  **Sync Feedback Loop:** The UI currently receives success upon local save. Implementing a WebSocket or Polling mechanism to report *Sync* status (Success/Partial/Failed) to the user would improve UX.
