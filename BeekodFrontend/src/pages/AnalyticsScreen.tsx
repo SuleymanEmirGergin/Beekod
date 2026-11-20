@@ -93,7 +93,6 @@ export function AnalyticsScreen({ onNavigate }: AnalyticsScreenProps) {
         activeItem="analytics"
         onNavigate={onNavigate}
         userName="Emir"
-        userEmail="emir@beekod.com"
       />
 
       <div className="flex-1 flex flex-col overflow-hidden">

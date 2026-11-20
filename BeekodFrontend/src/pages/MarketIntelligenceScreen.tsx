@@ -54,7 +54,6 @@ export function MarketIntelligenceScreen({ onNavigate }: MarketIntelligenceScree
         activeItem="intelligence"
         onNavigate={onNavigate}
         userName="Emir"
-        userEmail="emir@beekod.com"
       />
 
       <div className="flex-1 flex flex-col overflow-hidden relative">

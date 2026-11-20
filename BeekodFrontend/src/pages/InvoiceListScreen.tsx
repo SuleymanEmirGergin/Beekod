@@ -94,7 +94,6 @@ export function InvoiceListScreen({ onNavigate }: InvoiceListScreenProps) {
         activeItem={'invoices'}
         onNavigate={onNavigate}
         userName="Emir"
-        userEmail="emir@beekod.com"
       />
 
       <main className="flex-1 flex flex-col overflow-hidden">

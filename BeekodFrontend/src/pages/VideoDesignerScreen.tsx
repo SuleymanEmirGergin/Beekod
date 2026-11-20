@@ -251,7 +251,6 @@ export function VideoDesignerScreen({ onNavigate }: VideoDesignerScreenProps) {
           activeItem="video-designer"
           onNavigate={onNavigate}
           userName="Emir"
-          userEmail="emir@beekod.com"
         />
       </div>
 

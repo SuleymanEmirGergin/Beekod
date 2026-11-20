@@ -11,10 +11,6 @@ async function listN11Products() {
     }
 
     // Temporarily set env for this process
-    // APIKey: f2a82719-3b29-4415-a101-dbc7af94c2ac
-    // SecretKey: QciNuHw1fiqAnics
-    process.env.N11_API_KEY = "f2a82719-3b29-4415-a101-dbc7af94c2ac";
-    process.env.N11_API_SECRET = "QciNuHw1fiqAnics";
     process.env.N11_API_BASE = "https://api.n11.com";
 
     console.log("Configured:", provider.isConfigured());

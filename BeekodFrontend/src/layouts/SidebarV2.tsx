@@ -23,6 +23,7 @@ import {
   Megaphone,
 } from 'lucide-react';
 import { NotificationCenter } from '../components/NotificationCenter';
+import { useAuth } from '../context/AuthContext';
 
 interface SidebarV2Props {
   activeItem: string;
@@ -43,6 +44,11 @@ export function SidebarV2({
   onTokenClick,
   ordersBadge,
 }: SidebarV2Props) {
+  // Show the signed-in user; the props are only a fallback.
+  const { user } = useAuth();
+  const name = user?.name ?? userName;
+  const email = user?.email ?? userEmail;
+
   const mainMenuItems = [
     { id: 'dashboard', label: 'Panel', icon: LayoutDashboard },
     { id: 'inventory', label: 'Envanter', icon: Package },
@@ -152,7 +158,7 @@ export function SidebarV2({
       </nav>
 
       {/* User profile */}
-      {userName && (
+      {name && (
         <div className="p-4 border-t border-gray-100 space-y-3">
           {/* Token Balance */}
           {tokenBalance !== undefined && (
@@ -194,13 +200,13 @@ export function SidebarV2({
             <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center ring-2 ring-transparent group-hover:ring-[#F5B800] transition-all">
               <img
                 src="https://images.unsplash.com/photo-1629507208649-70919ca33793?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBidXNpbmVzcyUyMG1hbiUyMHN1aXR8ZW58MXx8fHwxNzY2NzYwMTYyfDA&ixlib=rb-4.1.0&q=80&w=400"
-                alt={userName}
+                alt={name}
                 className="w-full h-full rounded-full object-cover"
               />
             </div>
             <div className="flex-1 min-w-0 text-left">
-              <div className="text-sm text-gray-900">{userName}</div>
-              <div className="text-xs text-gray-500 truncate">{userEmail}</div>
+              <div className="text-sm text-gray-900">{name}</div>
+              <div className="text-xs text-gray-500 truncate">{email}</div>
             </div>
           </button>
         </div>

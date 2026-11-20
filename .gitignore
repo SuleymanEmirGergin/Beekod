@@ -82,3 +82,9 @@ Thumbs.db
 *.swp
 *.swo
 *~
+
+# Local debug output (may contain credential details)
+*_creds*.txt
+creds_*.txt
+temp_env_check.txt
+n11-api-test-output.txt

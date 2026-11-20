@@ -1,9 +1,7 @@
 import "../../env.js";
 import { getMarketplaceProvider } from "../../src/services/marketplace/index.js";
 
-// Set N11 credentials for this session
-process.env.N11_API_KEY = "f2a82719-3b29-4415-a101-dbc7af94c2ac";
-process.env.N11_API_SECRET = "QciNuHw1fiqAnics";
+// N11 credentials come from .env (env.js)
 process.env.N11_API_BASE = "https://api.n11.com";
 
 interface ProductData {

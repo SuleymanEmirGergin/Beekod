@@ -101,7 +101,6 @@ export function FinancialAnalyticsScreen({ onNavigate }: FinancialAnalyticsScree
         activeItem="analytics"
         onNavigate={onNavigate}
         userName="Emir"
-        userEmail="emir@beekod.com"
       />
 
       <div className="flex-1 flex flex-col overflow-hidden">

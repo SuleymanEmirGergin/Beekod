@@ -287,7 +287,6 @@ export function ProductManagementScreen({ onNavigate }: ProductManagementScreenP
         activeItem="products"
         onNavigate={onNavigate}
         userName="Emir"
-        userEmail="emir@beekod.com"
         ordersBadge={12}
       />
 

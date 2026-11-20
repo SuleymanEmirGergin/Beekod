@@ -5,8 +5,6 @@ async function debugN11Price() {
     console.log("=== Debugging N11 Price Logic ===\n");
     
     // Set credentials
-    process.env.N11_API_KEY = "f2a82719-3b29-4415-a101-dbc7af94c2ac";
-    process.env.N11_API_SECRET = "QciNuHw1fiqAnics";
     process.env.N11_API_BASE = "https://api.n11.com";
 
     const provider = getMarketplaceProvider("N11");

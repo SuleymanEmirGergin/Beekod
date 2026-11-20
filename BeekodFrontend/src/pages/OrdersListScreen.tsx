@@ -349,7 +349,6 @@ export function OrdersListScreen({ onNavigate }: OrdersListScreenProps) {
         activeItem="orders"
         onNavigate={onNavigate}
         userName="Emir"
-        userEmail="emir@beekod.com"
         ordersBadge={12}
       />
 

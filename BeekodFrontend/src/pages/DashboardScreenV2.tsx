@@ -145,7 +145,6 @@ export function DashboardScreenV2({ onNavigate }: DashboardScreenV2Props) {
         activeItem={activeItem}
         onNavigate={onNavigate}
         userName="Emir"
-        userEmail="emir@beekod.com"
         ordersBadge={3}
       />
 
